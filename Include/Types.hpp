@@ -20,4 +20,5 @@ using ClockTime=Uint64;
 using ClockTick=Uint64;
 using ErrorType=Sint32;
 
+using PID=Sint32;
 #endif

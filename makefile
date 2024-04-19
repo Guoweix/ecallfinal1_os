@@ -18,8 +18,7 @@ Build/Kernel.elf:$(BUILD_ELF_FILES)
 
 
 run:Build/Kernel.elf
-	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 128M -nographic -smp 2 -bios SBI/opensbi-qemu.elf 
-
+	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 128M -nographic -smp 2 -bios SBI_BIN/opensbi-qemu.elf -drive file=SBI_BIN/udisk.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
 
 
 $(TARGET_DIR)/%.elf: %.cpp
