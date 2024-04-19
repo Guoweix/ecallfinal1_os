@@ -3,7 +3,7 @@
 
 #include <Types.hpp>
 
-// 定义不同大小的Slab和数量
+// 定义不同大小的Slab和数量，page分配大小
 #define SLAB_SIZE_B1   64
 #define SLAB_SIZE_B2   512
 #define SLAB_SIZE_B3   1024
