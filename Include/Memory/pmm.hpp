@@ -101,7 +101,9 @@ inline void kfree(void* freeaddress)
     }
 }
 
+void  Kfree(void *addr);
+
 template <typename T> inline T* KmallocT()
-{return (T*)Kmalloc(sizeof(T));}
+{return (T*)kmalloc(sizeof(T));}
 
 #endif

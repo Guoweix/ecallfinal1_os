@@ -3,6 +3,7 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Memory/pmm.hpp>
+#include <Memory/vmm.hpp>
 #include <Memory/slab.hpp>
 
 extern "C"
@@ -20,11 +21,6 @@ namespace POS
 
 void pmm_test()
 {
-	pmm.Init();
-    pmm.show();
-    
-	slab.Init();
-
     // 在 slab 中进行内存分配测试
     void* memory64B = kmalloc(64);
 	if (memory64B)
@@ -57,14 +53,41 @@ void pmm_test()
 	pmm.show();*/
 }
 
+void pagefault_test(){
+	VirtualMemorySpace::Current()->InsertVMR(new VirtualMemoryRegion(0x100,0x200,VirtualMemoryRegion::VM_RW|VirtualMemoryRegion::VM_Kernel));//插入新的vmr
+	*(char*)0x100='A';
+	
+	kout[Test]<<"Original VMS:"<<(char*)0x100<<endl;
+	
+	VirtualMemorySpace *vms=new VirtualMemorySpace();
+	vms->Init();
+	vms->Create();
+	vms->Enter();
+	vms->InsertVMR(new VirtualMemoryRegion(0x100,0x200,VirtualMemoryRegion::VM_RW|VirtualMemoryRegion::VM_Kernel));
+	*(char*)0x100='B';
+	
+	kout[Test]<<"New VMS:"<<(char*)0x100<<endl;
+	vms->Leave();
+	kout[Test]<<"Leave New VMS:"<<(char*)0x100<<endl;
+	
+	vms->Destroy();
+	delete vms;
+}
+
 int main() 
 {
 	TrapInit();
 	ClockInit();
 	InterruptEnable();
 	kout[Info]<<"System start success!"<<endl;
-	
-	pmm_test();
+	pmm.Init();
+    pmm.show();
+	slab.Init();
+
+	VirtualMemorySpace::InitStatic();
+
+	//pmm_test();
+    pagefault_test();
 
 	//Below do nothing...
 	auto Sleep=[](int n){while (n-->0);};

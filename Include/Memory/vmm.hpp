@@ -128,7 +128,7 @@ class PageTable{//页表项
 		
 	public:
 		template <unsigned n> static inline unsigned VPN(PtrUint kaddr){
-			constexpr unsigned i=PageSizeBit+n*PageTableEntryCountBit,
+			constexpr unsigned i=12+n*PageTableEntryCountBit,
 							   m=(1<<PageTableEntryCountBit)-1;
 			return kaddr>>i&m;
 		}
@@ -431,7 +431,8 @@ class VirtualMemorySpace{
                     }
                 // 如果分配失败或者不是第一次引用，则尝试按照原逻辑处理
                 }
-
+			}
+			{
 				PageTable::Entry &e2=(*PDT)[PageTable::VPN<2>(tf->tval)];
 				PageTable *pt2;//建立新页表
 				if (!e2.Valid()){

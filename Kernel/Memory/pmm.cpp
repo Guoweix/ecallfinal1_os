@@ -177,4 +177,11 @@ void PMM::free(void* freeaddress)
     return;
 }
 
+void Kfree(void *p){
+	kout[MemTest]<<"Kfree "<<p<<endl;
+	pmm.free(pmm.get_page_from_addr(p));
+	kout[MemTest]<<"Kfree "<<p<<" Success"<<endl;
+}
+
+
 PMM pmm;

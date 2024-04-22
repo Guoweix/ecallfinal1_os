@@ -1,5 +1,5 @@
 #include <Process/Process.hpp>
-#include <Library/Kstring.hpp>
+#include <Library/String/StringTools.hpp>
 #include <Trap/Clock.hpp>
 #include <Library/KoutSingle.hpp>
 
@@ -20,7 +20,7 @@ void ProcessManager::init()
 
 bool Process::setName(const char * _name )
 {
-    strcpy(name,_name);
+    strCopy(name,_name);
     return 0;
 }
 

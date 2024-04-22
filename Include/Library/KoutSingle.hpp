@@ -13,13 +13,13 @@ extern "C"
 	void Putchar(char ch);
 };
 
+#include "TemplateTools.hpp"
+#include "../Trap/Interrupt.hpp"
+
 namespace POS
 {
-	using Uint64=unsigned long long;
-	
-	
-
-
+//	using Uint64=unsigned long long;
+//	
 	inline void Puts(const char *s)
 	{
 		if (s==nullptr)
@@ -27,17 +27,17 @@ namespace POS
 		while (*s)
 			Putchar(*s++);
 	}
-	
-	template <typename T> inline void Swap(T &x,T &y)
-	{
-		T t=x;
-		x=y;
-		y=t;
-	}
-	
-	template <typename T1,typename T2,typename T3> inline bool InRange(const T1 &x,const T2 &L,const T3 &R)
-	{return L<=x&&x<=R;}
-	
+//	
+//	template <typename T> inline void Swap(T &x,T &y)
+//	{
+//		T t=x;
+//		x=y;
+//		y=t;
+//	}
+//	
+//	template <typename T1,typename T2,typename T3> inline bool InRange(const T1 &x,const T2 &L,const T3 &R)
+//	{return L<=x&&x<=R;}
+//	
 	inline int ullTOpadic(char *dst,unsigned size,unsigned long long x,bool isA=1,unsigned char p=16,unsigned w=1)
 	{
 		if (dst==nullptr||size==0||p>=36||w>size)
@@ -60,32 +60,32 @@ namespace POS
 			Swap(dst[j],dst[i-j-1]);
 		return i;//\0 is not added automaticly!
 	}
-	
-	class DataWithSize
-	{
-		public:
-			void *data;
-			Uint64 size;
-			
-			DataWithSize(void *_data,Uint64 _size):data(_data),size(_size) {}
-			DataWithSize() {};
-	};
-	
-	class DataWithSizeUnited:public DataWithSize
-	{
-		public:
-			enum//bit 0~7:mode 8~X feature
-			{
-				F_Hex=0,
-				F_Char=1,
-				F_Mixed=2,
-			};
-			
-			Uint64 unitSize;
-			Uint64 flags;
-			
-			DataWithSizeUnited(void *_data,Uint64 _size,Uint64 _unitsize,Uint64 _flags=F_Hex):DataWithSize(_data,_size),unitSize(_unitsize),flags(_flags) {}
-	};
+//	
+//	class DataWithSize
+//	{
+//		public:
+//			void *data;
+//			Uint64 size;
+//			
+//			DataWithSize(void *_data,Uint64 _size):data(_data),size(_size) {}
+//			DataWithSize() {};
+//	};
+//	
+//	class DataWithSizeUnited:public DataWithSize
+//	{
+//		public:
+//			enum//bit 0~7:mode 8~X feature
+//			{
+//				F_Hex=0,
+//				F_Char=1,
+//				F_Mixed=2,
+//			};
+//			
+//			Uint64 unitSize;
+//			Uint64 flags;
+//			
+//			DataWithSizeUnited(void *_data,Uint64 _size,Uint64 _unitsize,Uint64 _flags=F_Hex):DataWithSize(_data,_size),unitSize(_unitsize),flags(_flags) {}
+//	};
 	
 	namespace KoutEX
 	{
@@ -481,6 +481,7 @@ namespace POS
 	
 	inline void KernelFaultSolver()//Remove this if you want to implement it by yourself.
 	{
+		InterruptDisable();
 		kout<<LightRed<<"<KernelMonitor>: Kernel fault! Enter infinite loop..."<<endline
 					  <<"                 You can add you code in File:\""<<__FILE__<<"\" Line:"<<__LINE__<<" to solve fault."<<endl;
 		while (1);//Replace your code here, such as shutdown...
