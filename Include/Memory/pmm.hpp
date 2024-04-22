@@ -18,6 +18,7 @@ extern "C"{
 // pagesize页大小为0x1000B 即4096B 即4KB标准sv39页大小
 #define PAGESIZE  0x1000
 #include <Types.hpp>
+#include <Memory/slab.hpp>
 
 inline Uint64 PhysicalMemoryStart()
 {return 0x80000000+PVOffset;}//硬编码qemu物理内存在虚拟内存中的起始地址 
@@ -75,5 +76,32 @@ public:
     void free(void* freeaddress);
 };
 extern PMM pmm;
+
+//声明作为标准库通用的内存分配函数
+inline void* kmalloc(Uint64 bytesize)
+{
+    if(bytesize<=4096){
+        return slab.allocate(bytesize);
+    }else{
+        return pmm.malloc(bytesize,1);
+    }
+}
+
+inline void kfree(void* freeaddress)
+{
+	 if (freeaddress != nullptr)
+    {
+	    PAGE* cur=pmm.get_page_from_addr(freeaddress);
+
+	    if(cur->flags==1){   
+           pmm.free(freeaddress);
+	    }else {
+           slab.free(freeaddress,cur->flags);
+	    }
+    }
+}
+
+template <typename T> inline T* KmallocT()
+{return (T*)Kmalloc(sizeof(T));}
 
 #endif

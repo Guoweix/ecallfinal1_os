@@ -13,30 +13,6 @@ extern "C"
 	}
 };
 
-//声明作为标准库通用的内存分配函数
-inline void* kmalloc(Uint64 bytesize)
-{
-    if(bytesize<=4096){
-        return slab.allocate(bytesize);
-    }else{
-        return pmm.malloc(bytesize,1);
-    }
-}
-
-inline void kfree(void* freeaddress)
-{
-	 if (freeaddress != nullptr)
-    {
-	    PAGE* cur=pmm.get_page_from_addr(freeaddress);
-
-	    if(cur->flags==1){   
-           pmm.free(freeaddress);
-	    }else {
-           slab.free(freeaddress,cur->flags);
-	    }
-    }
-}
-
 namespace POS
 {
 	KOUT kout;
