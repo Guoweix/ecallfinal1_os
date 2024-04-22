@@ -417,6 +417,21 @@ class VirtualMemorySpace{
 			VirtualMemoryRegion* vmr=FindVMR(tf->tval);//找到是谁管理这块地址空间
 			if (vmr==nullptr) return ERR_AccessInvalidVMR;
 			{
+				// 尝试使用大页
+                PAGE* pg0 = nullptr;
+                PageTable::Entry &e0 = (*PDT)[PageTable::VPN<0>(tf->tval)];
+                if (!e0.Valid()) {
+                pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
+                if (pg0 != nullptr && pg0->ref == 1) {
+                    // 如果分配成功，并且是第一次引用，则使用大页
+                    e0.SetPage(pg0, vmr->ToPageEntryFlags());
+                    asm volatile("sfence.vma \n fence.i \n fence"); // 刷新 TLB
+                    kout[Test] << "SolvePageFault: Allocated large page" << endl;
+                    return ERR_None;
+                    }
+                // 如果分配失败或者不是第一次引用，则尝试按照原逻辑处理
+                }
+
 				PageTable::Entry &e2=(*PDT)[PageTable::VPN<2>(tf->tval)];
 				PageTable *pt2;//建立新页表
 				if (!e2.Valid()){
@@ -454,7 +469,8 @@ class VirtualMemorySpace{
 					e0.SetPage(pg0,vmr->ToPageEntryFlags());
 				}
 				else kout[Fault]<<"VirtualMemorySpace::SolvePageFault: Page exist, however page fault!"<<endl;
-				asm volatile("sfence.vma \n fence.i \n fence");
+				
+				asm volatile("sfence.vma \n fence.i \n fence");//刷新TLB
 			}
 			kout[Test]<<"SolvePageFault OK"<<endl;
 			return ERR_None;
