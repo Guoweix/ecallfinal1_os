@@ -6,15 +6,13 @@
 void ProcessManager::init()
 {
 
-    procCount = 0;
-    curProc = &kernelProc;
+    procCount = 1;
+    curProc = &Proc;
 
-    kernelProc.setChild(nullptr);
-    kernelProc.setID(0);
 
     ////初始化系统进程
-    kernelProc.initAsKernelProc(0);
-    kernelProc.setName("idle_0");
+    Proc.setName("idle_0");
+    Proc.initForKernelProc0(0);
 
 }
 
@@ -24,21 +22,30 @@ bool Process::setName(const char * _name )
     return 0;
 }
 
-void Process::initAsKernelProc(int _id)
+void Process::initForKernelProc0(int _id)
 {
     id = _id;
-    switchStatus(S_New);
+    switchStatus(S_Allocated);
     init(F_Kernel);
+    stack=boot_stack;
+    stacksize=PAGESIZE;
+    
      
+    switchStatus(S_Running);
 }
 
 void Process::init(ProcFlag _flags)
 {
-
+    switchStatus(S_Initing);
+    timeBase=GetClockTime();
     timeBase=runTime=trapSysTimeBase=sysTime=sleepTime=waitTimeLimit=readyTime=0;
     stack=nullptr;
     stacksize=0;
     father=broNext=broPre=fstChild=nullptr;
+    memset(&context,0,sizeof(context));
+    flags=_flags;
+    name[0]=0;
+
 
     flags=_flags;
 
@@ -49,12 +56,11 @@ void Process::switchStatus(ProcStatus tarStatus)
     ClockTime t = GetClockTime();
     ClockTime d = t - timeBase;
     timeBase = t;
-    if (tarStatus != S_New) // 当新建一个进程的时候不会发生任何情况
-    {
         switch (status)
         {
 
-        case S_New:
+        case S_Allocated:
+        case S_Initing:
             if (tarStatus == S_Ready)
                 readyTime = t;
             break;
@@ -73,7 +79,6 @@ void Process::switchStatus(ProcStatus tarStatus)
         default:
             break;
         }
-    }
     status = tarStatus;
     
 }

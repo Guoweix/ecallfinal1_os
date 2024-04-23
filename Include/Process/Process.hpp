@@ -3,13 +3,15 @@
 
 #include <Types.hpp>
 #include <Trap/Trap.hpp>
-#include <Process/SpinLock.hpp>
+#include <Synchronize/SpinLock.hpp>
+#include <Memory/pmm.hpp>
 
 #define PROC_NAME_LEN 50
 
 const Uint32 MaxProcessCount = 128;
 
 class VMM;
+class Semaphore;
 
 struct RegContext
 {
@@ -28,9 +30,11 @@ class ProcessManager;
 enum ProcStatus : Uint32
 {
     S_None = 0,
-    S_New,
+    S_Allocated,
+    S_Initing,
     S_Ready,
     S_Running,
+    S_UserRunning,
     S_Sleeping,
     S_Zombie,
     S_Terminated,
@@ -80,7 +84,7 @@ public:
     bool exit();
     bool setName(const char * _name);
 
-    void initAsKernelProc(int _id); 
+    void initForKernelProc0(int _id); 
     void init(ProcFlag _flags); 
 
     inline void setChild(Process * firstChild)
@@ -100,9 +104,10 @@ public:
 class ProcessManager
 {
     friend Process;
+    friend Semaphore;
 
 protected:
-    Process kernelProc;
+    Process Proc;
     Process *curProc;
 
     Uint32 procCount;
@@ -112,7 +117,6 @@ protected:
 
     void addNode(Process *proc);
     void removeNode(Process *proc);
-    void InitKernelProc();
 
 public:
     void init();
@@ -123,6 +127,7 @@ public:
     Process *allocProc();
     Process *getProc(PID id);
     bool freeProc(Process * proc);
+    static void Schedule();
 
     static TrapFrame *procScheduler(TrapFrame *context);
 

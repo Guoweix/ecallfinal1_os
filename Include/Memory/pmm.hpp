@@ -10,6 +10,7 @@ extern "C"{
 	extern char kernelstart[];
 	extern char kernel_end[];//链接脚本里PROVIDE的符号，可获取其地址 
 	extern char freememstart[];//虚拟地址
+	extern char boot_stack[];//虚拟地址
 };
 #define PVOffset   0xffffffff00000000
 #define MEMORYEND  0x88000000
