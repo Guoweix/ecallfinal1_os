@@ -2,10 +2,10 @@
 #define __VMM_HPP__
 
 #include "../Types.hpp"
-#include "../Library/TemplateTools.hpp"
+#include "../Library/KoutSingle.hpp"
 #include "pmm.hpp"
 #include "../Error.hpp"
-#include "../Library/KoutSingle.hpp"
+#include "../Library/Kstring.hpp"
 #include "../Library/DataStructure/LinkTable.hpp"
 #include "../Trap/Trap.hpp"
 #include "../Arch/Riscv.hpp"
