@@ -191,11 +191,12 @@ class PageTable{//页表项
 using PageEntry=PageTable::Entry;
 
 class VirtualMemorySpace;
+
 class VirtualMemoryRegion:public POS::LinkTableT <VirtualMemoryRegion>
 {
 	friend class VirtualMemorySpace;
 	public:
-		enum:Uint32
+		enum:Uint32//标志位
 		{
 			VM_Read		=1<<0,
 			VM_Write	=1<<1,
@@ -217,13 +218,13 @@ class VirtualMemoryRegion:public POS::LinkTableT <VirtualMemoryRegion>
 		};
 	
 	protected:
-		VirtualMemorySpace *VMS;//相当于data
-		PtrUint Start,//起始地址
-			    End;//终结地址
-		Uint32 Flags;//管理者负责这块vms的权限
+		PtrUint StartAddress,//起始地址
+			    EndAddress;//终结地址
+		VirtualMemorySpace *VMS;//管理的存储信息
+		Uint32 Flags;//这块vms的权限
 		
 	public:
-		inline PageTableEntryType ToPageEntryFlags(){
+		inline PageTableEntryType ToPageEntryFlags(){//这一页的信息解码
 			using PageEntry=PageTable::Entry;
 			PageTableEntryType re=PageTable::Entry::Mask<PageTable::Entry::V>();
 			if (Flags&VM_Read)
@@ -238,33 +239,33 @@ class VirtualMemoryRegion:public POS::LinkTableT <VirtualMemoryRegion>
 		}
 		
 		inline bool Intersect(PtrUint l,PtrUint r) const//r在中间
-		{return r>Start&&End>l;}
+		{return r>StartAddress&&EndAddress>l;}
 		
 		inline bool In(PtrUint l,PtrUint r) const//包含l,r
-		{return Start<=l&&r<=End;}
+		{return StartAddress<=l&&r<=EndAddress;}
 		
 		inline bool In(PtrUint p)
-		{return Start<=p&&p<End;}
+		{return StartAddress<=p&&p<EndAddress;}
 		
 		inline PtrUint GetStart()
-		{return Start;}
+		{return StartAddress;}
 		
 		inline PtrUint GetEnd()
-		{return End;}
+		{return EndAddress;}
 		
 		inline PtrUint GetLength()
-		{return End-Start;}
+		{return EndAddress-StartAddress;}
 		
 		inline Uint32 GetFlags()
 		{return Flags;}
 		
-		ErrorType Init(PtrUint start,PtrUint end,Uint32 flags){
-			LinkTableT::Init();
+		ErrorType Init(PtrUint start,PtrUint end,Uint32 flags){//初始化
+			LinkTableT::Init();//对整块vmr初始化
+			StartAddress=start>>12<<12;//12bit对齐
+			EndAddress=end+PAGESIZE-1>>12<<12;//终页的最后一个不可用地址
 			VMS=nullptr;
-			Start=start>>12<<12;//12bit对齐
-			End=end+PAGESIZE-1>>12<<12;//终页的最后一个不可用地址）
 			Flags=flags;
-			ASSERTEX(Start<End,"VirtualMemoryRegion::Init: Start "<<(void*)Start<<" >= End "<<(void*)End);
+			ASSERTEX(StartAddress<EndAddress,"VirtualMemoryRegion::Init: Start "<<(void*)StartAddress<<" >= End "<<(void*)EndAddress);
 			return ERR_None;
 		}
 		
@@ -279,15 +280,15 @@ class VirtualMemorySpace{
 								  *BootVMS,//用户层vms
 								  *KernelVMS;//内核层vms
 		
-		POS::LinkTableT <VirtualMemoryRegion> VmrHead;//管理vmr的链表
-		Uint32 VmrCount;
-		VirtualMemoryRegion *VmrCache;//Recent found VMR
+		POS::LinkTableT <VirtualMemoryRegion> vmrHead;//管理vmr的链表
+		Uint32 VmrCount;//vmr的数量
+		VirtualMemoryRegion *VmrCache;//最近使用的vmr，便于命中
 		PageTable *PDT;
 		Uint32 SharedCount;
 
 		ErrorType ClearVMR(){//清空vmr
-			while (VmrHead.Nxt())
-				RemoveVMR(VmrHead.Nxt(),true);
+			while (vmrHead.Nxt())
+				RemoveVMR(vmrHead.Nxt(),true);
 			return ERR_None;
 		}
 		
@@ -336,6 +337,15 @@ class VirtualMemorySpace{
 		inline static void DisableAccessUser()
 		{CSR_CLEAR(sstatus,!(1<<18));}
 		
+		ErrorType Init(){
+			vmrHead.Init();
+			VmrCount=0;
+			VmrCache=nullptr;
+			PDT=nullptr;
+			SharedCount=0;
+			return ERR_None;
+		}
+
 		static ErrorType InitStatic(){//初始化最初，处于内核态
 			InitForBoot();
 			InitForKernel();
@@ -343,32 +353,22 @@ class VirtualMemorySpace{
 			return ERR_None;
 		}
 		
-		VirtualMemoryRegion* FindVMR(PtrUint p){
-			if (VmrCache!=nullptr&&VmrCache->In(p))
-				return VmrCache;
-			VirtualMemoryRegion *v=VmrHead.Nxt();
-			while (v!=nullptr)
-				if (p<v->Start) return nullptr;
-				else if (p<v->End) return VmrCache=v;
-				else v=v->Nxt();
-			return nullptr;
-		}
-		
 		void InsertVMR(VirtualMemoryRegion *vmr){//代码冗余
 			ASSERTEX(vmr,"VirtualMemorySpace::InsertVMR: vmr is nullptr!");
 			ASSERTEX(vmr->Single(),"VirtualMemorySpace::InsertVMR: vmr is not single!");
 			ASSERTEX(vmr->VMS==nullptr,"VirtualMemorySpace::InsertVMR: vmr->VMS is not nullptr!");
-			vmr->VMS=this;
-			if (VmrHead.Nxt()==nullptr)
-				VmrHead.NxtInsert(vmr);
-			else if (VmrCache!=nullptr&&VmrCache->Nxt()==nullptr&&VmrCache->End<=vmr->Start)
+			vmr->VMS=this;//vmr这一块属于哪一大块管理
+
+			if (vmrHead.Nxt()==nullptr)
+				vmrHead.NxtInsert(vmr);
+			else if (VmrCache!=nullptr&&VmrCache->Nxt()==nullptr&&VmrCache->EndAddress<=vmr->StartAddress)
 				VmrCache->NxtInsert(vmr);
 			else{
-				VirtualMemoryRegion *v=VmrHead.Nxt();
+				VirtualMemoryRegion *v=vmrHead.Nxt();
 				VMS_INSERTVMR_WHILE:
-					if (vmr->End<=v->Start)
+					if (vmr->EndAddress<=v->StartAddress)
 						v->PreInsert(vmr);
-					else if (vmr->Start>=v->End)
+					else if (vmr->StartAddress>=v->EndAddress)
 						if (v->Nxt()==nullptr)
 							v->NxtInsert(vmr);
 						else{
@@ -380,6 +380,19 @@ class VirtualMemorySpace{
 			}
 			VmrCache=vmr;
 			++VmrCount;
+
+			kout[Info]<<"Insert vmr  "<<(void*)vmr<<" Success!"<<endl;
+		}
+
+		VirtualMemoryRegion* FindVMR(PtrUint p){
+			if (VmrCache!=nullptr&&VmrCache->In(p))
+				return VmrCache;
+			VirtualMemoryRegion *v=vmrHead.Nxt();
+			while (v!=nullptr)
+				if (p<v->StartAddress) return nullptr;
+				else if (p<v->EndAddress) return VmrCache=v;
+				else v=v->Nxt();
+			return nullptr;
 		}
 		
 		void RemoveVMR(VirtualMemoryRegion *vmr,bool DeleteVmr){
@@ -389,16 +402,6 @@ class VirtualMemorySpace{
 			vmr->VMS=nullptr;
 			--VmrCount;
 			if (DeleteVmr) delete vmr;
-		}
-
-		bool TryDeleteSelf(){//Should not be kernel common space!
-			if (SharedCount==0&&POS::NotInSet(this,BootVMS,KernelVMS)){
-				if (this==CurrentVMS) Leave();
-				Destroy();
-				kfree(this);
-				return 1;
-			}
-			else return 0;
 		}
 		
 		void Enter(){//进入指定状态的vms
@@ -415,66 +418,70 @@ class VirtualMemorySpace{
 		ErrorType SolvePageFault(TrapFrame *tf){
 			kout[Test]<<"SolvePageFault in "<<(void*)tf->tval<<endl;
 			VirtualMemoryRegion* vmr=FindVMR(tf->tval);//找到是谁管理这块地址空间
+
+			kout[Info]<<"Solve Page Fault "<<(void*)tf->tval<<" is managed by "<<vmr<<endl;
+
 			if (vmr==nullptr) return ERR_AccessInvalidVMR;
 			{
 				// 尝试使用大页
-                PAGE* pg0 = nullptr;
+                /*PAGE* pg0 = nullptr;
                 PageTable::Entry &e0 = (*PDT)[PageTable::VPN<0>(tf->tval)];
                 if (!e0.Valid()) {
-                pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
-                if (pg0 != nullptr && pg0->ref == 1) {
+                    pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
+					kout[Info]<<"PAGE ref "<<pg0->ref<<endl;
+                    if (pg0 != nullptr && pg0->ref == 0) {
                     // 如果分配成功，并且是第一次引用，则使用大页
-                    e0.SetPage(pg0, vmr->ToPageEntryFlags());
-                    asm volatile("sfence.vma \n fence.i \n fence"); // 刷新 TLB
-                    kout[Test] << "SolvePageFault: Allocated large page" << endl;
-                    return ERR_None;
-                    }
+                        e0.SetPage(pg0, vmr->ToPageEntryFlags());
+                        asm volatile("sfence.vma \n fence.i \n fence"); // 刷新 TLB
+                        kout[Test] << "SolvePageFault: Allocated large page" << endl;
+                        return ERR_None;
+                    }*/
                 // 如果分配失败或者不是第一次引用，则尝试按照原逻辑处理
-                }
-			}
-			{
-				PageTable::Entry &e2=(*PDT)[PageTable::VPN<2>(tf->tval)];
-				PageTable *pt2;//建立新页表
-				if (!e2.Valid()){
-					PAGE*pg2=pmm.alloc_pages(1);
-					if (pg2==nullptr)
-						return ERR_OutOfMemory;
-					pt2=(PageTable*)pg2->KAddr();
-					ASSERTEX(((PtrUint)pt2&(PAGESIZE-1))==0,"pt2 is not aligned to 4k!");
-					pt2->Init();//页表初始化
-					e2.SetPageTable(pt2);//插入起始节点
-				}
-				else pt2=e2.GetPageTable();
+                    //else{
+				        PageTable::Entry &e2=(*PDT)[PageTable::VPN<2>(tf->tval)];
+				        PageTable *pt2;//建立新页表
+				        if (!e2.Valid()){
+					        PAGE*pg2=pmm.alloc_pages(1);
+					        if (pg2==nullptr)
+						        return ERR_OutOfMemory;
+					        pt2=(PageTable*)pg2->KAddr();
+					        ASSERTEX(((PtrUint)pt2&(PAGESIZE-1))==0,"pt2 is not aligned to 4k!");
+					        pt2->Init();//页表初始化
+					        e2.SetPageTable(pt2);//插入起始节点
+				        }
+				        else pt2=e2.GetPageTable();
 				
-				PageTable::Entry &e1=(*pt2)[PageTable::VPN<1>(tf->tval)];
-				PageTable *pt1;
-				if (!e1.Valid()){
-					PAGE *pg1=pmm.alloc_pages(1);
-					if (pg1==nullptr)
-						return ERR_OutOfMemory;
-					pt1=(PageTable*)pg1->KAddr();
-					ASSERTEX(((PtrUint)pt1&(PAGESIZE-1))==0,"pt1 is not aligned to 4k!");
-					pt1->Init();
-					e1.SetPageTable(pt1);
-				}
-				else pt1=e1.GetPageTable();
+				        PageTable::Entry &e1=(*pt2)[PageTable::VPN<1>(tf->tval)];
+				        PageTable *pt1;
+				        if (!e1.Valid()){
+					        PAGE *pg1=pmm.alloc_pages(1);
+					        if (pg1==nullptr)
+						        return ERR_OutOfMemory;
+					        pt1=(PageTable*)pg1->KAddr();
+					        ASSERTEX(((PtrUint)pt1&(PAGESIZE-1))==0,"pt1 is not aligned to 4k!");
+					        pt1->Init();
+					        e1.SetPageTable(pt1);
+				        }
+				        else pt1=e1.GetPageTable();
 				
-				PageTable::Entry &e0=(*pt1)[PageTable::VPN<0>(tf->tval)];
-				PAGE *pg0;
-				if (!e0.Valid()){
-					pg0=pmm.alloc_pages(1);
-					if (pg0==nullptr)
-						return ERR_OutOfMemory;
-					ASSERTEX(((PtrUint)pg0->PAddr()&(PAGESIZE-1))==0,"pg0->Paddr() is not aligned to 4k!");
-					MemsetT<char>((char*)pg0->KAddr(),0,PAGESIZE);//Clear the page data that no data will leak and also for pointer safty.
-					e0.SetPage(pg0,vmr->ToPageEntryFlags());
-				}
-				else kout[Fault]<<"VirtualMemorySpace::SolvePageFault: Page exist, however page fault!"<<endl;
-				
-				asm volatile("sfence.vma \n fence.i \n fence");//刷新TLB
-			}
+				        PAGE* pg0;
+                        PageTable::Entry &e0 = (*pt1)[PageTable::VPN<0>(tf->tval)];
+                        if (!e0.Valid()) {
+                            pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
+				            if (pg0==nullptr)
+						        return ERR_OutOfMemory;
+					        ASSERTEX(((PtrUint)pg0->PAddr()&(PAGESIZE-1))==0,"pg0->Paddr() is not aligned to 4k!");
+					        MemsetT<char>((char*)pg0->KAddr(),0,PAGESIZE);//Clear the page data that no data will leak and also for pointer safty.
+					        e0.SetPage(pg0,vmr->ToPageEntryFlags());	
+						}else{
+					        kout[Fault]<<"VirtualMemorySpace::SolvePageFault: Page exist, however page fault!"<<endl;
+				            //return ERR_Unknown;
+				        }
+				        asm volatile("sfence.vma \n fence.i \n fence");//刷新TLB	
+			        //}
+		    }
 			kout[Test]<<"SolvePageFault OK"<<endl;
-			return ERR_None;
+			return ERR_None;	
 		}
 		
 		ErrorType Create(){
@@ -484,20 +491,6 @@ class VirtualMemorySpace{
 				vmr->Init((PtrUint)kernelstart,PhysicalMemoryStart()+PhysicalMemorySize(),VirtualMemoryRegion::VM_KERNEL);
 				InsertVMR(vmr);
 			}
-			{//外设的，目前用不到
-				auto vmr=KmallocT<VirtualMemoryRegion>();
-				vmr->Init(PVOffset,PVOffset+0x80000000,VirtualMemoryRegion::VM_MMIO);
-				InsertVMR(vmr);
-			}
-			return ERR_None;
-		}
-		
-		ErrorType Init(){
-			VmrHead.Init();
-			VmrCount=0;
-			VmrCache=nullptr;
-			PDT=nullptr;
-			SharedCount=0;
 			return ERR_None;
 		}
 		

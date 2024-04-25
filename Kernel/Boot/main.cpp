@@ -21,7 +21,7 @@ namespace POS
 
 void pmm_test()
 {
-    // 在 slab 中进行内存分配测试
+    // 在 slab 中进行内存分配测试,通过
     void* memory64B = kmalloc(64);
 	if (memory64B)
         kout[Info] << "Allocated 1KB memory successfully!" << (void*)memory64B<<endl;
@@ -64,11 +64,11 @@ void pagefault_test(){
 	vms->Create();
 	vms->Enter();
 	vms->InsertVMR(new VirtualMemoryRegion(0x100,0x200,VirtualMemoryRegion::VM_RW|VirtualMemoryRegion::VM_Kernel));
-	*(char*)0x100='B';
+	//*(char*)0x100='B';
 	
-	kout[Test]<<"New VMS:"<<(char*)0x100<<endl;
+	//kout[Test]<<"New VMS:"<<(char*)0x100<<endl;
 	vms->Leave();
-	kout[Test]<<"Leave New VMS:"<<(char*)0x100<<endl;
+	//kout[Test]<<"Leave New VMS:"<<(char*)0x100<<endl;
 	
 	vms->Destroy();
 	delete vms;
@@ -81,12 +81,12 @@ int main()
 	InterruptEnable();
 	kout[Info]<<"System start success!"<<endl;
 	pmm.Init();
-    pmm.show();
+    //pmm.show();
 	slab.Init();
+	//pmm_test();
 
 	VirtualMemorySpace::InitStatic();
 
-	//pmm_test();
     pagefault_test();
 
 	//Below do nothing...

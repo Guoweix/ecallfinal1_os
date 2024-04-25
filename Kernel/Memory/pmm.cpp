@@ -4,7 +4,7 @@
 void PMM::Init()
 {
     using namespace POS;
-	kout[MemInfo]<<"POS_PMM init..."<<endl;
+	kout[MemInfo]<<"pmm init..."<<endl;
     PAGE * page = (PAGE*)FreeMemoryStart();//起始地址，用数组存树
     //kout[MemInfo]<<"FreeMemoryStart: "<<freememstart<<endl;
     PageCount= (PhysicalMemorySize()+PhysicalMemoryStart()-FreeMemoryStart()) / PAGESIZE;
