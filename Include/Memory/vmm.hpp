@@ -114,6 +114,14 @@ class PageTable{//页表项
 				Set<PPN>((PageTableEntryType)pg->PAddr()>>12);
 			}
 			
+			//用于设置大页
+            inline void SetLargePage(PAGE* pg, PageTableEntryType flags) {
+                Set<V>(1); // 设置有效位
+                Set<XWR>(XWR_ReadWrite); //读写权限
+                Set<PPN>((PageTableEntryType)pg->PAddr() >> 21); // 对于2MB大页，PPN右移21位
+                Set<RSW>(RSW1); // 设置为大页
+            }
+
 			inline Entry(PageTableEntryType _x):x(_x) {}
 			inline Entry() {}
 		};
@@ -187,6 +195,7 @@ class PageTable{//页表项
 			pmm.free_pages(pmm.get_page_from_addr(this));
 			return ERR_None;
 		}
+		
 };
 using PageEntry=PageTable::Entry;
 
@@ -256,9 +265,30 @@ class VirtualMemoryRegion:public POS::LinkTableT <VirtualMemoryRegion>
 		inline PtrUint GetLength()
 		{return EndAddress-StartAddress;}
 		
+		bool ShouldUseLargePage(Uint32 flags, PtrUint faultAddress) {
+        // 检查地址对齐
+        if ((faultAddress & (2 * 1024 * 1024 - 1)) != 0) {
+            return false; // 地址没有适当对齐，不能使用大页
+        }
+
+        // 根据内存区域的标志来决定
+        if (flags & VM_Heap) {
+            // 对于堆区域，如果预期会频繁使用大量内存，可能倾向于使用大页
+            return true;
+        } else if (flags & VM_Stack) {
+            // 栈通常不适合使用大页，因为栈的增长通常是小块的
+            return false;
+        } else if (flags & VM_Exec) {
+            // 对于执行代码区域，使用大页可以提高指令缓存的效率
+            return true;
+        }
+		// 默认情况，不使用大页
+        return false;
+        }
+
 		inline Uint32 GetFlags()
 		{return Flags;}
-		
+
 		ErrorType Init(PtrUint start,PtrUint end,Uint32 flags){//初始化
 			LinkTableT::Init();//对整块vmr初始化
 			StartAddress=start>>12<<12;//12bit对齐
@@ -414,7 +444,7 @@ class VirtualMemorySpace{
 		inline void Leave(){//切换为内核态vms
 			if (CurrentVMS==this) KernelVMS->Enter();
 		}
-		
+
 		ErrorType SolvePageFault(TrapFrame *tf){
 			kout[Test]<<"SolvePageFault in "<<(void*)tf->tval<<endl;
 			VirtualMemoryRegion* vmr=FindVMR(tf->tval);//找到是谁管理这块地址空间
@@ -422,22 +452,24 @@ class VirtualMemorySpace{
 			kout[Info]<<"Solve Page Fault "<<(void*)tf->tval<<" is managed by "<<vmr<<endl;
 
 			if (vmr==nullptr) return ERR_AccessInvalidVMR;
-			{
-				// 尝试使用大页
-                /*PAGE* pg0 = nullptr;
-                PageTable::Entry &e0 = (*PDT)[PageTable::VPN<0>(tf->tval)];
-                if (!e0.Valid()) {
-                    pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
-					kout[Info]<<"PAGE ref "<<pg0->ref<<endl;
-                    if (pg0 != nullptr && pg0->ref == 0) {
-                    // 如果分配成功，并且是第一次引用，则使用大页
-                        e0.SetPage(pg0, vmr->ToPageEntryFlags());
-                        asm volatile("sfence.vma \n fence.i \n fence"); // 刷新 TLB
-                        kout[Test] << "SolvePageFault: Allocated large page" << endl;
-                        return ERR_None;
-                    }*/
-                // 如果分配失败或者不是第一次引用，则尝试按照原逻辑处理
-                    //else{
+			// 根据内存访问模式决定是否使用大页
+            bool useLargePage =vmr->ShouldUseLargePage(vmr->GetFlags(), tf->tval);
+			if(useLargePage){
+				// 处理大页映射
+                PageTable::Entry &e2 = (*PDT)[PageTable::VPN<2>(tf->tval)];
+                PageTable *pt2;
+                if (!e2.Valid()) {
+                    PAGE* pg2 = pmm.alloc_pages(1); // 分配一个大页
+                    if (pg2 == nullptr)
+                        return ERR_OutOfMemory;
+                    pt2 = (PageTable*)pg2->KAddr();
+                    pt2->Init();
+                    e2.SetLargePage(pg2, vmr->ToPageEntryFlags()); // 设置为大页
+                    asm volatile("sfence.vma \n fence.i \n fence"); // 刷新TLB
+                    kout[Test] << "Allocated large page and mapped it" << endl;
+                    return ERR_None;
+                }
+			}else{
 				        PageTable::Entry &e2=(*PDT)[PageTable::VPN<2>(tf->tval)];
 				        PageTable *pt2;//建立新页表
 				        if (!e2.Valid()){
