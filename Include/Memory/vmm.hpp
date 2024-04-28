@@ -1,4 +1,4 @@
-#ifndef __VMM_HPP__
+#ifdef __VMM_HPP__
 #define __VMM_HPP__
 
 #include "../Types.hpp"
