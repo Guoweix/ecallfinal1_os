@@ -5,6 +5,7 @@
 #include <Memory/pmm.hpp>
 #include <Memory/vmm.hpp>
 #include <Memory/slab.hpp>
+#include <Process/Process.hpp>
 
 extern "C"
 {
@@ -72,6 +73,17 @@ void pagefault_test(){
 	
 	vms->Destroy();
 	delete vms;
+}
+
+void pm_test()
+{
+	pm.show();
+	Process * t= pm.allocProc();
+	t->init(F_OutsideName);
+	pm.show();
+	// t->run();
+	// pm.show();
+
 }
 
 int main() 
