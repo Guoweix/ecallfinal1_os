@@ -4,6 +4,7 @@
 #include <Trap/Interrupt.hpp>
 #include <Memory/pmm.hpp>
 #include <Memory/slab.hpp>
+#include <Process/Process.hpp>
 
 extern "C"
 {
@@ -81,14 +82,27 @@ void pmm_test()
 	pmm.show();*/
 }
 
+void pm_test()
+{
+	pm.show();
+	Process * t= pm.allocProc();
+	t->init(F_OutsideName);
+	pm.show();
+	// t->run();
+	// pm.show();
+
+}
+
 int main() 
 {
 	TrapInit();
 	ClockInit();
 	InterruptEnable();
 	kout[Info]<<"System start success!"<<endl;
+	pm.init();
+
 	
-	pmm_test();
+	pm_test();
 
 	//Below do nothing...
 	auto Sleep=[](int n){while (n-->0);};
