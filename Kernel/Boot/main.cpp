@@ -64,9 +64,9 @@ void pagefault_test(){
 	vms->Create();
 	vms->Enter();
 	vms->InsertVMR(new VirtualMemoryRegion(0x100,0x200,VirtualMemoryRegion::VM_RW|VirtualMemoryRegion::VM_Kernel));
-	//*(char*)0x100='B';
+	*(char*)0x100='B';
 	
-	//kout[Test]<<"New VMS:"<<(char*)0x100<<endl;
+	kout[Test]<<"New VMS:"<<(char*)0x100<<endl;
 	vms->Leave();
 	//kout[Test]<<"Leave New VMS:"<<(char*)0x100<<endl;
 	
