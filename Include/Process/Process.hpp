@@ -5,11 +5,14 @@
 #include <Synchronize/SpinLock.hpp>
 #include <Trap/Trap.hpp>
 #include <Types.hpp>
+#include <Memory/vmm.hpp>
 
 #define PROC_NAME_LEN 50
 
 const Uint32 MaxProcessCount = 128;
-
+const PtrSint InnerUserProcessLoadAddr=0x800020,
+			 InnerUserProcessStackSize=PAGESIZE*32,
+			 InnerUserProcessStackAddr=0x80000000-InnerUserProcessStackSize;
 class VMM;
 class Semaphore;
 
@@ -46,6 +49,7 @@ enum ProcStatus : Uint32 {
 
 };
 enum ProcFlag : Uint64 {
+    F_User = 0,
     F_Kernel = 1ull << 0,
     F_AutoDestroy = 1ull << 1,
     F_GeneratedStack = 1ull << 2,
@@ -81,6 +85,8 @@ private:
     Process* broNext;
     Process* fstChild;
 
+    VirtualMemorySpace * VMS;
+
     RegContext context;
 
     Uint64 flags;
@@ -90,6 +96,7 @@ private:
 public:
     void show();
     bool start(TrapFrame* tf, bool isNew);
+    bool start(int (*func)(void *),void * funcData,PtrSint userStartAddr=0);
     bool run();
     bool exit(int re);
     bool setName(const char* _name);
@@ -99,6 +106,10 @@ public:
     inline void setChild(Process* firstChild) { fstChild = firstChild; }
     inline void setFa(Process* fa) { father = fa; }
     inline void setID(Uint32 _id) { id = _id; }
+    void setStack(void * _stack,Uint32 _stacksize);
+    inline void setStack(){stack=kernel_end+0xffffffff+0x6400000;};
+    inline void setVMS(VirtualMemorySpace * _VMS) {VMS=_VMS;}
+
 
     void switchStatus(ProcStatus tarStatus);
 
@@ -114,6 +125,7 @@ protected:
     Process Proc[MaxProcessCount];
     Process* curProc;
 
+
     Uint32 procCount;
     SpinLock lock;
 
@@ -127,7 +139,7 @@ public:
 
     void show();
 
-    static void Schedule();
+    void Schedule();
 
     static TrapFrame* procScheduler(TrapFrame* context);
     // void waitRefProc(Process* proc);

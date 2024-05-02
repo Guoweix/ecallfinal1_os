@@ -1,3 +1,4 @@
+#include "User/User.hpp"
 #include <Library/KoutSingle.hpp>
 #include <Trap/Trap.hpp>
 #include <Trap/Clock.hpp>
@@ -6,6 +7,7 @@
 #include <Memory/vmm.hpp>
 #include <Memory/slab.hpp>
 #include <Process/Process.hpp>
+#include <Process/ParseELF.hpp>
 
 extern "C"
 {
@@ -77,10 +79,18 @@ void pagefault_test(){
 
 void pm_test()
 {
+
+	// pm.show();
+	char arg='A';
+	CreateKernelThread(UserKeepPrint,"print a",&arg);
+	// pm.show();
+	// pmm.show();
+	char argb='B';
+	// pmm.show();
+	CreateKernelThread(UserKeepPrint,"print b",&argb);
 	pm.show();
-	Process * t= pm.allocProc();
-	t->init(F_OutsideName);
-	pm.show();
+
+	
 	// t->run();
 	// pm.show();
 
@@ -96,10 +106,13 @@ int main()
     //pmm.show();
 	slab.Init();
 	//pmm_test();
-
 	VirtualMemorySpace::InitStatic();
 
-    pagefault_test();
+    // pagefault_test();
+
+
+	// pm.init();
+	// pm_test();
 
 	//Below do nothing...
 	auto Sleep=[](int n){while (n-->0);};

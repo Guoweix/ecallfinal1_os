@@ -81,7 +81,7 @@ extern PMM pmm;
 //声明作为标准库通用的内存分配函数
 inline void* kmalloc(Uint64 bytesize)
 {
-    if(bytesize<=4096){
+    if(bytesize<4096){
         return slab.allocate(bytesize);
     }else{
         return pmm.malloc(bytesize,1);

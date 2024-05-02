@@ -2,6 +2,7 @@
 #include <Trap/Clock.hpp>
 #include <Library/KoutSingle.hpp>
 #include <Memory/vmm.hpp>
+#include <Process/Process.hpp>
 using namespace POS;
 
 static const char* TrapInterruptCodeName[16]=//中断/异常名字数组，便于打印调试 
@@ -63,11 +64,14 @@ extern "C"
 			case InterruptCode_SupervisorTimerInterrupt:
 				static Uint64 ClockTick=0;
 				++ClockTick;
-				if (ClockTick%100==0)
+				if (ClockTick%10==0)
 					kout<<"*";
+				if (ClockTick%300==0)
+				{
+					kout[Debug]<<"Schedule NOW"<<endl;
+					pm.Schedule();
+				}
 				SetClockTimeEvent(GetClockTime()+TickDuration);
-				if (ClockTick%50==0)
-					//return OS16_PM.Scheduler(tf);
 				break;
 			default:
 				TrapFailedInfo(tf);

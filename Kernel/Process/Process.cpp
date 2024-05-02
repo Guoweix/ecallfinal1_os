@@ -1,9 +1,11 @@
+#include "Memory/pmm.hpp"
+#include "Trap/Trap.hpp"
 #include "Types.hpp"
+#include <Arch/Riscv.h>
 #include <Library/KoutSingle.hpp>
 #include <Library/Kstring.hpp>
+#include <Memory/vmm.hpp>
 #include <Process/Process.hpp>
-#include <Library/KoutSingle.hpp>
-#include <Library/Kstring.hpp>
 #include <Trap/Clock.hpp>
 
 void ProcessManager::init()
@@ -56,12 +58,29 @@ bool Process::setName(const char* _name)
     return 0;
 }
 
+void Process::setStack(void* _stack, Uint32 _stacksize)
+{
+    if (_stack==nullptr) {
+        flags|=F_GeneratedStack;
+        _stack=kmalloc(_stacksize);
+        if (_stack==nullptr) {
+            kout[Fault] << "ERR_Kmalloc stack"<<endl;
+        }
+
+    }
+    memset(_stack,0,_stacksize);
+    stack = _stack, stacksize = _stacksize;
+
+}
+
 void Process::initForKernelProc0()
 {
     init(F_Kernel);
     setFa(nullptr);
     stack = boot_stack;
     stacksize = PAGESIZE;
+
+    VMS = VirtualMemorySpace::Boot();
 
     setName("idle_0");
     switchStatus(S_Running);
@@ -79,9 +98,10 @@ void Process::init(ProcFlag _flags)
     timeBase = GetClockTime();
     timeBase = runTime = trapSysTimeBase = sysTime = sleepTime = waitTimeLimit = readyTime = 0;
     stack = nullptr;
+    VMS = nullptr;
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
-    SemRef=0;
+    SemRef = 0;
     memset(&context, 0, sizeof(context));
     flags = _flags;
     name[0] = 0;
@@ -110,6 +130,9 @@ void Process::destroy()
     }
     setFa(nullptr);
     setName(nullptr);
+    if (stack!=nullptr) {
+        Kfree(stack);
+    }
     stack = nullptr;
     stacksize = 0;
     pm->freeProc(this);
@@ -130,6 +153,7 @@ bool Process::exit(int re)
 bool Process::run()
 {
     Process* cur = pm->getCurProc();
+    cur->show();
     if (this != cur) {
         if (cur->status == S_Running) {
             cur->switchStatus(S_Ready);
@@ -140,6 +164,52 @@ bool Process::run()
     }
     return 0;
 }
+
+bool Process::start(int (*func)(void*), void* funcData, PtrSint userStartAddr)
+{
+
+    if (VMS == nullptr) {
+        kout[Fault] << "vms is not set" << endl;
+    }
+    if (stack == nullptr) {
+        kout[Fault] << " set" << endl;
+    }
+    if (flags & F_Kernel) {
+        context.ra = (RegisterData)KernelThreadEntry2;
+        context.sp = (RegisterData)stack + stacksize;
+        context.s[0] = (RegisterData)func;
+        context.s[1] = (RegisterData)funcData;
+    } else {
+        TrapFrame* tf = (TrapFrame*)((char*)stack + stacksize) - 1;
+        context.ra = (RegisterData)UserThreadEntry;
+        context.sp = (RegisterData)tf;
+        context.s[0] = (RegisterData)func;
+        context.s[1] = (RegisterData)funcData;
+        tf->reg.sp = (RegisterData)InnerUserProcessStackAddr /*??*/ + InnerUserProcessStackSize - 512;
+        tf->epc = (RegisterData)userStartAddr;
+        tf->status = (RegisterData)((read_csr(sstatus) | SSTATUS_SPIE) & ~SSTATUS_SPP & ~SSTATUS_SIE); //??
+        //		tf->status   =(RegisterData)((read_csr(sstatus)|SSTATUS_SPP|SSTATUS_SPIE)&~SSTATUS_SIE);//??
+    }
+    switchStatus(S_Ready);
+
+    return true;
+}
+
+bool Process::start(TrapFrame* tf, bool isNew)
+{
+    if (!isNew) {
+        memcpy((char*)(TrapFrame*)((char*)stack + stacksize) - 1, (const char*)tf, sizeof(TrapFrame));
+        tf = (TrapFrame*)((char*)stack + stacksize) - 1;
+        tf->epc += 4;
+    }
+    tf->reg.a0 = 0;
+    context.ra = (RegisterData)UserThreadEntry;
+    context.sp = (RegisterData)tf;
+    context.s[0] = 0;
+    context.s[1] = 0;
+    return true;
+}
+
 void Process::switchStatus(ProcStatus tarStatus)
 {
     ClockTime t = GetClockTime();
@@ -212,18 +282,40 @@ void ProcessManager::destroy()
     }
 }
 
+void ProcessManager::Schedule()
+{
+    if (curProc != nullptr && procCount >= 2) {
+        int i, p;
+        ClockTime minWaitingTarget = -1;
+    RetrySchedule:
+        for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
+            Process* tar = &Proc[(i + p) % MaxProcessCount];
+            // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {
+            //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
+            //     if (GetClockTime() >= tar->SemWaitingTargetTime)
+            //         tar->SwitchStat(Process::S_Ready);
+            // }
+
+            if (tar->status == S_Ready) {
+                tar->run();
+                break;
+            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))
+                tar->destroy();
+        }
+    }
+}
 
 void KernelThreadExit(int re)
 {
-// 	RegisterData a0=re,a7=SYS_Exit;
-// 	asm volatile("ld a0,%0; ld a7,%1; ebreak"::"m"(a0),"m"(a7):"memory");
-// //	ProcessManager::Current()->Exit(re);//Multi cpu need get current of that cpu??
-// //	ProcessManager::Schedule();//Need improve...
-// 	kout[Fault]<<"KernelThreadExit: Reached unreachable branch!"<<endl;
+    // RegisterData a0=re,a7=SYS_Exit;
+    // asm volatile("ld a0,%0; ld a7,%1; ebreak"::"m"(a0),"m"(a7):"memory");
+    //	ProcessManager::Current()->Exit(re);//Multi cpu need get current of that cpu??
+    //	ProcessManager::Schedule();//Need improve...
+    // kout[Fault]<<"KernelThreadExit: Reached unreachable branch!"<<endl;
 }
 
 void SwitchToUserStat()
 {
-	pm.getCurProc()->switchStatus(S_UserRunning);
+    pm.getCurProc()->switchStatus(S_UserRunning);
 }
 ProcessManager pm;
