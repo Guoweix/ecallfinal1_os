@@ -80,7 +80,6 @@ void pagefault_test(){
 void pm_test()
 {
 
-	// pm.show();
 	char arg='A';
 	CreateKernelThread(UserKeepPrint,"print a",&arg);
 	// pm.show();
@@ -100,7 +99,6 @@ int main()
 {
 	TrapInit();
 	ClockInit();
-	InterruptEnable();
 	kout[Info]<<"System start success!"<<endl;
 	pmm.Init();
     //pmm.show();
@@ -112,6 +110,7 @@ int main()
 
 
 	// pm.init();
+	// InterruptEnable();
 	// pm_test();
 
 	//Below do nothing...

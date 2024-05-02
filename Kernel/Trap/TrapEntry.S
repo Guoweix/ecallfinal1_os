@@ -120,6 +120,8 @@ _restore_context:
 
     .globl TrapEntry
 TrapEntry:
+
+    
 	SAVE_ALL
 	
     move  a0, sp

@@ -138,6 +138,7 @@ public:
     Process* getProc(PID id);
 
     void show();
+    void simpleShow();
 
     void Schedule();
 

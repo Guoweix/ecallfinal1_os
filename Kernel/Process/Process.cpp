@@ -47,6 +47,19 @@ void ProcessManager::show()
     }
 }
 
+void ProcessManager::simpleShow()
+{
+    for (int i = 0; i < MaxProcessCount; i++) {
+        if (curProc->id==i) {
+            kout[Debug]<<"Cur====>"<<endl;
+        }
+        if (Proc[i].status != S_None) {
+            kout[Debug]<<Proc[i].name<<endline
+                        <<Proc[i].id<<endl;
+        }
+    }
+}
+
 bool Process::setName(const char* _name)
 {
     if (_name == nullptr) {
@@ -60,17 +73,15 @@ bool Process::setName(const char* _name)
 
 void Process::setStack(void* _stack, Uint32 _stacksize)
 {
-    if (_stack==nullptr) {
-        flags|=F_GeneratedStack;
-        _stack=kmalloc(_stacksize);
-        if (_stack==nullptr) {
-            kout[Fault] << "ERR_Kmalloc stack"<<endl;
+    if (_stack == nullptr) {
+        flags |= F_GeneratedStack;
+        _stack = kmalloc(_stacksize);
+        if (_stack == nullptr) {
+            kout[Fault] << "ERR_Kmalloc stack" << endl;
         }
-
     }
-    memset(_stack,0,_stacksize);
+    memset(_stack, 0, _stacksize);
     stack = _stack, stacksize = _stacksize;
-
 }
 
 void Process::initForKernelProc0()
@@ -130,7 +141,7 @@ void Process::destroy()
     }
     setFa(nullptr);
     setName(nullptr);
-    if (stack!=nullptr) {
+    if (stack != nullptr) {
         Kfree(stack);
     }
     stack = nullptr;
@@ -153,15 +164,18 @@ bool Process::exit(int re)
 bool Process::run()
 {
     Process* cur = pm->getCurProc();
-    cur->show();
+    // cur->show();
+    kout[Debug]<<"switch from "<<cur->name<<" to "<<name<<endl;
     if (this != cur) {
         if (cur->status == S_Running) {
             cur->switchStatus(S_Ready);
         }
         switchStatus(S_Running);
         pm->curProc = this;
+
         ProcessSwitchContext(&cur->context, &this->context);
     }
+    kout[Debug]<<"switch finish"<<endl;
     return 0;
 }
 
