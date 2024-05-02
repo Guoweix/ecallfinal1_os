@@ -23,20 +23,20 @@ namespace POS
 void pmm_test()
 {
     // 在 slab 中进行内存分配测试,通过
-    void* memory64B = kmalloc(64);
+    void* memory64B = kmalloc(4096);
 	if (memory64B)
-        kout[Info] << "Allocated 1KB memory successfully!" << (void*)memory64B<<endl;
+        kout[Info] << "Allocated 4KB memory successfully!" << (void*)memory64B<<endl;
     else
-        kout[Error] << "Failed to allocate 1KB memory!" << endl;
+        kout[Error] << "Failed to allocate 4KB memory!" << endl;
 	pmm.show();
 
-    kfree(memory64B);
+    //kfree(memory64B);
 
-	void* memory64B2 = kmalloc(64);
+	void* memory64B2 = kmalloc(4096);
 	if (memory64B2)
-        kout[Info] << "Allocated 1KB memory successfully!" <<(void*) memory64B2<< endl;
+        kout[Info] << "Allocated 4KB memory successfully!" <<(void*) memory64B2<< endl;
     else
-        kout[Error] << "Failed to allocate 1KB memory!" << endl;
+        kout[Error] << "Failed to allocate 4KB memory!" << endl;
 	pmm.show();
 
     /*void* memory512B = slab.allocate(512);
@@ -95,11 +95,12 @@ int main()
 	pmm.Init();
     //pmm.show();
 	slab.Init();
-	//pmm_test();
+	pmm_test();
 
 	VirtualMemorySpace::InitStatic();
 
-    pagefault_test();
+    //pagefault_test();
+    //pm_test();
 
 	//Below do nothing...
 	auto Sleep=[](int n){while (n-->0);};
