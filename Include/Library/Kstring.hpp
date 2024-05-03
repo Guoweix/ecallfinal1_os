@@ -80,6 +80,8 @@ Uint64 strlen(const char* s);
 
 void strcpy(char* dst, const char* src);
 
+char* strdump(const char *src);
+
 char* strcpy_s(char* dst, const char* src);
 
 char* strcpy_no_end(char* dst, const char* src);

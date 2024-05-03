@@ -92,8 +92,7 @@ inline void* kmalloc(Uint64 bytesize)
     }
 }
 
-inline void kfree(void* freeaddress)
-{
+inline void kfree(void* freeaddress){
 	 if (freeaddress != nullptr)
     {
 	    PAGE* cur=pmm.get_page_from_addr(freeaddress);
@@ -105,8 +104,6 @@ inline void kfree(void* freeaddress)
 	    }
     }
 }
-
-void  Kfree(void *addr);
 
 template <typename T> inline T* KmallocT()
 {return (T*)kmalloc(sizeof(T));}

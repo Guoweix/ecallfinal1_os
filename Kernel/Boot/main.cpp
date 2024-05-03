@@ -30,7 +30,7 @@ void pmm_test()
         kout[Error] << "Failed to allocate 4KB memory!" << endl;
 	pmm.show();
 
-    //kfree(memory64B);
+    kfree(memory64B);
 
 	void* memory64B2 = kmalloc(4096);
 	if (memory64B2)
