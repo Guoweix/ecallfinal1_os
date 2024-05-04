@@ -45,6 +45,20 @@ char* strcpy_s(char* dst, const char* src)
     return dst;
 }
 
+void strcpy3(char *dst,const char *src,const char *end)
+{
+	while (src<end)
+		*dst++=*src++;
+	*dst=0;
+}
+
+char* strcpyre(char *dst,const char *src)
+{
+	while (*src)
+		*dst++=*src++;
+	return dst;
+}
+
 char* strcpy_no_end(char* dst, const char* src)
 {
     char* p = dst;

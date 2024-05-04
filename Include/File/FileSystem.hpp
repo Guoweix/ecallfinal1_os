@@ -66,19 +66,60 @@ class FileNode
 		Sint32 RefCount=0;
 		
 		virtual inline void SetFileName(char *name,bool outside){
-		
+			if (Name!=nullptr&&!(Flags&F_OutsideName))
+				kfree(Name);
+			if (outside){
+				Flags|=F_OutsideName;
+				Name=name;
+			}
+			else{
+				Flags&=~F_OutsideName;
+				Name=strdump(name);
+			}
 		}
 		
 		void SetFa(FileNode *_fa){
-			
+			ASSERTEX(_fa==nullptr||(_fa->Attributes&A_Dir),"FileNode::SetFa "<<_fa<<" of "<<Name<<" is not valid!");
+			if (fa!=nullptr){
+				if (fa->child==this)
+					fa->child=nxt;
+				else if (pre!=nullptr)
+					pre->nxt=nxt;
+				if (nxt!=nullptr)
+					nxt->pre=pre;
+				pre=nxt=fa=nullptr;
+			}
+			if (_fa!=nullptr){
+				fa=_fa;
+				nxt=fa->child;
+				fa->child=this;
+				if (nxt!=nullptr)
+					nxt->pre=this;
+			}
 		}
 		
 		template <int type> Uint64 GetPath_Measure(){
-	
+			if (Attributes&A_Root)
+				return 0;
+			else if (type==1&&(Attributes&A_VFS))
+				return 0;
+			else if (fa==nullptr)
+				return 0;
+			else return fa->GetPath_Measure<type>()+1+strlen(Name);
 		}
 		
 		template <int type> char* GetPath_Copy(char *dst){
-			
+			if (Attributes&A_Root)
+				return dst;
+			else if (type==1&&(Attributes&A_VFS))
+				return dst;
+			else if (fa==nullptr)
+				return dst;
+			else{
+				char *s=fa->GetPath_Copy<type>(dst);
+				*s='/';
+				return strcpyre(s+1,Name);
+			}
 		}
 		
 	public:
@@ -89,7 +130,12 @@ class FileNode
 		{return ERR_UnsuppoertedVirtualFunction;}
 		
 		template <int type> char* GetPath(){
-	
+			Uint64 len=GetPath_Measure<type>();
+			if (len==0)
+				return strdump("/");
+			char *re=(char*)kmalloc(len+1);
+			*GetPath_Copy<type>(re)=0;
+			return re;
 		}
 		
 		virtual Uint64 Size()
@@ -117,10 +163,15 @@ class FileNode
 		{return Attributes&A_Dir;}
 		
 		virtual ~FileNode(){
-	
+			while (child)
+				delete child;
+			SetFa(nullptr);
+			SetFileName(nullptr,0);
 		}
 		
 		FileNode(VirtualFileSystem *_vfs,Uint64 attri,Uint64 flags):Vfs(_vfs),Attributes(attri),Flags(flags){
+			if (Vfs!=nullptr)
+				Flags|=F_BelongVFS;
 		}
 };
 
@@ -156,22 +207,45 @@ class FileHandle:public POS::LinkTableT<FileHandle>
 		
 	public:
 		inline Sint64 Read(void *dst,Uint64 size,Uint64 pos=-1){
-			
+			if (!(Flags&F_Read))
+				return -ERR_InvalidFileHandlePermission;
+			auto err=file->Read(dst,pos==-1?Pos:pos,size);
+			if (err>=0&&pos==-1)
+				Pos+=err;
+			return err;
 		}
 		
 		inline Sint64 Write(void *src,Uint64 size,Uint64 pos=-1){
-			
+			if (!(Flags&F_Write))
+				return -ERR_InvalidFileHandlePermission;
+			auto err=file->Write(src,pos==-1?Pos:pos,size);
+			if (err>=0&&pos==-1)
+				Pos+=err;
+			return err;
 		}
 		
 		inline ErrorType Seek(Sint64 pos,Uint8 base=Seek_Beg,bool forceseek=0){
-			
+			if (!(Flags&F_Seek))
+				return -ERR_InvalidFileHandlePermission;
+			switch (base){
+				case Seek_Beg:							break;
+				case Seek_Cur: pos+=Pos; 				break;
+				case Seek_End: pos+=file->Size();		break;
+				default:	return ERR_InvalidParameter;
+			}
+			if (!POS::InRange(pos,0,file->Size())&&!forceseek)
+				return ERR_FileSeekOutOfRange;
+			Pos=pos;
+			return ERR_None;
 		}
 		
 		inline Uint64 GetPos() const
 		{return Pos;}
 		
 		inline Sint64 Size(){
-			
+			if (!(Flags&F_Size))
+				return -ERR_InvalidFileHandlePermission;
+			return file->Size();
 		}
 		
 		inline FileNode* Node()
@@ -184,7 +258,6 @@ class FileHandle:public POS::LinkTableT<FileHandle>
 		{return Flags;}
 		
 		ErrorType Close(){
-			
 		}
 		
 		ErrorType BindToProcess(Process *_proc,int fd=-1){
@@ -192,14 +265,19 @@ class FileHandle:public POS::LinkTableT<FileHandle>
 		}
 		
 		FileHandle* Dump(){
-		
+			FileHandle *re=new FileHandle(file,Flags);
+			re->Pos=Pos;
+			return re;
 		}
 		
 		~FileHandle()
-		{}
+		{Close();}
 		
 		FileHandle(FileNode *filenode,Uint64 flags=F_ALL):Flags(flags){
-	
+			ASSERTEX(filenode,"Construct FileHandle "<<this<<" from nullptr FileNode with flags "<<(void*)flags);
+			file=filenode;
+			file->Ref(this);
+			LinkTableT<FileHandle>::Init();
 		}
 };
 
@@ -258,14 +336,28 @@ class VirtualFileSystem
 //	protected:
 	public:
 		virtual FileNode* FindFile(FileNode *p,const char *name){
+			char *path=p->GetPath<1>();
+			FileNode *re=FindFile(path,name);
+			kfree(path);
+			return re;
 		}
 		
 		virtual int GetAllFileIn(FileNode *p,char *result[],int bufferSize,int skipCnt=0){
+			char *path=p->GetPath<1>();
 
+			int re=GetAllFileIn(path,result,bufferSize,skipCnt);
+
+			kfree(path);
+			return re;
 		}
 
 		virtual int GetAllFileIn(FileNode *p,FileNode *result[],int bufferSize,int skipCnt=0){
+			char *path=p->GetPath<1>();
 
+			int re=GetAllFileIn(path,result,bufferSize,skipCnt);
+
+			kfree(path);
+			return re;
 		}
 
 		virtual FileNode* FindFile(const char *path,const char *name)=0;

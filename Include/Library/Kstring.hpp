@@ -6,6 +6,7 @@
 
 #include <Types.hpp>
 #include <Library/SBI.h>
+#include <Library/KoutSingle.hpp>
 
 // 做一个简单的封装
 inline void putchar(char ch)
@@ -76,6 +77,27 @@ inline bool isInStr(char tar, const char* src)
     return false;
 }
 
+inline char getputchar(){
+	char ch=getchar();
+	putchar(ch);
+	return ch;
+}
+	
+inline int getline(char dst[],int bufferSize){
+	int i=0;
+	while (i<bufferSize){
+		char ch=getchar();
+		if (InThisSet(ch,'\n','\r','\0',-1)){
+			putchar('\n');
+			dst[i++]=0;
+			break;
+		}
+		else putchar(ch);
+		dst[i++]=ch;
+		}
+		return i;
+	}
+
 Uint64 strlen(const char* s);
 
 void strcpy(char* dst, const char* src);
@@ -84,7 +106,11 @@ char* strdump(const char *src);
 
 char* strcpy_s(char* dst, const char* src);
 
+char* strcpyre(char *dst,const char *src);
+
 char* strcpy_no_end(char* dst, const char* src);
+
+void strcpy3(char *dst,const char *src,const char *end);
 
 int strcmp(const char* s1, const char* s2);
 
