@@ -41,7 +41,12 @@ namespace POS
 			*dst++=*src++;
 	}
 
+    template <typename T> inline T minN(const T &a,const T &b)
+	{return b<a?b:a;}
 
+	template <typename T> inline T maxN(const T &a,const T &b)
+	{return a<b?b:a;}
+	
 	template <typename T0,typename T1> inline bool NotInSet(const T0 &x,const T1 &a)
 	{return x!=a;}
 

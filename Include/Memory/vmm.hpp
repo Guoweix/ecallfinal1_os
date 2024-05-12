@@ -233,6 +233,10 @@ class VirtualMemoryRegion:public POS::LinkTableT <VirtualMemoryRegion>
 		Uint32 Flags;//这块vms的权限
 		
 	public:
+
+	    VirtualMemoryRegion(){
+		}
+		
 		inline PageTableEntryType ToPageEntryFlags(){//这一页的信息解码
 			using PageEntry=PageTable::Entry;
 			PageTableEntryType re=PageTable::Entry::Mask<PageTable::Entry::V>();

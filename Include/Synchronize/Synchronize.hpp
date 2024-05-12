@@ -75,10 +75,30 @@ public:
         queue.destroy();
     }
 
+    Semaphore(){
+	}//
+
     Semaphore(const Semaphore &) = delete;
     Semaphore(const Semaphore &&) = delete;
     Semaphore &operator=(const Semaphore &) = delete;
     Semaphore &operator=(const Semaphore &&) = delete;
 };
+
+class Mutex:public Semaphore
+{
+	public:
+		inline void Lock()
+		{wait();}
+		
+		inline void Unlock()
+		{signal();}
+		
+		inline bool TryLock()
+		{return wait();}//
+		
+		Mutex()
+        {Semaphore::init(1);}//
+};
+
 
 #endif
