@@ -1,9 +1,9 @@
+#include "Trap/Syscall/Syscall.hpp"
 #include <Library/KoutSingle.hpp>
 #include <Memory/vmm.hpp>
 #include <Process/Process.hpp>
 #include <Trap/Clock.hpp>
 #include <Trap/Trap.hpp>
-using namespace POS;
 
 static const char* TrapInterruptCodeName[16] = // 中断/异常名字数组，便于打印调试
     {
@@ -55,7 +55,7 @@ void TrapFailedInfo(TrapFrame* tf, bool fault = true)
 }
 
 extern "C" {
-void Trap(TrapFrame* tf)
+TrapFrame* Trap(TrapFrame* tf)
 {
     if ((long long)tf->cause < 0)
         switch (tf->cause << 1 >> 1) // 为中断
@@ -63,19 +63,11 @@ void Trap(TrapFrame* tf)
         case InterruptCode_SupervisorTimerInterrupt:
             static Uint64 ClockTick = 0;
             ++ClockTick;
-            // if (ClockTick%10==0)
+            // if (ClockTick%100==0)
             // kout<<"*";
-            if (ClockTick % 3000 == 0) {
+            if (ClockTick % 1000 == 0) {
                 kout[Debug] << "Schedule NOW" << endl;
-                pm.simpleShow();
-
-                kout[Debug] << "!!!!!!!!1___________________________________________________" << endl;
-                pm.getCurProc()->show();
-                kout[Debug] << "!!!!!!!!1___________________________________________________" << endl
-				<<endl
-				<<endl
-				<<endl;
-                pm.Schedule();
+                return pm.Schedule(tf);
             }
             SetClockTimeEvent(GetClockTime() + TickDuration);
             break;
@@ -89,21 +81,51 @@ void Trap(TrapFrame* tf)
             switch (tf->reg.a7) {
             }
         case ExceptionCode_UserEcall:
-            TrapFailedInfo(tf);
+        {
+            // kout[Info]<<"Ecall happen"<<endl;
+            bool re=TrapFunc_Syscall(tf);
+            if (!re) {
+                TrapFailedInfo(tf);
+            }
+            else {
+                tf->epc+=tf->cause==ExceptionCode_UserEcall?4:0;
+            }
+            break;
+
+        }
         case ExceptionCode_LoadAccessFault:
         case ExceptionCode_StoreAccessFault:
         case ExceptionCode_InstructionPageFault:
         case ExceptionCode_LoadPageFault:
         case ExceptionCode_StorePageFault:
+			kout[Test]<<"PageFault type "<<(void *)tf->cause<<endline<< "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
             if (TrapFunc_FageFault(tf) != ERR_None)
                 TrapFailedInfo(tf);
             break;
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
         }
+        return tf;
 }
 
 extern void TrapEntry(void); // 定义外部函数，用于获取汇编里定义的地址
+}
+char regName[32][10] = { "zero", "ra", "sp", "gp", "tp",
+    "t0", "t1", "t2",
+    "s0", "s1",
+    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
+    "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
+    "t3", "t4", "t5", "t6" };
+
+void TrapFramePrint(TrapFrame* tf)
+{
+    for (int i = 0; i < 32; i++) {
+        kout[Debug] << regName[i] << ":\t" << (void*)tf->reg[i] << endl;
+    }
+    kout[Debug] << "cause:\t" << (void*)tf->cause << endl;
+    kout[Debug] << "epc:\t" << (void*)tf->epc << endl;
+    kout[Debug] << "state:\t" << (void*)tf->status << endl;
+    kout[Debug] << "tcal:\t" << (void*)tf->tval << endl;
 }
 
 void TrapInit()

@@ -68,6 +68,8 @@ void VirtioDisk::init()
 
     kout[Debug] << (void *)this << endl;
 
+    
+
     desc = (VRingDesc *)pages;
     avail = (Uint16 *)((char *)desc + NUM * sizeof(VRingDesc));
     used = (UsedArea *)(pages + PAGESIZE);

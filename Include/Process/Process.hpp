@@ -1,24 +1,26 @@
 #ifndef __PROCESS_HPP__
 #define __PROCESS_HPP__
 
+#include "Library/KoutSingle.hpp"
 #include <Memory/pmm.hpp>
 #include <Synchronize/SpinLock.hpp>
 #include <Trap/Trap.hpp>
 #include <Types.hpp>
 #include <Memory/vmm.hpp>
+#include <Trap/Syscall/Syscall.hpp>
 
 #define PROC_NAME_LEN 50
+#define UserPageSize 12*PAGESIZE
 
 const Uint32 MaxProcessCount = 128;
 const PtrSint InnerUserProcessLoadAddr=0x800020,
 			 InnerUserProcessStackSize=PAGESIZE*32,
 			 InnerUserProcessStackAddr=0x80000000-InnerUserProcessStackSize;
+
 class VMM;
 class Semaphore;
 
-struct RegContext {
-    RegisterData ra, sp, s[12];
-};
+// struct RegContext { //     RegisterData ra, sp, s[12]; // };
 
 inline RegisterData GetCPUID()
 {
@@ -85,18 +87,21 @@ private:
     Process* broNext;
     Process* fstChild;
 
+    
+    Semaphore * waitSem;
+
     VirtualMemorySpace * VMS;
 
-    RegContext context;
+    TrapFrame * context;
 
     Uint64 flags;
     char name[PROC_NAME_LEN];
     Uint32 nameSpace;
 
 public:
-    void show();
+    void show(int level=0);
     bool start(TrapFrame* tf, bool isNew);
-    bool start(int (*func)(void *),void * funcData,PtrSint userStartAddr=0);
+    bool start(void *func,void * funcData,PtrUint useraddr=0);
     bool run();
     bool exit(int re);
     bool setName(const char* _name);
@@ -106,9 +111,12 @@ public:
     inline void setChild(Process* firstChild) { fstChild = firstChild; }
     inline void setFa(Process* fa) { father = fa; }
     inline void setID(Uint32 _id) { id = _id; }
+    inline PID getID() {return id; }
     void setStack(void * _stack,Uint32 _stacksize);
     inline void setStack(){stack=kernel_end+0xffffffff+0x6400000;};
     inline void setVMS(VirtualMemorySpace * _VMS) {VMS=_VMS;}
+    inline VirtualMemorySpace * getVMS() {return VMS;}
+
 
 
     void switchStatus(ProcStatus tarStatus);
@@ -140,27 +148,27 @@ public:
     void show();
     void simpleShow();
 
-    void Schedule();
+    TrapFrame * Schedule(TrapFrame * preContext);
 
-    static TrapFrame* procScheduler(TrapFrame* context);
+    // static TrapFrame* procScheduler(TrapFrame* context);
     // void waitRefProc(Process* proc);
     // void immTriggerSchedule();
     // void waitUnrefProc(Process* proc);
     // bool isSignal(Process* proc);
 
     inline Process* getCurProc() { return curProc; }
+    inline Process* getKernelProc() { return &Proc[0]; }
     inline PID getProcCount() { return procCount; }
+
 };
 
 extern ProcessManager pm;
 extern "C"
 {
-	void KernelThreadExit(int re);
-	void SwitchToUserStat();
-	void SwitchBackKernelStat();
-	extern void KernelThreadEntry2();
-	extern void UserThreadEntry();
-	extern void ProcessSwitchContext(RegContext *from,RegContext *to);
+	extern void KernelProcessEntry();
+	extern void UserProcessEntry();
+	void KernelProcessExit(Process * proc);
+	void UserProcessExit(Process * proc);
 };
 
 

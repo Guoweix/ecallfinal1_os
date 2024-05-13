@@ -1,4 +1,5 @@
 #include "Memory/pmm.hpp"
+#include "Synchronize/Synchronize.hpp"
 #include "Trap/Trap.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
@@ -23,19 +24,21 @@ void ProcessManager::init()
     idle0->initForKernelProc0();
 }
 
-void Process::show()
+void Process::show(int level)
 {
     kout[Debug] << "proc pid : " << id << endline
                 << "proc name : " << name << endline
                 << "proc state : " << status << endline
                 << "proc flags : " << flags << endline
+                << "proc VMS : " << (void*)VMS << endline
                 << "proc kstack : " << (void*)stack << endline
-                << "proc kstacksize : " << stacksize << endline
-                << "proc pid_fa : " << (void*)father << endline
-                << "proc pid_bro_pre : " << (void*)broPre << endline
-                << "proc pid_bro_next : " << (void*)broNext << endline
-                << "proc pid_fir_child : " << (void*)fstChild << endl;
-    kout[Debug] << "___________________________________________________" << endl;
+                << "proc kstacksize : " << stacksize << endl;
+    if (level == 1) {
+        kout[Debug] << "proc pid_fa : " << (void*)father << endline
+                    << "proc pid_bro_pre : " << (void*)broPre << endline
+                    << "proc pid_bro_next : " << (void*)broNext << endline
+                    << "proc pid_fir_child : " << (void*)fstChild << endl;
+    }
 }
 
 void ProcessManager::show()
@@ -50,12 +53,12 @@ void ProcessManager::show()
 void ProcessManager::simpleShow()
 {
     for (int i = 0; i < MaxProcessCount; i++) {
-        if (curProc->id==i) {
-            kout[Debug]<<"Cur====>"<<endl;
+        if (curProc->id == i) {
+            kout[Debug] << "Cur====>" << endl;
         }
         if (Proc[i].status != S_None) {
-            kout[Debug]<<Proc[i].name<<endline
-                        <<Proc[i].id<<endl;
+            kout[Debug] << Proc[i].name << endline
+                        << Proc[i].id << endl;
         }
     }
 }
@@ -112,6 +115,7 @@ void Process::init(ProcFlag _flags)
     VMS = nullptr;
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
+    waitSem=new Semaphore(0);
     SemRef = 0;
     memset(&context, 0, sizeof(context));
     flags = _flags;
@@ -165,62 +169,46 @@ bool Process::run()
 {
     Process* cur = pm->getCurProc();
     // cur->show();
-    kout[Debug]<<"switch from "<<cur->name<<" to "<<name<<endl;
+    // kout[Debug] << "switch from " << cur->name << " to " << name << endl;
     if (this != cur) {
         if (cur->status == S_Running) {
             cur->switchStatus(S_Ready);
         }
         switchStatus(S_Running);
         pm->curProc = this;
-
-        ProcessSwitchContext(&cur->context, &this->context);
     }
-    kout[Debug]<<"switch finish"<<endl;
-    return 0;
+    // kout[Debug] << "switch finish" << endl;
+    return true;
 }
 
-bool Process::start(int (*func)(void*), void* funcData, PtrSint userStartAddr)
+bool Process::start(void* func, void* funcData, PtrUint useraddr)
 {
 
     if (VMS == nullptr) {
         kout[Fault] << "vms is not set" << endl;
     }
     if (stack == nullptr) {
-        kout[Fault] << " set" << endl;
+        kout[Fault] << "stack is not set" << endl;
     }
+    Uint64 SPP = 1 << 8; // 利用中断 设置sstatus寄存器 Supervisor Previous Privilege(guess)
+    Uint64 SPIE = 1 << 5; // Supervisor Previous Interrupt Enable
+    Uint64 SIE = 1 << 1; // Supervisor Interrupt Enable
+
+    context = (TrapFrame*)((char*)stack + stacksize) - 1;
     if (flags & F_Kernel) {
-        context.ra = (RegisterData)KernelThreadEntry2;
-        context.sp = (RegisterData)stack + stacksize;
-        context.s[0] = (RegisterData)func;
-        context.s[1] = (RegisterData)funcData;
+        context->epc = (Uint64)KernelProcessEntry; // Exception PC
+        context->reg.s0 = (Uint64)func;
+        context->reg.s1 = (Uint64)funcData;
+        context->status = (read_csr(sstatus) | SPP | SPIE) & (~SIE); // 详见手册
+        context->reg.sp = (Uint64)((char*)stack + stacksize);
     } else {
-        TrapFrame* tf = (TrapFrame*)((char*)stack + stacksize) - 1;
-        context.ra = (RegisterData)UserThreadEntry;
-        context.sp = (RegisterData)tf;
-        context.s[0] = (RegisterData)func;
-        context.s[1] = (RegisterData)funcData;
-        tf->reg.sp = (RegisterData)InnerUserProcessStackAddr /*??*/ + InnerUserProcessStackSize - 512;
-        tf->epc = (RegisterData)userStartAddr;
-        tf->status = (RegisterData)((read_csr(sstatus) | SSTATUS_SPIE) & ~SSTATUS_SPP & ~SSTATUS_SIE); //??
-        //		tf->status   =(RegisterData)((read_csr(sstatus)|SSTATUS_SPP|SSTATUS_SPIE)&~SSTATUS_SIE);//??
+        context->epc = (Uint64)useraddr; // Exception PC
+        context->status = (read_csr(sstatus) | SPIE) & (~SPP) & (~SIE); // 详见手册
+        context->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
     }
+    kout[Info] << (void*)context->epc << endl;
     switchStatus(S_Ready);
 
-    return true;
-}
-
-bool Process::start(TrapFrame* tf, bool isNew)
-{
-    if (!isNew) {
-        memcpy((char*)(TrapFrame*)((char*)stack + stacksize) - 1, (const char*)tf, sizeof(TrapFrame));
-        tf = (TrapFrame*)((char*)stack + stacksize) - 1;
-        tf->epc += 4;
-    }
-    tf->reg.a0 = 0;
-    context.ra = (RegisterData)UserThreadEntry;
-    context.sp = (RegisterData)tf;
-    context.s[0] = 0;
-    context.s[1] = 0;
     return true;
 }
 
@@ -296,14 +284,18 @@ void ProcessManager::destroy()
     }
 }
 
-void ProcessManager::Schedule()
+TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
+    Process* tar;
+
+    curProc->context = preContext;
+
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
         ClockTime minWaitingTarget = -1;
     RetrySchedule:
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
-            Process* tar = &Proc[(i + p) % MaxProcessCount];
+            tar = &Proc[(i + p) % MaxProcessCount];
             // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {
             //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)
@@ -311,21 +303,50 @@ void ProcessManager::Schedule()
             // }
 
             if (tar->status == S_Ready) {
+                if (curProc->status == S_Running) {
+                    curProc->switchStatus(S_Ready);
+                }
+
                 tar->run();
-                break;
+                tar->getVMS()->Enter();
+                // if (tar->getID()==3) {
+                //     asm volatile("li s0,0\ncsrw sstatus,s0,li s1,0x80020\ncsrw sepc,s1\nsret");
+
+                // }
+
+                // kout[Debug] << (void*)tar->context->epc;
+
+                // tar->getVMS()->EnableAccessUser();
+                // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
+                // tar->getVMS()->DisableAccessUser();
+                
+
+                return tar->context;
             } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))
                 tar->destroy();
         }
     }
+    return pm.getKernelProc()->context;
 }
 
-void KernelThreadExit(int re)
+extern "C" {
+void KernelProcessExit(Process* proc)
 {
-    // RegisterData a0=re,a7=SYS_Exit;
-    // asm volatile("ld a0,%0; ld a7,%1; ebreak"::"m"(a0),"m"(a7):"memory");
+    proc->switchStatus(S_Terminated);
+    RegisterData a7 = SYS_Exit;
+
     //	ProcessManager::Current()->Exit(re);//Multi cpu need get current of that cpu??
     //	ProcessManager::Schedule();//Need improve...
-    // kout[Fault]<<"KernelThreadExit: Reached unreachable branch!"<<endl;
+    kout[Fault] << "KernelProcessExit:Reached unreachable branch" << endl;
+}
+
+void UserProcessExit(Process* proc)
+{
+
+    proc->switchStatus(S_Terminated);
+    RegisterData a7 = SYS_Exit;
+    kout[Fault] << "KernelProcessExit:Reached unreachable branch" << endl;
+}
 }
 
 void SwitchToUserStat()

@@ -3,6 +3,7 @@
 #include "Library/KoutSingle.hpp"
 #include "Process/Process.hpp"
 #include "Trap/Interrupt.hpp"
+#include "Types.hpp"
 
 void ProcessQueue::printAllQueue()
 {
@@ -62,8 +63,7 @@ void ProcessQueue::destroy()
     }
 }
 
-Process*
-ProcessQueue::getFront()
+Process* ProcessQueue::getFront()
 {
     if (isEmpty()) {
         kout[Fault] << "process queue is empty" << endl;
@@ -109,7 +109,7 @@ int Semaphore::wait(Process* proc)
     return value;
 }
 
-void Semaphore::signal(Process* proc)
+void Semaphore::signal()
 {
     bool intr_flag;
     IntrSave(intr_flag);
@@ -118,13 +118,23 @@ void Semaphore::signal(Process* proc)
         Process* proc = queue.getFront();
         queue.dequeue();
         proc->SemRef--;
-        if(proc->SemRef==0)
-        {
+        if (proc->SemRef == 0) {
             proc->switchStatus(S_Ready);
         }
-    } 
+    }
     value++;
 
     unlockProcess();
     IntrRestore(intr_flag);
+}
+int Semaphore::getValue()
+{
+        bool intr_flag;
+    IntrSave(intr_flag);
+    lockProcess();
+        int re=value;
+    unlockProcess();
+    IntrRestore(intr_flag);
+    return value;
+
 }

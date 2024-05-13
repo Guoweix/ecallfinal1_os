@@ -119,8 +119,8 @@ int start_process_formELF(void* userdata);
 
 // 最终的从ELF文件创建进程的函数
 Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
-Process * CreateUserImgFromFunc(int (*func)(void*),void* arg,char * name);
-Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
+// Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
+Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
 // proc_struct* CreateProcessFromELF(file_object* fo, const char* wk_dir, int proc_flags = 0);
 
 #endif

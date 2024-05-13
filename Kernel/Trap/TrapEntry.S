@@ -65,6 +65,13 @@ _save_context:
     STORE s4, 35*REGBYTES(sp)
     .endm
 
+
+
+
+
+
+
+
     .macro RESTORE_ALL
     LOCAL _save_kernel_sp
     LOCAL _restore_context
@@ -120,13 +127,12 @@ _restore_context:
 
     .globl TrapEntry
 TrapEntry:
-
-    
 	SAVE_ALL
 	
     move  a0, sp
     jal Trap
     # sp should be the same as before "jal trap"
+    move sp,a0
 
 .globl __trapret
 __trapret:
