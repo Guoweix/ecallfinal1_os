@@ -1,13 +1,15 @@
-#include "Memory/pmm.hpp"
-#include "Synchronize/Synchronize.hpp"
-#include "Trap/Trap.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
 #include <Library/KoutSingle.hpp>
 #include <Library/Kstring.hpp>
+#include <Library/SBI.h>
+#include <Memory/pmm.hpp>
 #include <Memory/vmm.hpp>
 #include <Process/Process.hpp>
+#include <Synchronize/Synchronize.hpp>
 #include <Trap/Clock.hpp>
+#include <Trap/Interrupt.hpp>
+#include <Trap/Trap.hpp>
 
 void ProcessManager::init()
 {
@@ -39,6 +41,7 @@ void Process::show(int level)
                     << "proc pid_bro_next : " << (void*)broNext << endline
                     << "proc pid_fir_child : " << (void*)fstChild << endl;
     }
+    kout << endl;
 }
 
 void ProcessManager::show()
@@ -48,6 +51,7 @@ void ProcessManager::show()
             Proc[i].show();
         }
     }
+    kout << endl;
 }
 
 void ProcessManager::simpleShow()
@@ -115,7 +119,7 @@ void Process::init(ProcFlag _flags)
     VMS = nullptr;
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
-    waitSem=new Semaphore(0);
+    waitSem = new Semaphore(0);
     SemRef = 0;
     memset(&context, 0, sizeof(context));
     flags = _flags;
@@ -156,11 +160,17 @@ void Process::destroy()
 
 bool Process::exit(int re)
 {
+    // kout<<"exit"<<re;
+    switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
     }
     if (re != Exit_Normal) {
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
+    }
+    VMS->Leave();
+    if (!(flags & F_AutoDestroy) && father != nullptr) {
+        father->waitSem->signal();
     }
     return true;
 }
@@ -176,6 +186,7 @@ bool Process::run()
         }
         switchStatus(S_Running);
         pm->curProc = this;
+        VMS->Enter();
     }
     // kout[Debug] << "switch finish" << endl;
     return true;
@@ -301,14 +312,13 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)
             //         tar->SwitchStat(Process::S_Ready);
             // }
+            // kout<<p<<"P+i "<<(p+i)%MaxProcessCount<<tar->status<<endl;
+            // pm.show();
 
             if (tar->status == S_Ready) {
-                if (curProc->status == S_Running) {
-                    curProc->switchStatus(S_Ready);
-                }
 
+                tar->getVMS()->showVMRCount();
                 tar->run();
-                tar->getVMS()->Enter();
                 // if (tar->getID()==3) {
                 //     asm volatile("li s0,0\ncsrw sstatus,s0,li s1,0x80020\ncsrw sepc,s1\nsret");
 
@@ -319,7 +329,6 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
-                
 
                 return tar->context;
             } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))
@@ -329,12 +338,23 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     return pm.getKernelProc()->context;
 }
 
-extern "C" {
-void KernelProcessExit(Process* proc)
+void ProcessManager::immSchedule()
 {
-    proc->switchStatus(S_Terminated);
-    RegisterData a7 = SYS_Exit;
+    bool t;
+    IntrSave(t);
+    sbi_set_time(sbi_get_time());
+    IntrRestore(t);
+}
 
+extern "C" {
+void KernelProcessExit(int re)
+{
+
+    kout[Debug] << "FFFFFFFFFF" << re << endl;
+    // pm.getCurProc()->switchStatus(S_Terminated);
+
+    RegisterData a0 = re, a7 = SYS_Exit;
+    asm volatile("ld a0,%0; ld a7,%1; ebreak" ::"m"(a0), "m"(a7) : "memory");
     //	ProcessManager::Current()->Exit(re);//Multi cpu need get current of that cpu??
     //	ProcessManager::Schedule();//Need improve...
     kout[Fault] << "KernelProcessExit:Reached unreachable branch" << endl;

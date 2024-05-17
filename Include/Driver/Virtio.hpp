@@ -46,44 +46,42 @@
 // must be a power of two.
 #define NUM 8
 
-struct VirtioMMIO
-{
+// struct VirtioMMIO
+// {
 
-    enum : Sint64
-    {
-        BLK_F_RO = ~(1 << VIRTIO_BLK_F_RO),
-        BLK_F_SCSI = ~(1 << VIRTIO_BLK_F_SCSI),
-        BLK_F_CONFIG_WCE = ~(1 << VIRTIO_BLK_F_CONFIG_WCE),
-        BLK_F_MQ = ~(1 << VIRTIO_BLK_F_MQ),
-        F_ANY_LAYOUT = ~(1 << VIRTIO_F_ANY_LAYOUT),
-        RING_F_INDIRECT_DESC = ~(1 << VIRTIO_RING_F_INDIRECT_DESC),
-        RING_F_EVENT_IDX = ~(1 << VIRTIO_RING_F_EVENT_IDX),
+//     enum : Sint64
+//     {
+//         BLK_F_RO = ~(1 << VIRTIO_BLK_F_RO),
+//         BLK_F_SCSI = ~(1 << VIRTIO_BLK_F_SCSI),
+//         BLK_F_CONFIG_WCE = ~(1 << VIRTIO_BLK_F_CONFIG_WCE),
+//         BLK_F_MQ = ~(1 << VIRTIO_BLK_F_MQ),
+//         F_ANY_LAYOUT = ~(1 << VIRTIO_F_ANY_LAYOUT),
+//         RING_F_INDIRECT_DESC = ~(1 << VIRTIO_RING_F_INDIRECT_DESC),
+//         RING_F_EVENT_IDX = ~(1 << VIRTIO_RING_F_EVENT_IDX),
 
-    };
+//     };
 
 
 
-    Uint32 magic;
-    Uint32 version;
-    Uint32 deviceID;
-    Uint32 vendorID;
-    Uint64 deviceFeatures[2];
-    Uint64 driverFeatures;
-    Uint64 guestPageSize;
-    Uint32 queueSel;
-    Uint32 queueNumMax;
-    Uint32 queueNum;
-    Uint32 queueAlign;
-    Uint32 queuePFN;
-    Uint8 queueReady[12];
-    Uint8 queueNotify[16];
-    Uint32 interruptStatus;
-    Uint64 _____;
-    Uint32 interruptAck;
-
-    Uint32 status;
-};
-// __attribute__((packed));
+//     Uint32 magic;
+//     Uint32 version;
+//     Uint32 deviceID;
+//     Uint32 vendorID;
+//     Uint64 deviceFeatures[2];
+//     Uint64 driverFeatures;
+//     Uint64 guestPageSize;
+//     Uint32 queueSel;
+//     Uint32 queueNumMax;
+//     Uint32 queueNum;
+//     Uint32 queueAlign;
+//     Uint32 queuePFN;
+//     Uint8 queueReady[12];
+//     Uint8 queueNotify[16];
+//     Uint32 interruptStatus;
+//     Uint64 interruptAck;
+//     Uint32 _____;
+//     Uint32 status;
+// } __attribute__((packed));
 
 struct VRingDesc
 {
@@ -99,11 +97,18 @@ struct VRingUsedElem
     Uint32 len;
 };
 
-struct UsedArea
+struct VRingAvail
+{
+    Uint16 flags;
+    Uint16 index;
+    Uint16 ring[];
+};
+
+struct VRingUsed
 {
     Uint16 flags;
     Uint16 id;
-    struct VRingUsedElem elems[NUM];
+    struct VRingUsedElem elems[];
 };
 
 #endif

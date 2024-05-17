@@ -68,6 +68,10 @@ public:
     {
         queue.destroy();
     }
+    ~Semaphore()
+    {
+        this->destroy();
+    }
 
     Semaphore(const Semaphore&) = delete;
     Semaphore(const Semaphore&&) = delete;

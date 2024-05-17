@@ -112,6 +112,7 @@ public:
     inline void setFa(Process* fa) { father = fa; }
     inline void setID(Uint32 _id) { id = _id; }
     inline PID getID() {return id; }
+    inline Semaphore * getSemaphore() {return waitSem; }
     void setStack(void * _stack,Uint32 _stacksize);
     inline void setStack(){stack=kernel_end+0xffffffff+0x6400000;};
     inline void setVMS(VirtualMemorySpace * _VMS) {VMS=_VMS;}
@@ -149,6 +150,7 @@ public:
     void simpleShow();
 
     TrapFrame * Schedule(TrapFrame * preContext);
+    void immSchedule();
 
     // static TrapFrame* procScheduler(TrapFrame* context);
     // void waitRefProc(Process* proc);
@@ -165,10 +167,10 @@ public:
 extern ProcessManager pm;
 extern "C"
 {
-	extern void KernelProcessEntry();
+	extern void KernelProcessEntry(int re);
 	extern void UserProcessEntry();
-	void KernelProcessExit(Process * proc);
-	void UserProcessExit(Process * proc);
+	void KernelProcessExit(int re);
+	// void UserProcessExit(Process * proc);
 };
 
 

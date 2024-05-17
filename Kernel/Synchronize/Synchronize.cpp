@@ -59,7 +59,7 @@ void ProcessQueue::destroy()
     while (nxt != nullptr) {
         ListNode* t = nxt;
         nxt = nxt->next;
-        slab.free(t, sizeof(ListNode));
+        delete t;
     }
 }
 
@@ -74,7 +74,8 @@ Process* ProcessQueue::getFront()
 
 void ProcessQueue::enqueue(Process* insertProc)
 {
-    ListNode* t = (ListNode*)slab.allocate(sizeof(ListNode));
+    ListNode* t = (ListNode*)new ListNode;
+    kout[Info]<<"enqueue"<<(void *)t<<endl;
     t->proc = insertProc;
     rear->next = t;
     t->next = nullptr;
@@ -87,8 +88,9 @@ void ProcessQueue::dequeue()
         kout[Fault] << "process queue is empty" << endl;
     }
     ListNode* t = front->next;
+    kout[Info]<<"dequeue"<<(void *)t<<endl;
     front->next = t->next;
-    slab.free(t, sizeof(ListNode));
+    delete t;
 }
 
 int Semaphore::wait(Process* proc)

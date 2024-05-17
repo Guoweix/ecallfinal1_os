@@ -4,7 +4,6 @@
 .section .text
 KernelProcessEntry:
     .global KernelProcessEntry
-    move a0,s1
     jalr s0
     jal KernelProcessExit
 

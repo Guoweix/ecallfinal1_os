@@ -1,4 +1,7 @@
 #include "Trap/Syscall/Syscall.hpp"
+#include <Arch/Riscv.h>
+#include <Driver/Plic.hpp>
+#include <Driver/VirtioDisk.hpp>
 #include <Library/KoutSingle.hpp>
 #include <Memory/vmm.hpp>
 #include <Process/Process.hpp>
@@ -54,9 +57,12 @@ void TrapFailedInfo(TrapFrame* tf, bool fault = true)
                                 << "    epc   :" << (void*)tf->epc << endl;
 }
 
+bool needSchedule;
+
 extern "C" {
 TrapFrame* Trap(TrapFrame* tf)
 {
+    needSchedule = 0;
     if ((long long)tf->cause < 0)
         switch (tf->cause << 1 >> 1) // 为中断
         {
@@ -67,10 +73,33 @@ TrapFrame* Trap(TrapFrame* tf)
             // kout<<"*";
             if (ClockTick % 1000 == 0) {
                 kout[Debug] << "Schedule NOW" << endl;
-                return pm.Schedule(tf);
+                needSchedule = true;
             }
             SetClockTimeEvent(GetClockTime() + TickDuration);
             break;
+        case IRQ_S_EXT: {
+            int irq = plic_claim();
+            kout[Debug] << "irq " << irq << endl;
+            switch (irq) {
+            case 0:
+                break;
+            case UART_IRQ:
+                //...
+                break;
+            case DISK_IRQ: {
+                bool err = Disk.DiskInterruptSolve();
+                // kout[green]<<"DiskInterruptSolve"<<endl;
+                if (!err)
+                    kout[Fault] << "error DiskInterruptSolve" << endl;
+                break;
+            }
+            default:
+                kout[Fault] << "irq error" << endl;
+            }
+            if (irq)
+                plic_complete(irq);
+            break;
+        }
         default:
             TrapFailedInfo(tf);
         }
@@ -79,32 +108,34 @@ TrapFrame* Trap(TrapFrame* tf)
         {
         case ExceptionCode_BreakPoint:
             switch (tf->reg.a7) {
+                kout << "ExceptionCode_BreakPoint" << endl;
             }
-        case ExceptionCode_UserEcall:
-        {
-            // kout[Info]<<"Ecall happen"<<endl;
-            bool re=TrapFunc_Syscall(tf);
+        case ExceptionCode_UserEcall: {
+            // kout[Info] << "Ecall happen" << endl;
+            bool re = TrapFunc_Syscall(tf);
             if (!re) {
                 TrapFailedInfo(tf);
-            }
-            else {
-                tf->epc+=tf->cause==ExceptionCode_UserEcall?4:0;
+            } else {
+                tf->epc += tf->cause == ExceptionCode_UserEcall ? 4 : 0;
             }
             break;
-
         }
         case ExceptionCode_LoadAccessFault:
         case ExceptionCode_StoreAccessFault:
         case ExceptionCode_InstructionPageFault:
         case ExceptionCode_LoadPageFault:
         case ExceptionCode_StorePageFault:
-			kout[Test]<<"PageFault type "<<(void *)tf->cause<<endline<< "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
+            kout[Test] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
             if (TrapFunc_FageFault(tf) != ERR_None)
                 TrapFailedInfo(tf);
             break;
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
         }
+
+    if (needSchedule)
+        return pm.Schedule(tf);
+    else
         return tf;
 }
 

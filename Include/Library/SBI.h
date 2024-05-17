@@ -27,7 +27,7 @@
 
 #define sbi_get_time()            \
     ({                            \
-        uint64 re;                \
+        Uint64 re;                \
         asm volatile("rdtime %0"  \
                      : "=r"(re)); \
         re;                       \

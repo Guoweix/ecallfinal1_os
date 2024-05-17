@@ -1,4 +1,7 @@
 #include "Arch/Riscv.hpp"
+#include "Driver/Virtio.hpp"
+#include <Driver/VirtioDisk.hpp>
+#include <Library/Easyfunc.hpp>
 #include <Library/KoutSingle.hpp>
 #include <Memory/pmm.hpp>
 #include <Memory/slab.hpp>
@@ -8,8 +11,7 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
-#include <Driver/VirtioDisk.hpp>
-#include <Library/Easyfunc.hpp>
+#include <Library/Kstring.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -100,19 +102,23 @@ void pagefault_test()
 int hello(void* t)
 {
     int n;
-    while (1) {
-        n = 1e7;
-        while (n) {
-            n--;
-        }
 
+    // VDisk.waitDisk->signal();
+    for (int i=0;i<20;i++) {
+        n = 1e7;
+        delay(n);
         SBI_PUTCHAR('A');
     }
+    return 0;
 }
 
 int hello1(void* t)
 {
     int n;
+
+    // delay(5e8);
+    // VDisk.waitDisk->wait();
+    
     while (1) {
         n = 1e7;
         while (n) {
@@ -125,19 +131,49 @@ int hello1(void* t)
 
 void pm_test()
 {
-    kout<<"__________________________----"<<endl;
-        CreateKernelThread(hello1, "Hello1");
-    kout<<"__________________________----"<<endl;
+    kout << "__________________________----" << endl;
+    CreateKernelThread(hello1, "Hello1");
+    kout << "__________________________----" << endl;
     CreateKernelThread(hello, "Hello");
-    kout<<"__________________________----"<<endl;
+    kout << "__________________________----" << endl;
     CreateUserImgProcess(0xffffffff88200000, 0xffffffff88200076, F_User);
 
     pm.show();
-        
-    delay(1e9);
+    // delay(5e8);
+    // pm.getProc(1)->getSemaphore()->wait(pm.getProc(1));
+    // kout<<"VMS"<<(void *)pm.getCurProc()->getVMS()<<endl;
 
+    // delay(4e8);
+    // kout<<(void *)pm.getProc(1)->getSemaphore()<<endl;
+    // kout<<"VMS"<<(void *)pm.getCurProc()->getVMS()<<endl;
+    // pm.getProc(1)->getSemaphore()->signal();
+}
+
+void Semaphore_test()
+{
+    Semaphore * SemTest(0);
+    kout<<"2"<<endl;
+    SemTest->wait();
+    kout<<"3"<<endl;
+    kout<<"wait OK"<<endl;
+    kout<<"4"<<endl;
+    SemTest->signal();
+    kout<<"5"<<endl;
     
-    
+}
+            
+void Driver_test()
+{
+    int t;
+    Sector *sec=(Sector *)pmm.malloc(512,t);
+    Disk.readSector(0, sec);
+    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+    // memset(sec,0,512);
+    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+    // Disk.writeSector(0, sec);
+    Disk.readSector(0, sec);
+    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+
 }
 
 int main()
@@ -160,10 +196,22 @@ int main()
 
     pm.init();
 
+    // kout["kkkkkk"]<<&((VRingAvail*)nullptr)->ring<<endl;
+
+
+    Disk.DiskInit();
+    // int t;
+    // Sector *sec=(Sector *)pmm.malloc(512,t);
+    // Disk.readSector(0, sec);
+    // kout<<DataWithSize(sec,sizeof(Sector));
+
+
     InterruptEnable();
 
-
-
+    Driver_test();
+    kout<<"1"<<endl;
+    
+    // Semaphore_test();
     pm_test();
 
     // Below do nothing...
@@ -179,8 +227,6 @@ int main()
     // }
 
     DeadLoop(".");
-
-
 
     kout[Info] << "Shutdown!" << endl;
     SBI_SHUTDOWN();

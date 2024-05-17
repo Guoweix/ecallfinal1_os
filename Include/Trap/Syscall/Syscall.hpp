@@ -1,9 +1,11 @@
 #ifndef __SYSCALL_HPP__
 #define __SYSCALL_HPP__
 
-#include  <Trap/Trap.hpp>
 #include <Trap/Syscall/SyscallID.hpp>
+#include <Trap/Trap.hpp>
 
-bool TrapFunc_Syscall(TrapFrame *tf);
+
+bool TrapFunc_Syscall(TrapFrame* tf);
+inline void Syscall_Exit(int re);
 
 #endif
