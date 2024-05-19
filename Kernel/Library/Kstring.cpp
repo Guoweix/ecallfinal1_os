@@ -22,6 +22,16 @@ void strcpy(char* dst, const char* src)
     *dst = '\0';
 }
 
+char* strdump(const char *src)
+{
+	auto len=strlen(src);
+	if (len==0)
+		return nullptr;
+	char *re=new char[len+1];
+	strcpy(re,src);
+	return re;
+}
+
 // 用返回值作为修改后的字符串
 char* strcpy_s(char* dst, const char* src)
 {
@@ -33,6 +43,20 @@ char* strcpy_s(char* dst, const char* src)
     *p = 0;
 
     return dst;
+}
+
+void strcpy3(char *dst,const char *src,const char *end)
+{
+	while (src<end)
+		*dst++=*src++;
+	*dst=0;
+}
+
+char* strcpyre(char *dst,const char *src)
+{
+	while (*src)
+		*dst++=*src++;
+	return dst;
 }
 
 char* strcpy_no_end(char* dst, const char* src)

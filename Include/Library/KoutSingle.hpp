@@ -41,7 +41,12 @@ namespace POS
 			*dst++=*src++;
 	}
 
+    template <typename T> inline T minN(const T &a,const T &b)
+	{return b<a?b:a;}
 
+	template <typename T> inline T maxN(const T &a,const T &b)
+	{return a<b?b:a;}
+	
 	template <typename T0,typename T1> inline bool NotInSet(const T0 &x,const T1 &a)
 	{return x!=a;}
 
@@ -49,6 +54,15 @@ namespace POS
 	{
 		if (x==a) return 0;
 		else return NotInSet(x,args...);
+	}
+
+    template <typename T0,typename T1> inline bool InThisSet(const T0 &x,const T1 &a)
+	{return x==a;}
+	
+	template <typename T0,typename T1,typename...Ts> inline bool InThisSet(const T0 &x,const T1 &a,const Ts &...args)
+	{
+		if (x==a) return 1;
+		else return InThisSet(x,args...);
 	}
 
 	template <typename T> inline void Swap(T &x,T &y)
