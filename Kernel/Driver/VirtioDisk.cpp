@@ -135,7 +135,7 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     // kout << DataWithSizeUnited(&pages[4096], 64, 32);
     int idx[3]; // 用来传递queue的通配符,下标
 
-    kout[Debug] << "!!!!!0!!!!!" << endl;
+    // kout[Debug] << "!!!!!0!!!!!" << endl;
 
     while (1) {
         if (alloc3_desc(idx) == 0) // 链表中分配3个通配符号
@@ -144,8 +144,8 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
         }
     }
 
-    kout << idx[0] << idx[1] << idx[2] << endl;
-    kout[Debug] << "!!!!!1!!!!!" << endl;
+    // kout << idx[0] << idx[1] << idx[2] << endl;
+    // kout[Debug] << "!!!!!1!!!!!" << endl;
     if (write)
         buf0.type = VIRTIO_BLK_T_OUT;
     else
@@ -155,7 +155,7 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     buf0.reserved = 0;
     buf0.sector = sector;
 
-    kout[Debug] << "!!!!!2!!!!!" << endl;
+    // kout[Debug] << "!!!!!2!!!!!" << endl;
 
     // 第一个通配符传递buf0,缓冲区的长度和地址
     desc[idx[0]].addr = (Uint64)&buf0 - 0xffffffff00000000;
@@ -183,7 +183,6 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 
     info.flag = 0;
     info.buf = buf;
-
     // avail[2 + (avail[1].index % NUM)]. = idx[0];
     // Uint16 * t=(Uint16 *)avail;
     avail->ring[avail->index % NUM] = idx[0];
@@ -192,21 +191,25 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     __sync_synchronize();
     avail->index = avail->index + 1;
 
-    kout[Debug] << "!!!!!3!!!!!" << endl;
+    // kout[Debug] << "!!!!!3!!!!!" << endl;
+    last_used_idx=used->id;
+    // kout[Debug] << used->id << endl;
+    // kout[Debug] << last_used_idx << endl;
 
     info.flag = 1;
 
     InterruptEnable();
     *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
-    while (intr==false) {
+    while (last_used_idx==used->id) {
     }
+    
+    // kout[Debug] << "!!!!!4!!!!!" << endl;
     InterruptDisable();
 
     // kout<<DataWithSizeUnited(avail,128,32);
     // kout<<DataWithSizeUnited(pages,64,32);
     // kout<<DataWithSizeUnited(&pages[4096],64,32);
-    kout[Debug] << "!!!!!4!!!!!" << endl;
     free_chain(idx[0]);
     IntrRestore(a);
 }
@@ -214,8 +217,10 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 void VirtioDisk::virtio_disk_intr()
 {
     // kout << "intr" << endl;
-    intr=true;
+    // kout[Debug] << used->id << endl;
+    // kout[Debug] << last_used_idx << endl;
     *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;
+
 }
 
 // void VirtioDisk::virtio_disk_intr()
@@ -264,9 +269,11 @@ bool DISK::DiskInit()
 
 bool DISK::readSector(unsigned long long LBA, Sector* sec, int cnt)
 {
+    VDisk.waitDisk->wait();
     for (int i = 0; i < cnt; ++i) {
         VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 0);
     }
+    VDisk.waitDisk->signal();
     return true;
 }
 
@@ -281,7 +288,7 @@ bool DISK::writeSector(unsigned long long LBA, const Sector* sec, int cnt)
 
 bool DISK::DiskInterruptSolve()
 {
-    VDisk.waitDisk->wait();
+    // VDisk.waitDisk->wait();
     VDisk.virtio_disk_intr();
     return true;
 }

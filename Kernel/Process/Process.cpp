@@ -119,6 +119,7 @@ void Process::init(ProcFlag _flags)
     VMS = nullptr;
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
+
     waitSem = new Semaphore(0);
     SemRef = 0;
     memset(&context, 0, sizeof(context));
@@ -150,7 +151,7 @@ void Process::destroy()
     setFa(nullptr);
     setName(nullptr);
     if (stack != nullptr) {
-        Kfree(stack);
+        kfree(stack);
     }
     stack = nullptr;
     stacksize = 0;

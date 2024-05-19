@@ -20,7 +20,9 @@ void ProcessQueue::printAllQueue()
 }
 void ProcessQueue::init()
 {
-    front = (ListNode*)slab.allocate(sizeof(ListNode));
+    // front = (ListNode*)slab.allocate(sizeof(ListNode));
+    front = new ListNode;
+
     rear = front;
     if (front == nullptr)
         kout[Fault] << "process Queue Init Falied" << endl;
@@ -75,7 +77,7 @@ Process* ProcessQueue::getFront()
 void ProcessQueue::enqueue(Process* insertProc)
 {
     ListNode* t = (ListNode*)new ListNode;
-    kout[Info]<<"enqueue"<<(void *)t<<endl;
+    kout[Info] << "enqueue" << (void*)t << endl;
     t->proc = insertProc;
     rear->next = t;
     t->next = nullptr;
@@ -88,7 +90,7 @@ void ProcessQueue::dequeue()
         kout[Fault] << "process queue is empty" << endl;
     }
     ListNode* t = front->next;
-    kout[Info]<<"dequeue"<<(void *)t<<endl;
+    kout[Info] << "dequeue" << (void*)t << endl;
     front->next = t->next;
     delete t;
 }
@@ -99,7 +101,10 @@ int Semaphore::wait(Process* proc)
     IntrSave(intr_flag);
     lockProcess();
     value--;
+    // kout[Info] << "Wait " << proc << endl;
     if (value < 0) {
+    // kout[Info] << "Wait " << proc << endl;
+
         queue.enqueue(proc);
         proc->SemRef++;
         proc->switchStatus(S_Sleeping);
@@ -116,10 +121,12 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
+        // kout[Info] << "signal "  << endl;
     if (value < 0) {
         Process* proc = queue.getFront();
         queue.dequeue();
         proc->SemRef--;
+        // kout[Info] << "signal " << proc << endl;
         if (proc->SemRef == 0) {
             proc->switchStatus(S_Ready);
         }
@@ -131,12 +138,11 @@ void Semaphore::signal()
 }
 int Semaphore::getValue()
 {
-        bool intr_flag;
+    bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-        int re=value;
+    int re = value;
     unlockProcess();
     IntrRestore(intr_flag);
     return value;
-
 }

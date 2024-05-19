@@ -41,12 +41,12 @@ private:
            slabBCount;//可用空闲页数
 
 public:
-    void Init(Uint32 size,Uint32 PageCounts);
+    void Init(Uint32 size,Uint32 PageCounts,Uint32 Usage);
     slabB* allocslabB(Uint64 num);
     bool insert_page(slabB* src); // 更新线段树
     bool freeslabB(slabB* t);
     slabB* get_from_addr(void* addr);
-
+    inline Uint64 getSlabBCount(){return  slabBCount;} 
     void free(void* freeaddress);
 };
 

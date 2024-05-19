@@ -45,6 +45,7 @@ struct VirtioDisk {
     VRingAvail* avail;
     VRingUsed* used;
 
+    Uint16 used_last_id;
     Uint16 * avail_event;
     Uint16 * used_event;
 

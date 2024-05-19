@@ -57,13 +57,21 @@ public:
 
     Semaphore(int _value)
     {
-        if (value < 0) {
+        // kout<<_value<<endl;
+        if (_value < 0) {
             kout[Fault] << "semaphore's value should not be negative" << endl;
         }
 
         value = _value;
         queue.init();
     }
+    
+    Semaphore()
+    {
+        value = 0;
+        queue.init();
+    }
+    
     inline void destroy()
     {
         queue.destroy();
@@ -92,7 +100,7 @@ class Mutex:public Semaphore
 		{return wait();}//
 		
 		Mutex()
-        {Semaphore::init(1);}//
+        {}//
 };
 
 

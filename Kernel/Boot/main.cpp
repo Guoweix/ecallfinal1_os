@@ -1,8 +1,11 @@
 #include "Arch/Riscv.hpp"
 #include "Driver/Virtio.hpp"
+#include "File/FAT32.hpp"
 #include <Driver/VirtioDisk.hpp>
+#include <File/vfsm.hpp>
 #include <Library/Easyfunc.hpp>
 #include <Library/KoutSingle.hpp>
+#include <Library/Kstring.hpp>
 #include <Memory/pmm.hpp>
 #include <Memory/slab.hpp>
 #include <Memory/vmm.hpp>
@@ -11,7 +14,6 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
-#include <Library/Kstring.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -26,21 +28,30 @@ KOUT kout;
 
 void pmm_test()
 {
+    pmm.show();
+
+    int i = 0;
+    while (1) {
+        i++;
+        kmalloc(20);
+        kout << i << endl;
+        pmm.show();
+    }
     // 在 slab 中进行内存分配测试,通过
-    void* memory64B = kmalloc(64);
+    void* memory64B = kmalloc(4096);
     if (memory64B)
-        kout[Info] << "Allocated 1KB memory successfully!" << (void*)memory64B << endl;
+        kout[Info] << "Allocated 4KB memory successfully!" << (void*)memory64B << endl;
     else
-        kout[Error] << "Failed to allocate 1KB memory!" << endl;
+        kout[Error] << "Failed to allocate 4KB memory!" << endl;
     pmm.show();
 
     kfree(memory64B);
 
-    void* memory64B2 = kmalloc(64);
+    void* memory64B2 = kmalloc(4096);
     if (memory64B2)
-        kout[Info] << "Allocated 1KB memory successfully!" << (void*)memory64B2 << endl;
+        kout[Info] << "Allocated 4KB memory successfully!" << (void*)memory64B2 << endl;
     else
-        kout[Error] << "Failed to allocate 1KB memory!" << endl;
+        kout[Error] << "Failed to allocate 4KB memory!" << endl;
     pmm.show();
 
     /*void* memory512B = slab.allocate(512);
@@ -104,7 +115,7 @@ int hello(void* t)
     int n;
 
     // VDisk.waitDisk->signal();
-    for (int i=0;i<20;i++) {
+    for (int i = 0; i < 20; i++) {
         n = 1e7;
         delay(n);
         SBI_PUTCHAR('A');
@@ -118,7 +129,7 @@ int hello1(void* t)
 
     // delay(5e8);
     // VDisk.waitDisk->wait();
-    
+
     while (1) {
         n = 1e7;
         while (n) {
@@ -151,29 +162,48 @@ void pm_test()
 
 void Semaphore_test()
 {
-    Semaphore * SemTest(0);
-    kout<<"2"<<endl;
+    Semaphore* SemTest(0);
+    kout << "2" << endl;
     SemTest->wait();
-    kout<<"3"<<endl;
-    kout<<"wait OK"<<endl;
-    kout<<"4"<<endl;
+    kout << "3" << endl;
+    kout << "wait OK" << endl;
+    kout << "4" << endl;
     SemTest->signal();
-    kout<<"5"<<endl;
-    
+    kout << "5" << endl;
 }
-            
+
 void Driver_test()
 {
     int t;
-    Sector *sec=(Sector *)pmm.malloc(512,t);
-    Disk.readSector(0, sec);
-    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+    Sector* sec = (Sector*)pmm.malloc(51200, t);
+    Disk.readSector(0, sec, 100);
+    kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
     // memset(sec,0,512);
-    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+    // kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
     // Disk.writeSector(0, sec);
     Disk.readSector(0, sec);
-    kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
+    kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
+}
 
+void VFSM_test()
+{
+    FAT32FILE* file;
+    file = vfsm.get_next_file(vfsm.get_root());
+    // kout << file;
+    while (file) {
+        kout << file->name << endl;
+        if (file->table.size == 0) {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+        if (file->TYPE == FAT32FILE::__DIR) {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+
+        file = vfsm.get_next_file(vfsm.get_root(), file);
+        // kout << file;
+    }
 }
 
 int main()
@@ -198,21 +228,23 @@ int main()
 
     // kout["kkkkkk"]<<&((VRingAvail*)nullptr)->ring<<endl;
 
-
     Disk.DiskInit();
+    kout[Info] << "Diskinit finish" << endl;
+    vfsm.init();
+    kout[Info] << "vfsm finish" << endl;
     // int t;
     // Sector *sec=(Sector *)pmm.malloc(512,t);
     // Disk.readSector(0, sec);
     // kout<<DataWithSize(sec,sizeof(Sector));
 
-
+    // Driver_test();
+    VFSM_test();
+    pm_test();
     InterruptEnable();
 
-    Driver_test();
-    kout<<"1"<<endl;
-    
+    kout << "1" << endl;
+
     // Semaphore_test();
-    pm_test();
 
     // Below do nothing...
     auto Sleep = [](int n) {while (n-->0); };

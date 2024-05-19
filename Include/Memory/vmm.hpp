@@ -12,7 +12,7 @@
 
 extern "C" {
 extern class PageTable boot_page_table_sv39[];
-};        
+};
 
 class PageTable { // 页表项
 public:
@@ -534,6 +534,16 @@ public:
         if (CurrentVMS == this)
             KernelVMS->Enter();
     }
+    inline void show()
+    {
+        VirtualMemoryRegion* t;
+        t = vmrHead.Nxt();
+        while (t) {
+            kout << (void*)t->StartAddress << '-' << (void *)t->EndAddress << "||";
+            t = t->Nxt();
+        }
+        kout << endl;
+    }
 
     ErrorType SolvePageFault(TrapFrame* tf)
     {
@@ -541,9 +551,12 @@ public:
         VirtualMemoryRegion* vmr = FindVMR(tf->tval); // 找到是谁管理这块地址空间
 
         kout[Info] << "Solve Page Fault " << (void*)tf->tval << " is managed by " << vmr << endl;
+        kout[Info] << "VMS" << (void*)this << endl;
 
-        if (vmr == nullptr)
+        if (vmr == nullptr) {
+            show();
             return ERR_AccessInvalidVMR;
+        }
         // 根据内存访问模式决定是否使用大页
         bool useLargePage = vmr->ShouldUseLargePage(vmr->GetFlags(), tf->tval);
         if (useLargePage) {
@@ -605,6 +618,7 @@ public:
             //}
         }
         kout[Test] << "SolvePageFault OK" << endl;
+        
         return ERR_None;
     }
 

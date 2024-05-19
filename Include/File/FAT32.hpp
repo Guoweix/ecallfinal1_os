@@ -1,118 +1,162 @@
-#ifndef POS_FAT32_HPP
-#define POS_FAT32_HPP
+#ifndef _FAT32_HPP__
+#define _FAT32_HPP__
 
-#include "FileSystem.hpp"
+// #include <ramdisk_driver.hpp>
+#include <Types.hpp>
 #include <Library/KoutSingle.hpp>
+#include <Library/Pathtool.hpp>
 #include <Library/Kstring.hpp>
-#include <Library/DataStructure/PAL_Tuple.hpp>
-#include "../Driver/VirtioDisk.hpp"
+#include <Driver/VirtioDisk.hpp>
 
-const Uint64 SECTORSIZE = 512;
-constexpr Uint64 ClusterEndFlag=0x0FFFFFFF;
-
-inline bool IsClusterEnd(Uint64 cluster)
-{return POS::InRange(cluster,0x0FFFFFF8,0x0FFFFFFF);}
-
-class StorageDevice {
-	
-public:
-	virtual ErrorType Init() = 0;
-	virtual ErrorType Read(Uint64 lba, unsigned char* buffer) = 0; 
-	virtual ErrorType Write(Uint64 lba, unsigned char* buffer) = 0;
+struct DBR
+{
+    Uint32 FAT_num;
+    Uint32 FAT_sector_num;
+    Uint32 sector_size;
+    Uint32 clus_sector_num;
+    Uint32 rs_sector_num;
+    Uint32 all_sector_num;
+    Uint32 root_clus;
+    Uint32 clus_size;
 };
 
-class FAT32Device :public StorageDevice {
-public:
-	ErrorType Init(){
-		return ERR_None;;
-	}
-	ErrorType Read(Uint64 lba, unsigned char* buffer){
-		
-	}
-	ErrorType Write(Uint64 lba, unsigned char* buffer){
-		
-	}
+union FATtable
+{
+
+    enum :Uint8
+    {
+        READ_ONLY = 0x1 << 0,
+        HIDDEN = 0x1 << 1,
+        SYSTEM = 0x1 << 2,
+        VOLUME_LABEL = 0x1 << 3,
+        SUBDIRENCTORY = 0x1 << 4,
+        FILE = 0x1 << 5,
+        DEVICE = 0x1 << 6,
+    };
+    struct
+    {
+        char name[8];
+
+        Uint8 ex_name[3];
+        Uint8 type;
+        Uint8 rs;
+        Uint8 ns;
+        Uint8 S_time[2]; // 创建时间
+
+        Uint8 S_date[2];
+        Uint8 C_time[2]; // 访问时间
+        Uint16 high_clus;
+        Uint8 M_time[2]; // 修改时间
+
+        Uint8 M_date[2];
+        Uint16 low_clus;
+        Uint32 size;
+    };
+    struct
+    {
+        Uint8 attribute;
+        Uint8 lname0[10];
+        Uint8 type1;
+        Uint8 rs2;
+        Uint8 check;
+        Uint8 lname1[12];
+        Uint16 clus1;
+        Uint8 lname2[4];
+    };
+
+    Sint32 get_name(char* REname); // 返回值为-1时说明无效，0为短名称，大于1的序列为长名称(长名称无法完成拷贝),-2为点目录
 };
-class VirtualFileSystem;
+bool ALLTURE(FATtable* t);
+bool VALID(FATtable* t);
+bool EXCEPTDOT(FATtable* t);
+class FAT32;
+class VFSM;
 
-struct DBR {
-	Uint32 BPB_RsvdSectorNum; 
-	Uint32 BPB_FATNum;
-	Uint32 BPB_SectorPerFATArea; 
-	Uint32 BPB_HidenSectorNum; 
-	Uint64 BPBSectorPerClus;
+class FAT32FILE
+{
+public:
+    enum : Uint32
+    {
+        __DIR = 1ull << 0,
+        __ROOT = 1ull << 1,
+        __VFS = 1ull << 2,
+        __DEVICE = 1ull << 3,
+        __TEMP = 1ull << 4,
+        __LINK = 1ull << 5,
+        __SPECICAL = 1ull << 6,
+    };
+    char* name = nullptr;
+    Uint32 TYPE;
+    FATtable table;
+    Uint64 table_clus_pos;
+    Uint64 table_clus_off;
+    Uint32 clus;
+
+    FAT32FILE* next = nullptr;
+    FAT32FILE* pre = nullptr;
+
+    FAT32* fat;
+    Uint64 ref;
+    char* path;
+
+
+
+    FAT32FILE(FATtable tb, char* lName, Uint64 _clus = 0, Uint64 pos = 0, char* path = nullptr);
+    ~FAT32FILE();
+    bool set_path(char* _path);
+
+    Sint64 read(unsigned char* buf, Uint64 size);
+    Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size);
+    bool write(unsigned char* src, Uint64 size);
+    bool write(unsigned char* src, Uint64 pos, Uint64 size);
+
+
+    void show();
 };
 
-class FAT32 :public VirtualFileSystem{
-	friend class FAT32FileNode;
-public:
+class FAT32
+{
+    friend class FAT32FILE;
+    friend class VFSM;
 
-	virtual FileNode* FindFile(const char* path, const char* name) override;
-	virtual int GetAllFileIn(const char* path, char* result[], int bufferSize, int skipCnt = 0) override;//if unused,result should be empty when input , user should free the char*
-	virtual int GetAllFileIn(const char* path, FileNode* nodes[], int bufferSize, int skipCnt = 0) override;
-	virtual ErrorType CreateDirectory(const char* path) override;
-	virtual ErrorType CreateFile(const char* path) override;
-	virtual ErrorType Move(const char* src, const char* dst) override;
-	virtual ErrorType Copy(const char* src, const char* dst) override;
-	virtual ErrorType Delete(const char* path)override;
-	virtual FileNode* GetNextFile(const char* base) override;
-
-	virtual FileNode* Open(const char* path) override;
-	virtual ErrorType Close(FileNode* p) override;
-
-	Uint64 DBRLba;
-	DBR Dbr;
-	Uint64 FAT1Lba;
-	Uint64 FAT2Lba;
-	Uint64 RootLba;
-	FAT32Device device;
+private:
+    Uint64 DBRlba;
+    Uint64 FAT1lba;
+    Uint64 FAT2lba;
+    Uint64 DATAlba;
 
 
-	FAT32();
-	FileNode* LoadShortFileInfoFromBuffer(unsigned char* buffer);
-	ErrorType LoadLongFileNameFromBuffer(unsigned char* buffer,Uint32* name);
-	char*  MergeLongNameAndToUtf8(Uint32* buffer[], Uint32 cnt);
-	Uint64 GetLbaFromCluster(Uint64 cluster);
-	Uint64 GetSectorOffsetFromlba(Uint64 lba);
-	Uint32 GetFATContentFromCluster(Uint32 cluster);
-	ErrorType SetFATContentFromCluster(Uint32 cluster,Uint32 content);
-	ErrorType ReadRawData(Uint64 lba, Uint64 offset, Uint64 size, unsigned char* buffer);
-	ErrorType WriteRawData(Uint64 lba, Uint64 offset, Uint64 size, unsigned char* buffer);
-	FileNode* FindFileByNameFromCluster(Uint32 cluster, const char* name);
-	FileNode* FindFileByPath(const char* path);
-	bool IsExist(const char* path);
-	bool IsShortContent(const char* name);
-	PAL_DS::Doublet <unsigned char*,Uint8 > GetShortName(const char*);
-	PAL_DS::Doublet <unsigned char*, Uint64> GetLongName(const char *);
-	Uint32 GetFreeClusterAndPlusOne();
-	ErrorType AddContentToCluster(Uint32 cluster,unsigned char * buffer,Uint64 size);
-	PAL_DS::Doublet<Uint64,Uint64> GetContentLbaAndOffsetFromPath();
-	PAL_DS::Triplet<Uint32, Uint64,Uint64>  GetFreeClusterAndLbaAndOffsetFromCluster(Uint32 cluster);
-	unsigned char CheckSum(unsigned char* data);
 
 public:
-	ErrorType Init();
-	const char* FileSystemName() override;
-};
+    DBR Dbr;
+    DISK  dev;
+    Uint64 clus_to_lba(Uint64 clus);
+    Uint64 lba_to_clus(Uint64 lba);
+    FAT32FILE* get_child_form_clus(char* child_name, Uint64 src_lba); // 返回文件table
+
+    bool get_clus(Uint64 clus, unsigned char* buf);
+    bool get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
+    bool set_clus(Uint64 clus, unsigned char* buf);
+    bool set_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
+
+    Uint64 find_empty_clus();
+    bool set_table(FAT32FILE* file);
+    Uint32 get_next_clus(Uint32 clus);
+    bool set_next_clus(Uint32 clus, Uint32 nxt_clus);
 
 
-class FAT32FileNode :public FileNode {
-	friend class FAT32;
-public:
-
-	Uint32 FirstCluster; 
-	FAT32FileNode* nxt;
-	bool IsDir; 
-	Uint64 ReadSize;
-	Uint64 ContentLba;
-	Uint64 ContentOffset;
-
-	virtual Sint64 Read(void* dst, Uint64 pos, Uint64 size) override;
-	virtual Sint64 Write(void* src, Uint64 pos, Uint64 size) override;
-	ErrorType SetSize(Uint32 size);
-	PAL_DS::Doublet <Uint32, Uint64> GetCLusterAndLbaFromOffset(Uint64 offset);
-	FAT32FileNode(FAT32* _vfs,Uint32 cluster,Uint64 _ContentLba,Uint64 _ContentOffset);
-	~FAT32FileNode();
+    bool init();
+    FAT32();
+    ~FAT32();
+    FAT32FILE* find_file_by_path(char* path);
+    FAT32FILE* open(char* path);
+    bool close(FAT32FILE* p);
+    bool link();
+    bool unlink(FAT32FILE* file);
+    FAT32FILE* create_file(FAT32FILE* dir, char* fileName, Uint8 type = FATtable::FILE);
+    FAT32FILE* create_dir(FAT32FILE* dir, char* fileName);
+    bool del_file(FAT32FILE* file);                                                                        // 可用于删除文件夹
+    FAT32FILE* get_next_file(FAT32FILE* dir, FAT32FILE* cur = nullptr, bool (*p)(FATtable* temp) = VALID); // 获取到的dir下cur的下一个满足p条件的文件，如果没有则返回空
 };
 
 #endif

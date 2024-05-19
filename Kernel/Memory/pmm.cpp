@@ -128,7 +128,8 @@ bool PMM::free_pages(PAGE* t)
 // 从物理地址获取对应的页 参数addr实际上是相对all_pages的偏移量
 PAGE* PMM::get_page_from_addr(void* addr)
 {
-    return (PAGE*)(void*)(FreeMemoryStart() + ((Uint64)addr - FreeMemoryStart()) / PAGESIZE * sizeof(PAGE));;
+    
+    return (PAGE*)(void*)(FreeMemoryStart() + ((Uint64)addr - FreeMemoryStart()) / PAGESIZE * sizeof(PAGE));
 }
 
 // 实现malloc函数 返回的就是分配的内存块是实际物理地址

@@ -127,7 +127,10 @@ TrapFrame* Trap(TrapFrame* tf)
         case ExceptionCode_StorePageFault:
             kout[Test] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
             if (TrapFunc_FageFault(tf) != ERR_None)
+            {
+                kout[Info]<<"PID"<<pm.getCurProc()->getID()<<endl;
                 TrapFailedInfo(tf);
+            }
             break;
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
