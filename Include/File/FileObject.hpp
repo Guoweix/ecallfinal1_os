@@ -20,11 +20,9 @@
 
 // 实现系统调用需要的特殊fd的宏
 #define AT_FDCWD -100
+class FAT32FILE;
+class Process;
 
-// 标准输出对应的文件实例对象
-// 暂时设为空 后续找到再设置
-// 应该为串口文件格式 目前先如此保留
-extern FAT32FILE* STDIO;
 
 // 枚举结构列出flags信息
 // 以Linux规范为标准
@@ -123,5 +121,8 @@ public:
 
 // 声明全局管理器进行调用
 extern FileObjectManager fom;
-
+// 标准输出对应的文件实例对象
+// 暂时设为空 后续找到再设置
+// 应该为串口文件格式 目前先如此保留
+extern FAT32FILE* STDIO;
 #endif

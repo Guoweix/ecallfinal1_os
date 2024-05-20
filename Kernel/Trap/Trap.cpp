@@ -72,7 +72,6 @@ TrapFrame* Trap(TrapFrame* tf)
             // if (ClockTick%100==0)
             // kout<<"*";
             if (ClockTick % 1000 == 0) {
-                kout[Debug] << "Schedule NOW" << endl;
                 needSchedule = true;
             }
             SetClockTimeEvent(GetClockTime() + TickDuration);
@@ -111,7 +110,7 @@ TrapFrame* Trap(TrapFrame* tf)
                 kout << "ExceptionCode_BreakPoint" << endl;
             }
         case ExceptionCode_UserEcall: {
-            // kout[Info] << "Ecall happen" << endl;
+            kout[Info] << "Ecall happen" << endl;
             bool re = TrapFunc_Syscall(tf);
             if (!re) {
                 TrapFailedInfo(tf);

@@ -1,9 +1,11 @@
 #ifndef __PROCESS_HPP__
 #define __PROCESS_HPP__
 
-#include "Library/KoutSingle.hpp"
+// #include <File/FileObject.hpp>
+#include <Library/KoutSingle.hpp>
 #include <Memory/pmm.hpp>
 #include <Synchronize/SpinLock.hpp>
+// #include <Synchronize/Synchronize.hpp>
 #include <Trap/Trap.hpp>
 #include <Types.hpp>
 #include <Memory/vmm.hpp>
@@ -17,10 +19,12 @@ const PtrSint InnerUserProcessLoadAddr=0x800020,
 			 InnerUserProcessStackSize=PAGESIZE*32,
 			 InnerUserProcessStackAddr=0x80000000-InnerUserProcessStackSize;
 
-class VMM;
+// class VMM;
 class Semaphore;
+class FileObjectManager;
 
 // struct RegContext { //     RegisterData ra, sp, s[12]; // };
+class file_object;
 
 inline RegisterData GetCPUID()
 {
@@ -61,6 +65,8 @@ enum ProcFlag : Uint64 {
 class Process {
     friend ProcessManager;
     friend Semaphore;
+    friend FileObjectManager;
+
 
 private:
     ClockTime timeBase; // Round Robin时间片轮转调度实现需要 计时起点
@@ -87,10 +93,13 @@ private:
     Process* broNext;
     Process* fstChild;
 
+    file_object* fo_head;
+    char * curWorkDir;
     
     Semaphore * waitSem;
 
     VirtualMemorySpace * VMS;
+    HeapMemoryRegion * Heap;
 
     TrapFrame * context;
 
@@ -116,9 +125,15 @@ public:
     void setStack(void * _stack,Uint32 _stacksize);
     inline void setStack(){stack=kernel_end+0xffffffff+0x6400000;};
     inline void setVMS(VirtualMemorySpace * _VMS) {VMS=_VMS;}
+    inline void setHeap(HeapMemoryRegion * _HMS) {Heap=_HMS;}
     inline VirtualMemorySpace * getVMS() {return VMS;}
 
-
+    bool initFds();
+    bool destroyFds();
+    file_object * getSpecFds(int fd_num);
+    bool copyFds(Process * a);
+    bool setProcCWD(const char * cwd);
+    inline char * getCWD(){return curWorkDir;};
 
     void switchStatus(ProcStatus tarStatus);
 

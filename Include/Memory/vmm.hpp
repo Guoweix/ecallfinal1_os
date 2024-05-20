@@ -13,6 +13,7 @@
 extern "C" {
 extern class PageTable boot_page_table_sv39[];
 };
+constexpr Uint32 PageSizeBit=12;
 
 class PageTable { // 页表项
 public:
@@ -649,6 +650,49 @@ public:
     }
 };
 
+
+class HeapMemoryRegion:public VirtualMemoryRegion
+{
+	protected:
+		Uint64 BreakPointLength=0;
+		
+	public:
+		inline PtrUint BreakPoint()
+		{return StartAddress+BreakPointLength;}
+		
+		inline ErrorType Resize(Sint64 delta)
+		{
+			if (delta>=0)
+			{
+				BreakPointLength+=delta;
+				if (StartAddress+BreakPointLength>EndAddress)
+					if (nxt==nullptr||StartAddress+BreakPointLength<=nxt->GetStart())
+						EndAddress=StartAddress+BreakPointLength+PAGESIZE-1>>PageSizeBit<<PageSizeBit;
+					else return ERR_HeapCollision;
+			}
+			else
+			{
+				if (-delta>BreakPointLength)
+				{
+					BreakPointLength=0;
+					EndAddress=StartAddress+PAGESIZE;
+				}
+				else
+				{
+					BreakPointLength+=delta;
+					EndAddress=StartAddress+BreakPointLength+PAGESIZE-1>>PageSizeBit<<PageSizeBit;
+				}
+				//<<destroy uneeded pages...
+			}
+			return ERR_None;
+		}
+		
+		inline ErrorType Init(PtrUint start,Uint64 len=PAGESIZE,Uint64 flags=VM_USERHEAP)
+		{
+			BreakPointLength=len;
+			return VirtualMemoryRegion::Init(start,start+len,flags);
+		}
+};
 inline ErrorType TrapFunc_FageFault(TrapFrame* tf)
 {
     return VirtualMemorySpace::Current()->SolvePageFault(tf);

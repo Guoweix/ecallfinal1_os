@@ -107,7 +107,7 @@ enum P_flags
 // 从ELF文件解析得到用来创建进程的数据
 struct procdata_fromELF
 {
-    // file_object* fo;
+    file_object* fo;
     Process* proc;
     VirtualMemorySpace* vms;
     Elf_Ehdr e_header;
@@ -115,12 +115,12 @@ struct procdata_fromELF
 };
 
 // 从ELF文件启动进程函数
-int start_process_formELF(void* userdata);
+int start_process_formELF(procdata_fromELF * userdata);
 
 // 最终的从ELF文件创建进程的函数
 Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
 // Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
 Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
-// proc_struct* CreateProcessFromELF(file_object* fo, const char* wk_dir, int proc_flags = 0);
+Process * CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc_flags = F_User);
 
 #endif

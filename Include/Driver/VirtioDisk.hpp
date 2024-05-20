@@ -15,6 +15,7 @@ struct AddrSize {
   Uint32 vp_flag;   /*标记，如读，写*/
 };
 
+class Semaphore;
 struct VirtioBlkOuthdr {
     Uint32 type;
     Uint32 reserved;

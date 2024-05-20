@@ -8,6 +8,8 @@
 #include <Library/Kstring.hpp>
 #include <Driver/VirtioDisk.hpp>
 
+class DISK;
+extern DISK Disk;
 struct DBR
 {
     Uint32 FAT_num;
@@ -129,7 +131,6 @@ private:
 
 public:
     DBR Dbr;
-    DISK  dev;
     Uint64 clus_to_lba(Uint64 clus);
     Uint64 lba_to_clus(Uint64 lba);
     FAT32FILE* get_child_form_clus(char* child_name, Uint64 src_lba); // 返回文件table

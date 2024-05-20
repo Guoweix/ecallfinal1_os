@@ -1,8 +1,8 @@
 #ifndef POS_USERSYSCALLS_HPP
 #define POS_USERSYSCALLS_HPP
 
-#include <SyscallID.hpp>
-#include <Types.hpp>
+#include "../../Include/Trap/Syscall/SyscallID.hpp"
+#include "../../Include/Types.hpp"
 
 inline RegisterData POS_Syscall(RegisterData ID,
 					   RegisterData a0=0,

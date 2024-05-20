@@ -35,8 +35,14 @@ $(TARGET_DIR)/%.elf: %.S
 Img/User.o:User/User.cpp
 	$(CC) $(FLAGS) -c $<  -o $@
 
-Img/User.elf:Img/User.o
-	$(LD)  -o $@ -T Linker/user.ld $<
+Img/UserStart.o:User/Library/UserStart.S
+	$(CC) $(FLAGS) -c $< -o $@
+
+Img/UserMain.o:User/Library/UserMain.cpp
+	$(CC) $(FLAGS) -c $< -o $@
+
+Img/User.elf:Img/User.o Img/UserStart.o Img/UserMain.o
+	$(LD)  -o $@ -T Linker/user.ld Img/User.o Img/UserStart.o Img/UserMain.o
 
 Img/User.img:Img/User.elf
 	$(OBJCOPY) $^ --strip-all -O binary $@

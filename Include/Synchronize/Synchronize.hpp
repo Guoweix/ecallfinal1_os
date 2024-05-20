@@ -1,10 +1,8 @@
 #ifndef __SYNCHRONIZE_HPP__
 #define __SYNCHRONIZE_HPP__
 
-#include <Library/KoutSingle.hpp>
-#include <Memory/slab.hpp>
+#include <Types.hpp>
 #include <Process/Process.hpp>
-#include <Trap/Interrupt.hpp>
 
 struct ListNode {
     Process* proc;

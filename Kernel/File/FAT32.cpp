@@ -119,13 +119,13 @@ Sint32 FATtable::get_name(char* REname)
 
 bool FAT32::init()
 {
-    // dev.init();
+    // disk.init();
     DBRlba = 0;
     unsigned char* buf = new unsigned char[512];
 
-    dev.DiskInit();
+    Disk.DiskInit();
 
-    dev.readSector(DBRlba,(Sector *)buf);
+    Disk.readSector(DBRlba,(Sector *)buf);
     if (buf[510] != 0x55 || buf[511] != 0xaa)
     {
         kout[Fault] << "diskpart error" << endl;
@@ -151,25 +151,25 @@ bool FAT32::init()
     // kout[yellow] << "Dbr.FAT_sector_num  " << Dbr.FAT_sector_num << endl;
     // kout[yellow] << "DATAlba             " << DATAlba << endl;
     // kout[yellow] << "ClusSector          " << Dbr.clus_sector_num << endl;
-    dev.readSector(DBRlba, (Sector *)buf);
+    Disk.readSector(DBRlba, (Sector *)buf);
     // for (int i = 0; i < 16; i++)
     //     kout[green] << buf[i] << ' ';
     // kout[green] << endl;
 
     // kout[yellow] << "FAT1lba             " << FAT1lba << endl;
-    dev.readSector(FAT1lba, (Sector *)buf);
+    Disk.readSector(FAT1lba, (Sector *)buf);
     // for (int i = 0; i < 16; i++)
     //     kout[green] << buf[i] << ' ';
     // kout[green] << endl;
 
     // kout[yellow] << "FAT2lba             " << FAT2lba << endl;
-    dev.readSector(FAT2lba,(Sector *) buf);
+    Disk.readSector(FAT2lba,(Sector *) buf);
     // for (int i = 0; i < 16; i++)
     //     kout[green] << buf[i] << ' ';
     // kout[green] << endl;
 
     // kout[yellow] << "DATAlba             " << DATAlba << endl;
-    dev.readSector(DATAlba, (Sector *)buf);
+    Disk.readSector(DATAlba, (Sector *)buf);
     // for (int i = 0; i < 16; i++)
     //     kout[green] << (char)buf[i] << ' ';
     // kout[green] << endl;
@@ -195,9 +195,9 @@ bool FAT32::get_clus(Uint64 clus, unsigned char* buf)
     // kout<<lba<<endl;
     // for (int i = 0; i < Dbr.clus_sector_num; i++)
     // {
-    //     dev.readSector(lba + i, (Sector*)buf + i * Dbr.sector_size);
+    //     Disk.readSector(lba + i, (Sector*)buf + i * Dbr.sector_size);
     // }
-    dev.readSector(lba, (Sector *)buf,Dbr.clus_sector_num);
+    Disk.readSector(lba, (Sector *)buf,Dbr.clus_sector_num);
 
     return true;
 }
@@ -214,9 +214,9 @@ bool FAT32::get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end)
 
     // for (int i = 0; i < Dbr.clus_sector_num; i++)
     // {
-    //     dev.read(lba + i, buf + i * Dbr.sector_size);
+    //     Disk.read(lba + i, buf + i * Dbr.sector_size);
     // }
-    dev.readSector(lba, (Sector *)buf,Dbr.clus_sector_num);
+    Disk.readSector(lba, (Sector *)buf,Dbr.clus_sector_num);
 
     for (Uint64 i = start; i < end - start; i++)
     {
@@ -556,7 +556,7 @@ Uint64 FAT32::find_empty_clus()
 
     for (int i = 0; i < Dbr.FAT_sector_num; i++)
     {
-        dev.readSector(FAT1lba + i, (Sector*)p);
+        Disk.readSector(FAT1lba + i, (Sector*)p);
         for (int j = 0; j < sectorSize / 4; j++)
         {
             // kout[red]<<p[j]<<' ';
@@ -695,7 +695,7 @@ Uint32 FAT32::get_next_clus(Uint32 clus)
 {
     Uint32* temp = new Uint32[Dbr.clus_size / 4];
     //
-    dev.readSector(FAT1lba + clus * 4 / sectorSize, (Sector*)temp);
+    Disk.readSector(FAT1lba + clus * 4 / sectorSize, (Sector*)temp);
 
     Uint32 t = temp[clus % (sectorSize / 4)];
     delete[] temp;
@@ -710,7 +710,7 @@ bool FAT32::set_next_clus(Uint32 clus, Uint32 nxt_clus)
         return false;
     }
 
-    dev.readSector(FAT1lba + clus * 4 / sectorSize, (Sector *)temp);
+    Disk.readSector(FAT1lba + clus * 4 / sectorSize, (Sector *)temp);
     Uint32* t = (Uint32*)temp;
     t[clus % (sectorSize / 4)] = nxt_clus;
     delete[] temp;
@@ -723,9 +723,9 @@ bool FAT32::set_clus(Uint64 clus, unsigned char* buf)
     Uint64 lba = clus_to_lba(clus);
     // for (int i = 0; i < Dbr.clus_sector_num; i++)
     // {
-    //     dev.writeSector(lba + i, (Sector *)&buf[sector_size * i]);
+    //     Disk.writeSector(lba + i, (Sector *)&buf[sector_size * i]);
     // }
-    dev.writeSector(lba,(  Sector *)buf,Dbr.clus_sector_num);
+    Disk.writeSector(lba,(  Sector *)buf,Dbr.clus_sector_num);
 
     return true;
 }
@@ -737,8 +737,8 @@ FAT32::~FAT32()
     {
         for (int i = 0; i < Dbr.FAT_sector_num; i++) // 备份fat
         {
-            dev.readSector(FAT1lba + i, (Sector *)temp);
-            dev.writeSector(FAT2lba + i, (Sector *)temp);
+            Disk.readSector(FAT1lba + i, (Sector *)temp);
+            Disk.writeSector(FAT2lba + i, (Sector *)temp);
         }
     }
 

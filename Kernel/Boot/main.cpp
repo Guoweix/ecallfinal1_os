@@ -14,6 +14,7 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
+#include <File/FileObject.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -189,6 +190,7 @@ void VFSM_test()
 {
     FAT32FILE* file;
     file = vfsm.get_next_file(vfsm.get_root());
+    file_object * fo=new file_object();
     // kout << file;
     while (file) {
         kout << file->name << endl;
@@ -200,7 +202,18 @@ void VFSM_test()
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
         }
+        fom.set_fo_file(fo,file);
+        fom.set_fo_pos_k(fo, 0);
+        kout[Info]<<"____________________1___________________--"<<endl;
 
+        kout<<file->name<<endl;
+        if(strcmp(file->name,"test_echo")==0)
+        {
+        CreateProcessFromELF(fo, "/");
+        while (1) {
+        
+        }
+        }
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
     }
@@ -226,6 +239,7 @@ int main()
 
     pm.init();
 
+
     // kout["kkkkkk"]<<&((VRingAvail*)nullptr)->ring<<endl;
 
     Disk.DiskInit();
@@ -238,9 +252,9 @@ int main()
     // kout<<DataWithSize(sec,sizeof(Sector));
 
     // Driver_test();
-    VFSM_test();
-    pm_test();
     InterruptEnable();
+    VFSM_test();
+    // pm_test();
 
     kout << "1" << endl;
 

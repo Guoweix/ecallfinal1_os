@@ -1,9 +1,9 @@
 #include <Synchronize/Synchronize.hpp>
+#include <Library/KoutSingle.hpp>
+#include <Memory/slab.hpp>
+#include <Trap/Interrupt.hpp>
 
-#include "Library/KoutSingle.hpp"
-#include "Process/Process.hpp"
-#include "Trap/Interrupt.hpp"
-#include "Types.hpp"
+
 
 void ProcessQueue::printAllQueue()
 {
