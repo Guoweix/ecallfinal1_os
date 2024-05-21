@@ -67,6 +67,12 @@ class Process {
     friend Semaphore;
     friend FileObjectManager;
 
+public:
+ // 关于父节点及子节点的链接
+    Process* father;
+    Process* broPre;
+    Process* broNext;
+    Process* fstChild;
 
 private:
     ClockTime timeBase; // Round Robin时间片轮转调度实现需要 计时起点
@@ -86,12 +92,6 @@ private:
     ProcStatus status;
     void* stack;
     Uint32 stacksize;
-
-    // 关于父节点及子节点的链接
-    Process* father;
-    Process* broPre;
-    Process* broNext;
-    Process* fstChild;
 
     file_object* fo_head;
     char * curWorkDir;
@@ -167,6 +167,7 @@ public:
     TrapFrame * Schedule(TrapFrame * preContext);
     void immSchedule();
 
+    Process* getidle();
     // static TrapFrame* procScheduler(TrapFrame* context);
     // void waitRefProc(Process* proc);
     // void immTriggerSchedule();

@@ -27,6 +27,10 @@ void ProcessManager::init()
     idle0->initForKernelProc0();
 }
 
+ Process* ProcessManager:: getidle(){
+    return &(Proc[0]);
+ }
+
 void Process::show(int level)
 {
     kout[Debug] << "proc pid : " << id << endline

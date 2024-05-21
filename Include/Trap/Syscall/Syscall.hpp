@@ -7,5 +7,7 @@
 
 bool TrapFunc_Syscall(TrapFrame* tf);
 inline void Syscall_Exit(int re);
+inline int Syscall_getpid();
+inline int Syscall_getppid();
 
 #endif

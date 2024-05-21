@@ -15,6 +15,36 @@ void Syscall_Exit(TrapFrame* tf, int re)
     needSchedule=true; 
     // kout[Fault] << "Syscall_Exit: Reached unreachable branch" << endl;
 }
+
+int Syscall_getpid(){
+    // 获取进程PID的系统调用
+    // always successful
+
+    Process* cur_proc = pm.getCurProc();
+    return cur_proc->getID();
+}
+
+int Syscall_getppid()
+{
+    // 获取父进程PID的系统调用
+    // 直接成功返回父进程的ID
+    // 根据系统调用规范此调用 always successful
+
+    Process* cur_proc = pm.getCurProc();
+    Process* fa_proc = cur_proc->father;
+    if (fa_proc == nullptr)
+    {
+        // 调用规范总是成功
+        // 如果是无父进程 可以认为将该进程挂到根进程的孩子进程下
+        return pm.getidle()->getID();
+    }
+    else
+    {
+        return fa_proc->getID();
+    }
+    return -1;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     kout<<tf->reg.a7<<"______"<<endl;
@@ -33,6 +63,12 @@ bool TrapFunc_Syscall(TrapFrame* tf)
             Putchar(*((char *)tf->reg.a1+i));
             }
         }
+        break;
+    case SYS_getpid:
+        tf->reg.a0 = Syscall_getpid();
+        break;
+    case SYS_getppid:
+        tf->reg.a0 = Syscall_getppid();
         break;
     default:;
     }

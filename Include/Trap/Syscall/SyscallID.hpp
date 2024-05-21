@@ -11,7 +11,7 @@ enum SyscallID
 	SYS_GetPID=-6,
 	SYS_Rest=-7,
 	
-	SYS_getcwd			=17,
+	SYS_getcwd			=17,//
 	SYS_dup				=23,
 	SYS_dup3			=24,
 	SYS_fcntl			=25,
@@ -22,14 +22,14 @@ enum SyscallID
 	SYS_umount2			=39,
 	SYS_mount			=40,
 	SYS_statfs			=43, 
-	SYS_chdir			=49,
+	SYS_chdir			=49,//
 	SYS_openat			=56,
 	SYS_close			=57,
 	SYS_pipe2			=59,
 	SYS_getdents64		=61,
 	SYS_lseek			=62,
 	SYS_read			=63,
-	SYS_write			=64,
+	SYS_write			=64,//
 	SYS_readv			=65,
 	SYS_writev			=66,
 	SYS_pread64			=67,
@@ -39,7 +39,7 @@ enum SyscallID
 	SYS_newfstatat		=79,
 	SYS_fstat			=80,
 	SYS_utimensat		=88,
-	SYS_exit			=93,
+	SYS_exit			=93,//
 	SYS_exit_group		=94,
 	SYS_set_tid_address	=96,
 	SYS_futex			=98,
@@ -53,8 +53,8 @@ enum SyscallID
 	SYS_times			=153,
 	SYS_uname			=160,
 	SYS_gettimeofday	=169,
-	SYS_getpid			=172,
-	SYS_getppid			=173,
+	SYS_getpid			=172,//
+	SYS_getppid			=173,//
 	SYS_geteuid			=175,
 	SYS_getegid			=177,
 	SYS_gettid			=178,
