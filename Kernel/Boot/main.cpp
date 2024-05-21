@@ -207,7 +207,8 @@ void VFSM_test()
         kout[Info]<<"____________________1___________________--"<<endl;
 
         kout<<file->name<<endl;
-        if(strcmp(file->name,"test_echo")==0)
+
+        if(strcmp(file->name,"clone")==0)
         {
         CreateProcessFromELF(fo, "/");
         while (1) {
@@ -256,7 +257,7 @@ int main()
     VFSM_test();
     // pm_test();
 
-    kout << "1" << endl;
+    // kout << "1" << endl;
 
     // Semaphore_test();
 

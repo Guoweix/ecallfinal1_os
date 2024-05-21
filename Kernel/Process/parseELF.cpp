@@ -269,13 +269,16 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc
     proc->setStack(nullptr, PAGESIZE * 4);
     proc->setVMS(vms);
     proc->setFa(pm.getCurProc());
+
+    char * abs_cwd=vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
+    proc->setProcCWD(abs_cwd);
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);
     // pm.set_proc_vms(proc, vms);
     // pm.set_proc_fa(proc, pm.get_cur_proc());
 
     // 通过vfsm得到标准化的绝对路径
-    char* abs_cwd = vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
+    // char* abs_cwd = vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
 
     kfree(abs_cwd);
 

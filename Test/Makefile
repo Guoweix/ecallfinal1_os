@@ -1,3 +1,4 @@
+# ARCH ?= riscv64
 ARCH ?= riscv64
 MODE ?= release
 CHAPTER ?= 7

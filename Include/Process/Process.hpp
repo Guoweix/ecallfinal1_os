@@ -6,18 +6,18 @@
 #include <Memory/pmm.hpp>
 #include <Synchronize/SpinLock.hpp>
 // #include <Synchronize/Synchronize.hpp>
-#include <Trap/Trap.hpp>
-#include <Types.hpp>
 #include <Memory/vmm.hpp>
 #include <Trap/Syscall/Syscall.hpp>
+#include <Trap/Trap.hpp>
+#include <Types.hpp>
 
 #define PROC_NAME_LEN 50
-#define UserPageSize 12*PAGESIZE
+#define UserPageSize 12 * PAGESIZE
 
 const Uint32 MaxProcessCount = 128;
-const PtrSint InnerUserProcessLoadAddr=0x800020,
-			 InnerUserProcessStackSize=PAGESIZE*32,
-			 InnerUserProcessStackAddr=0x80000000-InnerUserProcessStackSize;
+const PtrSint InnerUserProcessLoadAddr = 0x800020,
+              InnerUserProcessStackSize = PAGESIZE * 32,
+              InnerUserProcessStackAddr = 0x80000000 - InnerUserProcessStackSize;
 
 // class VMM;
 class Semaphore;
@@ -36,11 +36,11 @@ inline RegisterData GetCPUID()
 class ProcessManager;
 
 enum ExitType : Sint32 {
-    Exit_Destroy =-1,
+    Exit_Destroy = -1,
     Exit_Normal = 0,
-    Exit_BadSyscall ,
-    Exit_Execve ,
-    Exit_SegmentationFault ,
+    Exit_BadSyscall,
+    Exit_Execve,
+    Exit_SegmentationFault,
 
 };
 enum ProcStatus : Uint32 {
@@ -67,13 +67,6 @@ class Process {
     friend Semaphore;
     friend FileObjectManager;
 
-public:
- // 关于父节点及子节点的链接
-    Process* father;
-    Process* broPre;
-    Process* broNext;
-    Process* fstChild;
-
 private:
     ClockTime timeBase; // Round Robin时间片轮转调度实现需要 计时起点
     ClockTime runTime; // 进程运行的时间
@@ -85,7 +78,7 @@ private:
     ClockTime waitTimeLimit; // 进程睡眠需要 设置睡眠时间的限制
                              // 当sleeptime达到即可自唤醒
     ClockTime readyTime; // 就绪态等待时间(保留设计 暂不使用)
-    Uint32 SemRef;//wait的进程数
+    Uint32 SemRef; // wait的进程数
 
     PID id;
     ProcessManager* pm;
@@ -93,24 +86,32 @@ private:
     void* stack;
     Uint32 stacksize;
 
+public:
+    // 关于父节点及子节点的链接
+    Process* father;
+    Process* broPre;
+    Process* broNext;
+    Process* fstChild;
+
+private:
     file_object* fo_head;
-    char * curWorkDir;
-    
-    Semaphore * waitSem;
+    char* curWorkDir;
 
-    VirtualMemorySpace * VMS;
-    HeapMemoryRegion * Heap;
+    Semaphore* waitSem;
 
-    TrapFrame * context;
+    VirtualMemorySpace* VMS;
+    HeapMemoryRegion* Heap;
+
+    TrapFrame* context;
 
     Uint64 flags;
     char name[PROC_NAME_LEN];
     Uint32 nameSpace;
 
 public:
-    void show(int level=0);
+    void show(int level = 0);
     bool start(TrapFrame* tf, bool isNew);
-    bool start(void *func,void * funcData,PtrUint useraddr=0);
+    bool start(void* func, void* funcData, PtrUint useraddr = 0);
     bool run();
     bool exit(int re);
     bool setName(const char* _name);
@@ -118,22 +119,25 @@ public:
     void initForKernelProc0();
 
     inline void setChild(Process* firstChild) { fstChild = firstChild; }
-    inline void setFa(Process* fa) { father = fa; }
+    void setFa(Process* fa);
     inline void setID(Uint32 _id) { id = _id; }
-    inline PID getID() {return id; }
-    inline Semaphore * getSemaphore() {return waitSem; }
-    void setStack(void * _stack,Uint32 _stacksize);
-    inline void setStack(){stack=kernel_end+0xffffffff+0x6400000;};
-    inline void setVMS(VirtualMemorySpace * _VMS) {VMS=_VMS;}
-    inline void setHeap(HeapMemoryRegion * _HMS) {Heap=_HMS;}
-    inline VirtualMemorySpace * getVMS() {return VMS;}
-
+    inline PID getID() { return id; }
+    inline Semaphore* getSemaphore() { return waitSem; }
+    void setStack(void* _stack, Uint32 _stacksize);
+    inline Uint32 getStackSize() { return stacksize; };
+    inline void setStack() { stack = kernel_end + 0xffffffff + 0x6400000; };
+    inline void setVMS(VirtualMemorySpace* _VMS) { VMS = _VMS; }
+    inline HeapMemoryRegion* setHMS() { return Heap; }
+    inline void setHeap(HeapMemoryRegion* _HMS) { Heap = _HMS; }
+    inline VirtualMemorySpace* getVMS() { return VMS; }
+ 
     bool initFds();
     bool destroyFds();
-    file_object * getSpecFds(int fd_num);
-    bool copyFds(Process * a);
-    bool setProcCWD(const char * cwd);
-    inline char * getCWD(){return curWorkDir;};
+    file_object* getSpecFds(int fd_num);
+    inline file_object* getFoHead() { return fo_head; };
+    bool copyFds(Process* a);
+    bool setProcCWD(const char* cwd);
+    inline char* getCWD() { return curWorkDir; };
 
     void switchStatus(ProcStatus tarStatus);
 
@@ -149,7 +153,6 @@ protected:
     Process Proc[MaxProcessCount];
     Process* curProc;
 
-
     Uint32 procCount;
     SpinLock lock;
 
@@ -164,10 +167,10 @@ public:
     void show();
     void simpleShow();
 
-    TrapFrame * Schedule(TrapFrame * preContext);
+    TrapFrame* Schedule(TrapFrame* preContext);
     void immSchedule();
 
-    Process* getidle();
+    inline Process * getidle(){return  &Proc[0];}
     // static TrapFrame* procScheduler(TrapFrame* context);
     // void waitRefProc(Process* proc);
     // void immTriggerSchedule();
@@ -177,17 +180,14 @@ public:
     inline Process* getCurProc() { return curProc; }
     inline Process* getKernelProc() { return &Proc[0]; }
     inline PID getProcCount() { return procCount; }
-
 };
 
 extern ProcessManager pm;
-extern "C"
-{
-	extern void KernelProcessEntry(int re);
-	extern void UserProcessEntry();
-	void KernelProcessExit(int re);
-	// void UserProcessExit(Process * proc);
+extern "C" {
+extern void KernelProcessEntry(int re);
+extern void UserProcessEntry();
+void KernelProcessExit(int re);
+// void UserProcessExit(Process * proc);
 };
-
 
 #endif

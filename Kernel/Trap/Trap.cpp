@@ -110,7 +110,7 @@ TrapFrame* Trap(TrapFrame* tf)
                 kout << "ExceptionCode_BreakPoint" << endl;
             }
         case ExceptionCode_UserEcall: {
-            kout[Info] << "Ecall happen" << endl;
+            // kout[Info] << "Ecall happen" << endl;
             bool re = TrapFunc_Syscall(tf);
             if (!re) {
                 TrapFailedInfo(tf);
