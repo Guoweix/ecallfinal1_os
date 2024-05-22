@@ -17,5 +17,6 @@ int Syscall_clone(TrapFrame* tf,int flags,void * stack,int ptid,int tls,int ctid
 inline int Syscall_getpid();
 inline int Syscall_getppid();
 inline Uint64 Syscall_times(tms* tms);
+inline int Syscall_gettimeofday(timeval* ts, int tz = 0);
 
 #endif
