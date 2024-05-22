@@ -505,6 +505,94 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     return rd;
 }
 
+inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
+{
+    // 打开或创建一个文件的系统调用
+    // fd为文件所在目录的文件描述符
+    // filename为要打开或创建的文件名
+    // 如果为绝对路径则忽略fd
+    // 如果为相对路径 且fd是AT_FDCWD 则filename相对于当前工作目录
+    // 如果为相对路径 且fd是一个文件描述符 则filename是相对于fd所指向的目录来说的
+    // flags为访问模式 必须包含以下一种 O_RDONLY O_WRONLY O_RDWR
+    // mode为文件的所有权描述
+    // 成功返回新的文件描述符 失败返回-1
+
+    VirtualMemorySpace::EnableAccessUser();
+    char* rela_wd = nullptr;
+    Process* cur_proc = pm.getCurProc();
+    char* cwd = cur_proc->getCWD();
+    if (fd == AT_FDCWD)
+    {
+        rela_wd = cur_proc->getCWD();
+    }
+    else
+    {
+        file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+        if (fo != nullptr)
+        {
+            rela_wd = fo->file->path;
+        }
+    }
+
+    if (flags & file_flags::O_CREAT)
+    {
+        // 创建文件或目录
+        // 创建则在进程的工作目录进行
+        if (flags & file_flags::O_DIRECTORY)
+        {
+            vfsm.create_dir(rela_wd, cwd, (char*)filename);
+        }
+        else
+        {
+            vfsm.create_file(rela_wd, cwd, (char*)filename);
+        }
+    }
+
+    char* path = vfsm.unified_path(filename, rela_wd);
+    if (path == nullptr)
+    {
+        return -1;
+    }
+    // trick
+    // 暂时没有对于. 和 ..的路径名的处理
+    // 特殊处理打开文件当前目录.的逻辑
+    FAT32FILE* file = nullptr;
+    if (filename[0] == '.' && filename[1] != '.')
+    {
+        int str_len = strlen(filename);
+        char* str_spc = new char[str_len];
+        strcpy(str_spc, filename + 1);
+        file = vfsm.open(str_spc, rela_wd);
+    }
+    else
+    {
+        file = vfsm.open(filename, rela_wd);
+    }
+
+    if (file != nullptr)
+    {
+        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY))
+        {
+            file = nullptr;
+        }
+    }
+    file_object* fo = fom.create_flobj(cur_proc->fo_head);
+    if (fo == nullptr || fo->fd < 0)
+    {
+        return -1;
+    }
+    if (file != nullptr)
+    {
+        fom.set_fo_file(fo, file);
+        fom.set_fo_flags(fo, flags);
+        fom.set_fo_mode(fo, mode);
+    }
+    kfree(path);
+    VirtualMemorySpace::DisableAccessUser();
+    return fo->fd;
+}
+
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -561,6 +649,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_dup3:
         tf->reg.a0 = Syscall_dup3(tf->reg.a0, tf->reg.a1);
+        break;
+    case SYS_openat:
+        tf->reg.a0 = Syscall_openat(tf->reg.a0, (const char*)tf->reg.a1, tf->reg.a2, tf->reg.a3);
         break;
     default:;
     }
