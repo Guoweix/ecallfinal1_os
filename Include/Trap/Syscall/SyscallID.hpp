@@ -50,7 +50,7 @@ enum SyscallID
 	SYS_sigaction		=134,
 	SYS_sigprocmask		=135,
 	SYS_sigtimedwait	=137,
-	SYS_times			=153,
+	SYS_times			=153,//
 	SYS_uname			=160,
 	SYS_gettimeofday	=169,
 	SYS_getpid			=172,//

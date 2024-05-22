@@ -74,7 +74,6 @@ public:
     Process* broNext;
     Process* fstChild;
 
-private:
     ClockTime timeBase; // Round Robin时间片轮转调度实现需要 计时起点
     ClockTime runTime; // 进程运行的时间
     ClockTime
