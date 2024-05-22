@@ -592,7 +592,6 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     return fo->fd;
 }
 
-
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
