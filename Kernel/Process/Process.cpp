@@ -27,10 +27,6 @@ void ProcessManager::init()
     idle0->initForKernelProc0();
 }
 
- Process* ProcessManager:: getidle(){
-    return &(Proc[0]);
- }
-
 void Process::show(int level)
 {
     kout[Debug] << "proc pid : " << id << endline
@@ -112,7 +108,6 @@ void Process::initForKernelProc0()
 void Process::init(ProcFlag _flags)
 {
     if (status != S_Allocated) {
-
         kout[Fault] << "Process Init :status is not S_Allocated" << endl;
     }
 
@@ -225,6 +220,54 @@ bool Process::run()
     return true;
 }
 
+
+void Process::setFa(Process* fa)
+{
+        father=fa;
+    if (fa==nullptr) {
+        return;        
+    }
+
+ if (father != nullptr)
+    {
+        // 当需要设置的进程已经有一个非空的父进程了
+        // 需要做好关系的转移和清理工作
+        if (father == fa)
+        {
+            // 父子进程和参数中的已经一致
+            return ;
+        }
+        // 关键就是做好关系的转移
+        if (father->fstChild == this)
+        {
+           father->fstChild = broNext;
+        }
+        else if (broPre != nullptr)
+        {
+            broPre->broNext = broNext;
+        }
+        // 再判断一下bro_next进程
+        if (broNext != nullptr)
+        {
+            broNext->broPre = broPre;
+        }
+        // 关系转移好了之后清理一下"族谱"关系
+        // 一个进程不应该同时具有多个父进程
+        broPre = nullptr;
+        broNext = nullptr;
+        father = nullptr;
+    }
+
+    // 设置新的父进程
+    father = fa;
+    broNext = father->fstChild;           // 关系的接替 "顶"上去 类头插
+    father->fstChild = this;
+    if (broNext != nullptr)
+    {
+        broNext->broPre = this;
+    }
+
+}
 bool Process::start(void* func, void* funcData, PtrUint useraddr)
 {
 

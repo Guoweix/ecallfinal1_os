@@ -38,4 +38,5 @@ inline void Sys_Exit(int re) {POS_Syscall(SYS_Exit,re);}
 inline PID Sys_Fork() {return POS_Syscall(SYS_Fork);}
 inline PID Sys_GetPID() {return POS_Syscall(SYS_GetPID);}
 
+
 #endif

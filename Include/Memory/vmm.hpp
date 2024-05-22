@@ -13,8 +13,8 @@
 extern "C" {
 extern class PageTable boot_page_table_sv39[];
 };
-constexpr Uint32 PageSizeBit=12;
-
+constexpr Uint32 PageSizeBit = 12;
+constexpr Uint64 PageSizeN[3]{PAGESIZE,PAGESIZE*512,PAGESIZE*512*512};
 class PageTable { // 页表项
 public:
     struct Entry {
@@ -364,6 +364,44 @@ public:
     {
         ASSERTEX(Init(start, end, flags) == ERR_None, "Failed to init VMR!"); // c中的断言
     }
+
+    ErrorType CopyMemory(PageTable& pt, const PageTable& src, int level, Uint64 l)
+    {
+        ASSERTEX(level >= 0, "VirtualMemoryRegion::CopyMemory of " << this << " from " << src << " level " << level << " <0!");
+        if (Flags & VM_Kernel) {
+            //		kout[Warning]<<"VirtualMemoryRegion::CopyMemory kernel region don't need copy?"<<endl;
+            return ERR_None;
+        }
+        for (int i = 0; i < PageTable::PageTableEntryCount; ++i, l += PageSizeN[level])
+            if (src[i].Valid() && Intersect(l, l + PageSizeN[level]))
+                if (src[i].IsPageTable()) {
+                    PageTable *srcNxt = src[i].GetPageTable(),
+                              *ptNxt = nullptr;
+                    if (!pt[i].Valid()) {
+                        ptNxt = (PageTable*)pmm.alloc_pages(1)->KAddr();
+                        ASSERTEX(ptNxt, "VirtualMemoryRegion::CopyMemory: Cannot allocate ptNxt in VMR " << this);
+                        ASSERTEX(((PtrSint)ptNxt & (PAGESIZE - 1)) == 0, "ptNxt " << ptNxt << " in " << this << " is not aligned to 4k!");
+                        ptNxt->Init();
+                        pt[i].SetPageTable(ptNxt);
+                    } else
+                        ptNxt = pt[i].GetPageTable();
+                    CopyMemory(*ptNxt, *srcNxt, level - 1, l);
+                } else if (level == 0) {
+                    PAGE* srcPage = src[i].GetPage();
+                    if (Flags & VM_Shared | Flags & VM_Kernel)
+                        pt[i].SetPage(srcPage, ToPageEntryFlags());
+                    else {
+                        PAGE* page = pmm.alloc_pages(1);
+                        ASSERTEX(page, "VirtualMemoryRegion::CopyMemory: Cannot allocate page in VMR " << this);
+                        ASSERTEX(((PtrSint)page->PAddr() & (PAGESIZE - 1)) == 0, "page->Paddr() " << page->PAddr() << " is not aligned to 4k!");
+                        ASSERTEX(!pt[i].Valid(), "VirtualMemoryRegion::CopyMemory: pt[i] is valid!");
+                        MemcpyT<char>((char*)page->KAddr(), (const char*)srcPage->KAddr(), PAGESIZE);
+                        pt[i].SetPage(page, ToPageEntryFlags());
+                    }
+                } else
+                    kout[Warning] << "VirtualMemoryRegion::CopyMemory copy huge page is not usable!" << endl;
+        return ERR_None;
+    }
 };
 
 class VirtualMemorySpace {
@@ -540,7 +578,7 @@ public:
         VirtualMemoryRegion* t;
         t = vmrHead.Nxt();
         while (t) {
-            kout << (void*)t->StartAddress << '-' << (void *)t->EndAddress << "||";
+            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << "||";
             t = t->Nxt();
         }
         kout << endl;
@@ -619,7 +657,7 @@ public:
             //}
         }
         kout[Test] << "SolvePageFault OK" << endl;
-        
+
         return ERR_None;
     }
 
@@ -648,50 +686,62 @@ public:
     {
         kout << VmrCount << endl;
     }
+
+    ErrorType CreateFrom(VirtualMemorySpace* src)
+    {
+        kout[Test] << "VirtualMemorySpace::CreateFrom " << src << ", this is " << this << endl;
+        CreatePDT();
+        VirtualMemoryRegion *p = src->vmrHead.Nxt(), *q = nullptr;
+        while (p) {
+            q = KmallocT<VirtualMemoryRegion>();
+            ASSERTEX(q, "VirtualMemorySpace::CreateFrom failed to allocate VMR!");
+            q->Init(p->StartAddress, p->EndAddress, p->Flags);
+            InsertVMR(q);
+            q->CopyMemory(*PDT, *src->PDT, 2,0);
+            p = p->Nxt();
+        }
+        kout[Test] << "VirtualMemorySpace::CreateFrom " << src << ", OK this is " << this << endl;
+        VirtualMemoryRegion* t;
+    }
 };
 
+class HeapMemoryRegion : public VirtualMemoryRegion {
+protected:
+    Uint64 BreakPointLength = 0;
 
-class HeapMemoryRegion:public VirtualMemoryRegion
-{
-	protected:
-		Uint64 BreakPointLength=0;
-		
-	public:
-		inline PtrUint BreakPoint()
-		{return StartAddress+BreakPointLength;}
-		
-		inline ErrorType Resize(Sint64 delta)
-		{
-			if (delta>=0)
-			{
-				BreakPointLength+=delta;
-				if (StartAddress+BreakPointLength>EndAddress)
-					if (nxt==nullptr||StartAddress+BreakPointLength<=nxt->GetStart())
-						EndAddress=StartAddress+BreakPointLength+PAGESIZE-1>>PageSizeBit<<PageSizeBit;
-					else return ERR_HeapCollision;
-			}
-			else
-			{
-				if (-delta>BreakPointLength)
-				{
-					BreakPointLength=0;
-					EndAddress=StartAddress+PAGESIZE;
-				}
-				else
-				{
-					BreakPointLength+=delta;
-					EndAddress=StartAddress+BreakPointLength+PAGESIZE-1>>PageSizeBit<<PageSizeBit;
-				}
-				//<<destroy uneeded pages...
-			}
-			return ERR_None;
-		}
-		
-		inline ErrorType Init(PtrUint start,Uint64 len=PAGESIZE,Uint64 flags=VM_USERHEAP)
-		{
-			BreakPointLength=len;
-			return VirtualMemoryRegion::Init(start,start+len,flags);
-		}
+public:
+    inline PtrUint BreakPoint()
+    {
+        return StartAddress + BreakPointLength;
+    }
+
+    inline ErrorType Resize(Sint64 delta)
+    {
+        if (delta >= 0) {
+            BreakPointLength += delta;
+            if (StartAddress + BreakPointLength > EndAddress)
+                if (nxt == nullptr || StartAddress + BreakPointLength <= nxt->GetStart())
+                    EndAddress = StartAddress + BreakPointLength + PAGESIZE - 1 >> PageSizeBit << PageSizeBit;
+                else
+                    return ERR_HeapCollision;
+        } else {
+            if (-delta > BreakPointLength) {
+                BreakPointLength = 0;
+                EndAddress = StartAddress + PAGESIZE;
+            } else {
+                BreakPointLength += delta;
+                EndAddress = StartAddress + BreakPointLength + PAGESIZE - 1 >> PageSizeBit << PageSizeBit;
+            }
+            //<<destroy uneeded pages...
+        }
+        return ERR_None;
+    }
+
+    inline ErrorType Init(PtrUint start, Uint64 len = PAGESIZE, Uint64 flags = VM_USERHEAP)
+    {
+        BreakPointLength = len;
+        return VirtualMemoryRegion::Init(start, start + len, flags);
+    }
 };
 inline ErrorType TrapFunc_FageFault(TrapFrame* tf)
 {

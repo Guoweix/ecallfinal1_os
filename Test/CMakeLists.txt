@@ -15,7 +15,8 @@ set(ASM_DIR asm)
 set(BIN_DIR bin)
 
 # Toolchain
-set(PREFIX ${ARCH}-unknown-elf-)
+#set(PREFIX ${ARCH}-unknown-elf-)
+set(PREFIX )
 # riscv64-unknown-elf-
 
 if (${ARCH} STREQUAL riscv32)
