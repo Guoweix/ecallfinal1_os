@@ -85,6 +85,7 @@ public:
     void* stack;
     Uint32 stacksize;
     VirtualMemorySpace* VMS;
+    file_object* fo_head;
 
 public:
     // 关于父节点及子节点的链接
@@ -94,7 +95,7 @@ public:
     Process* fstChild;
 
 private:
-    file_object* fo_head;
+    
     char* curWorkDir;
 
     Semaphore* waitSem;

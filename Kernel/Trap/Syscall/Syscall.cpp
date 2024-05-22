@@ -305,6 +305,30 @@ inline int Syscall_uname(utsname* uts)
     return 0;
 }
 
+inline int Syscall_unlinkat(int dirfd, char* path, int flags)
+{
+    // 移除指定文件的链接(可用于删除文件)的系统调用
+    // dirfd是要删除的链接所在的目录
+    // path是要删除的链接的名字
+    // flags可设置为0或AT_REMOVEDIR
+    // 成功返回0 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo_head = cur_proc->fo_head;
+    file_object* fo = fom.get_from_fd(fo_head, dirfd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    if (!vfsm.unlink(path, fo->file->path))
+    {
+        return -1;
+    }
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -346,6 +370,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_uname:
         tf->reg.a0 = Syscall_uname((utsname*)tf->reg.a0);
+        break;
+    case SYS_unlinkat:
+        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
         break;
     default:;
     }

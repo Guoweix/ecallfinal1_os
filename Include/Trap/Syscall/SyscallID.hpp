@@ -17,7 +17,7 @@ enum SyscallID
 	SYS_fcntl			=25,
 	SYS_ioctl			=29,
 	SYS_mkdirat			=34,//
-	SYS_unlinkat		=35,
+	SYS_unlinkat		=35,//
 	SYS_linkat			=37,
 	SYS_umount2			=39,
 	SYS_mount			=40,
