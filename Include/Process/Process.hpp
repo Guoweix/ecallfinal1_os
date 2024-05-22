@@ -84,6 +84,7 @@ public:
     ProcStatus status;
     void* stack;
     Uint32 stacksize;
+    VirtualMemorySpace* VMS;
 
 public:
     // 关于父节点及子节点的链接
@@ -98,7 +99,6 @@ private:
 
     Semaphore* waitSem;
 
-    VirtualMemorySpace* VMS;
     HeapMemoryRegion* Heap;
 
     TrapFrame* context;
