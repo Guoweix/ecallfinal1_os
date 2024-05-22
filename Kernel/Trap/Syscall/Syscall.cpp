@@ -434,6 +434,31 @@ inline int Syscall_close(int fd)
     return 0;
 }
 
+inline int Syscall_dup(int fd)
+{
+    // 复制文件描述符的系统调用
+    // 传入被复制的文件描述符
+    // 成功返回新的文件描述符 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        // 当前文件描述符不存在
+        return -1;
+    }
+    file_object* fo_new = fom.duplicate_fo(fo);
+    if (fo_new == nullptr)
+    {
+        return -1;
+    }
+    int ret_fd = -1;
+    // 将复制的新的文件描述符直接插入当前的进程的文件描述符表
+    ret_fd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+    return ret_fd;
+}
+
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -484,6 +509,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_close:
         tf->reg.a0 = Syscall_close(tf->reg.a0);
+        break;
+    case SYS_dup:
+        tf->reg.a0 = Syscall_dup(tf->reg.a0);
         break;
     default:;
     }

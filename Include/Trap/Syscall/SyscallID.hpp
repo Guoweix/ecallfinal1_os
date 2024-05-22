@@ -12,7 +12,7 @@ enum SyscallID
 	SYS_Rest=-7,
 	
 	SYS_getcwd			=17,//
-	SYS_dup				=23,
+	SYS_dup				=23,//
 	SYS_dup3			=24,
 	SYS_fcntl			=25,
 	SYS_ioctl			=29,
