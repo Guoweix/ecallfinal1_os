@@ -2,6 +2,7 @@
 #include "Driver/Virtio.hpp"
 #include "File/FAT32.hpp"
 #include <Driver/VirtioDisk.hpp>
+#include <File/FileObject.hpp>
 #include <File/vfsm.hpp>
 #include <Library/Easyfunc.hpp>
 #include <Library/KoutSingle.hpp>
@@ -14,7 +15,6 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
-#include <File/FileObject.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -190,7 +190,7 @@ void VFSM_test()
 {
     FAT32FILE* file;
     file = vfsm.get_next_file(vfsm.get_root());
-    file_object * fo=new file_object();
+    file_object* fo = new file_object();
     // kout << file;
     while (file) {
         kout << file->name << endl;
@@ -202,18 +202,54 @@ void VFSM_test()
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
         }
-        fom.set_fo_file(fo,file);
+        fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        kout[Info]<<"____________________1___________________--"<<endl;
+        kout[Info] << "____________________1___________________--" << endl;
 
-        kout<<file->name<<endl;
+        kout << file->name << endl;
+        Process* task;
+        if (strcmp(file->name, "chdir") == 0) {
+            task = CreateProcessFromELF(fo, "/");
+            while (task->getStatus() != S_Terminated) {
 
-        if(strcmp(file->name,"clone")==0)
-        {
-        CreateProcessFromELF(fo, "/");
-        while (1) {
-        
+            }
+            kout<<"END"<<endl;
         }
+
+        file = vfsm.get_next_file(vfsm.get_root(), file);
+        // kout << file;
+    }
+}
+
+void final_test()
+{
+    FAT32FILE* file;
+    file = vfsm.get_next_file(vfsm.get_root());
+    file_object* fo = new file_object();
+    // kout << file;
+    while (file) {
+        kout << file->name << endl;
+        if (file->table.size == 0) {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+        if (file->TYPE == FAT32FILE::__DIR) {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+        fom.set_fo_file(fo, file);
+        fom.set_fo_pos_k(fo, 0);
+        kout[Info] << "____________________1___________________--" << endl;
+
+        // kout << file->name << endl;
+
+        Process* task;
+        if (strcmp(file->name, "chdir") == 0) {
+            task = CreateProcessFromELF(fo, "/");
+            while (task->getStatus() != S_Terminated) {
+
+            }
+            kout<<"END"<<endl;
         }
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
@@ -224,6 +260,9 @@ int main()
 {
     TrapInit();
     ClockInit();
+
+
+    kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -240,7 +279,6 @@ int main()
 
     pm.init();
 
-
     // kout["kkkkkk"]<<&((VRingAvail*)nullptr)->ring<<endl;
 
     Disk.DiskInit();
@@ -254,7 +292,10 @@ int main()
 
     // Driver_test();
     InterruptEnable();
-    VFSM_test();
+    // VFSM_test();
+    final_test();
+
+    SBI_SHUTDOWN();
     // pm_test();
 
     // kout << "1" << endl;

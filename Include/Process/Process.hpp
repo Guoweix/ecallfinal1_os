@@ -108,6 +108,8 @@ private:
     char name[PROC_NAME_LEN];
     Uint32 nameSpace;
 
+    Uint32 exitCode;
+
 public:
     void show(int level = 0);
     bool start(TrapFrame* tf, bool isNew);
@@ -115,6 +117,8 @@ public:
     bool run();
     bool exit(int re);
     bool setName(const char* _name);
+
+    bool copyFromProc(Process * src);
 
     void initForKernelProc0();
 
@@ -130,6 +134,12 @@ public:
     inline HeapMemoryRegion* setHMS() { return Heap; }
     inline void setHeap(HeapMemoryRegion* _HMS) { Heap = _HMS; }
     inline VirtualMemorySpace* getVMS() { return VMS; }
+    inline void * getStack(){return  stack;}
+    inline TrapFrame * getContext(){return  context;}
+    inline void setContext(TrapFrame * _context){ context=_context; }
+    inline ProcStatus getStatus(){return  status;}
+    inline Uint32 getExitCode(){return  exitCode;}
+
  
     bool initFds();
     bool destroyFds();
@@ -164,7 +174,7 @@ public:
     bool freeProc(Process* proc);
     Process* getProc(PID id);
 
-    void show();
+    void show(int j=0);
     void simpleShow();
 
     TrapFrame* Schedule(TrapFrame* preContext);

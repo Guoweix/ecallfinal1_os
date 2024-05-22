@@ -120,28 +120,38 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
         vms->Init();
         vms->CreateFrom(cur_proc->getVMS());
         create_proc->setVMS(vms);
-        create_proc->start(nullptr, nullptr);
+
+        memcpy((void*)((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1),
+            (const char*)tf, sizeof(TrapFrame));
+        create_proc->setContext((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1);
+        create_proc->getContext()->epc += 4;
+        create_proc->getContext()->reg.a0 = 0;
 
     } else {
         // 此时就是相当于clone
         // 创建一个新的线程 与内存间的共享有关
         // 线程thread的创建
-        // // 这里其实隐含很多问题 涉及到指令执行流这些 需要仔细体会
-        // // 在大赛要求和本内核实现下仅仅是充当创建一个函数线程的作用
-        // pm.set_proc_vms(create_proc, cur_proc->vms);
-        // memcpy((void*)((TRAPFRAME*)((char*)create_proc->kstack + create_proc->kstacksize) - 1),
-        //     (const char*)tf, sizeof(TRAPFRAME));
-        // create_proc->context = (TRAPFRAME*)((char*)create_proc->kstack + create_proc->kstacksize) - 1;
-        // create_proc->context->epc += 4;
-        // create_proc->context->reg.sp = (uint64)stack;
-        // create_proc->context->reg.a0 = 0; // clone里面子线程去执行函数 父线程返回
+        // 这里其实隐含很多问题 涉及到指令执行流这些 需要仔细体会
+        // 在大赛要求和本内核实现下仅仅是充当创建一个函数线程的作用
+        create_proc->setVMS(cur_proc->getVMS());
+
+        memcpy((void*)((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1),
+            (const char*)tf, sizeof(TrapFrame));
+        create_proc->setContext((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1);
+        create_proc->getContext()->epc += 4;
+        create_proc->getContext()->reg.sp = (Uint64)stack;
+        create_proc->getContext()->reg.a0 = 0; // clone里面子线程去执行函数 父线程返回
     }
     // pm.copy_other_proc(create_proc, cur_proc);
-    // if (flags & SIGCHLD) {
-    //     // clone的是子进程
-    //     pm.set_proc_fa(create_proc, cur_proc);
-    // }
+    create_proc->copyFromProc(cur_proc);
+    if (flags & SIGCHLD) {
+        // clone的是子进程
+        kout<<"FFF"<<endl;
+        create_proc->setFa(cur_proc);
+    }
     // pm.switchstat_proc(create_proc, Proc_ready);
+    create_proc->switchStatus(S_Ready);
+    pm.show(1);
     IntrRestore(intr_flag);
     return pid_ret;
 }
@@ -195,6 +205,65 @@ int Syscall_getppid()
     }
     return -1;
 }
+int Syscall_wait4(int pid, int* status, int options)
+{
+    // 等待进程改变状态的系统调用
+    // 这里的改变状态主要是指等待子进程结束
+    // pid是指定进程的pid -1就是等待所有子进程
+    // status是接受进程退出状态的指针
+    // options是指定选项 可以参考linux系统调用文档
+    // 这里主要有WNOHANG WUNTRACED WCONTINUED
+    // WNOHANG:return immediately if no child has exited.
+    // 成功返回进程ID
+
+    constexpr int WNOHANG = 1; // 目前暂时只需要这个option
+    Process* cur_proc = pm.getCurProc();
+    if (cur_proc->fstChild == nullptr) {
+        // 当前父进程没有子进程
+        // 一般调用此函数不存在此情况
+        kout[Fault] << "The Process has Not Child Process!" << endl;
+        return -1;
+    }
+    while (1) {
+        Process* child = nullptr;
+        // 利用链接部分的指针关系去寻找满足的孩子进程
+        Process* pptr = nullptr;
+        for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
+            if (pptr->getStatus() == S_Terminated) {
+                // 找到对应的进程
+                if (pid == -1 || pptr->getID() == pid) {
+                    child = pptr;
+                    break;
+                }
+            }
+        }
+        if (child != nullptr) {
+            // 当前的child进程即需要wait的进程
+            int ret = child->getID();
+            if (status != nullptr) {
+                // status非空则需要提取相应的状态
+                VirtualMemorySpace::EnableAccessUser();
+
+                *status = child->getExitCode() << 8; // 左移8位主要是Linux系统调用的规范
+
+                VirtualMemorySpace::DisableAccessUser();
+            }
+            child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
+            pm.freeProc(child);
+            return ret;
+        } else if (options & WNOHANG) {
+            // 当没有找到符合的子进程但是options中指定了WNOHANG
+            // 直接返回 -1即可
+            return -1;
+        } else {
+            // 说明还需要等待子进程
+            // pm.calc_systime(cur_proc); // 从这个时刻之后的wait时间不应被计算到systime中
+            cur_proc->getSemaphore()->wait(); // 父进程在子进程上等待 当子进程exit后解除信号量等待可以被回收
+            needSchedule = true;
+        }
+    }
+    return -1;
+}
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
@@ -234,6 +303,12 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_brk:
         tf->reg.a0 = Syscall_brk(tf->reg.a0);
+        break;
+    case SYS_clone:
+        tf->reg.a0 = Syscall_clone(tf, tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4);
+        break;
+    case SYS_wait4:
+        tf->reg.a0 = Syscall_wait4(tf->reg.a0,(int *)tf->reg.a1,tf->reg.a2);
         break;
     default:
         kout[Fault] << "TrapFunc_Syscall::unsolve " << tf->reg.a7 << endl;

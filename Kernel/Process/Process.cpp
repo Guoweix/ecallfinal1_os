@@ -1,3 +1,4 @@
+#include "Trap/Syscall/SyscallID.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
 #include <File/FileObject.hpp>
@@ -37,19 +38,19 @@ void Process::show(int level)
                 << "proc kstack : " << (void*)stack << endline
                 << "proc kstacksize : " << stacksize << endl;
     if (level == 1) {
-        kout[Debug] << "proc pid_fa : " << (void*)father << endline
-                    << "proc pid_bro_pre : " << (void*)broPre << endline
-                    << "proc pid_bro_next : " << (void*)broNext << endline
-                    << "proc pid_fir_child : " << (void*)fstChild << endl;
+        kout[Debug] << "proc pid_fa : " << (void*)father << ' ' << father - &pm->Proc[0] << endline
+                    << "proc pid_bro_pre : " << (void*)broPre << ' ' << father - &pm->Proc[0] << endline
+                    << "proc pid_bro_next : " << (void*)broNext << ' ' << father - &pm->Proc[0] << endline
+                    << "proc pid_fir_child : " << (void*)fstChild << ' ' << father - &pm->Proc[0] << endl;
     }
     kout << endl;
 }
 
-void ProcessManager::show()
+void ProcessManager::show(int j)
 {
     for (int i = 0; i < MaxProcessCount; i++) {
         if (Proc[i].status != S_None) {
-            Proc[i].show();
+            Proc[i].show(j);
         }
     }
     kout << endl;
@@ -105,6 +106,47 @@ void Process::initForKernelProc0()
     switchStatus(S_Running);
 }
 
+bool Process::copyFromProc(Process* src)
+{
+    if (src == nullptr) {
+        kout[Fault] << "The Process has not existed!" << endl;
+        return false;
+    }
+
+    // 这里的copy部分与上面的迁移区别就在于是否初始化
+    // 并且迁移基于本质上是同一个进程 而拷贝是两个独立的进程
+    // 考虑fork和clone调用的需要 不过vms各自处理 故这里不处理
+    // 计时时间部分
+    timeBase = src->timeBase;
+    runTime = src->runTime;
+    sysTime = src->sysTime;
+    waitTimeLimit = src->waitTimeLimit;
+    readyTime = src->readyTime; // 保留但暂未使用
+    sleepTime = src->sleepTime; // 保留但暂未使用
+
+    // 链接部分
+    // 这里是两个现实存在的进程间的拷贝
+    // 只需要考虑父进程间的copy
+    if (father != nullptr) {
+        // pm.set_proc_fa(dst, src->fa);
+        setFa(src->father);
+    }
+
+    // 标志位信息
+    flags = src->flags;
+
+    // 进程的名字
+    if (!strcmp(src->name, (char*)"")) {
+        setName(src->name);
+    }
+
+    // 文件系统相关
+    // pm.copy_proc_fds(dst, src);
+
+    copyFds(src);
+    return true;
+}
+
 void Process::init(ProcFlag _flags)
 {
     if (status != S_Allocated) {
@@ -120,6 +162,7 @@ void Process::init(ProcFlag _flags)
     Heap = nullptr;
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
+    exitCode = 0;
 
     fom.init_proc_fo_head(this);
     initFds();
@@ -195,6 +238,7 @@ bool Process::exit(int re)
     if (re != Exit_Normal) {
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
     }
+    exitCode = re;
     VMS->Leave();
     destroyFds();
     if (!(flags & F_AutoDestroy) && father != nullptr) {
@@ -220,35 +264,27 @@ bool Process::run()
     return true;
 }
 
-
 void Process::setFa(Process* fa)
 {
-        father=fa;
-    if (fa==nullptr) {
-        return;        
+    if (fa == nullptr) {
+        return;
     }
 
- if (father != nullptr)
-    {
+    if (father != nullptr) {
         // 当需要设置的进程已经有一个非空的父进程了
         // 需要做好关系的转移和清理工作
-        if (father == fa)
-        {
+        if (father == fa) {
             // 父子进程和参数中的已经一致
-            return ;
+            return;
         }
         // 关键就是做好关系的转移
-        if (father->fstChild == this)
-        {
-           father->fstChild = broNext;
-        }
-        else if (broPre != nullptr)
-        {
+        if (father->fstChild == this) {
+            father->fstChild = broNext;
+        } else if (broPre != nullptr) {
             broPre->broNext = broNext;
         }
         // 再判断一下bro_next进程
-        if (broNext != nullptr)
-        {
+        if (broNext != nullptr) {
             broNext->broPre = broPre;
         }
         // 关系转移好了之后清理一下"族谱"关系
@@ -260,13 +296,11 @@ void Process::setFa(Process* fa)
 
     // 设置新的父进程
     father = fa;
-    broNext = father->fstChild;           // 关系的接替 "顶"上去 类头插
+    broNext = father->fstChild; // 关系的接替 "顶"上去 类头插
     father->fstChild = this;
-    if (broNext != nullptr)
-    {
+    if (broNext != nullptr) {
         broNext->broPre = this;
     }
-
 }
 bool Process::start(void* func, void* funcData, PtrUint useraddr)
 {
@@ -413,16 +447,12 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 tar->destroy();
         }
     }
-    
+
     return pm.getKernelProc()->context;
 }
 
 void ProcessManager::immSchedule()
 {
-    bool t;
-    IntrSave(t);
-    sbi_set_time(sbi_get_time());
-    IntrRestore(t);
 }
 
 bool Process::initFds()

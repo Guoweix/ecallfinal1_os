@@ -14,6 +14,7 @@ int Syscalll_mkdirat(int fd,char * filename,int mode);
 int Syscalll_chdir(const char * path);
 char * Syscall_getcwd(char * buf,Uint64 size);
 int Syscall_clone(TrapFrame* tf,int flags,void * stack,int ptid,int tls,int ctid);
+int Syscall_wait4(int pid, int* status, int options);
 inline int Syscall_getpid();
 inline int Syscall_getppid();
 

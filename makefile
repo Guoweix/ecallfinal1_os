@@ -17,6 +17,8 @@ USERIMG := -initrd Img/User.img
 
 # echo:
 #	echo $(ELF_FILES)
+all:Build/Kernel.elf
+	cp Build/Kernel.elf ./kernel-qemu
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
 	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
