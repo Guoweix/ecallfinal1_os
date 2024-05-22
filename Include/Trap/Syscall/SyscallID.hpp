@@ -24,7 +24,7 @@ enum SyscallID
 	SYS_statfs			=43, 
 	SYS_chdir			=49,//
 	SYS_openat			=56,
-	SYS_close			=57,
+	SYS_close			=57,//
 	SYS_pipe2			=59,
 	SYS_getdents64		=61,
 	SYS_lseek			=62,

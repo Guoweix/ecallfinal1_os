@@ -413,6 +413,27 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     return rd_size;
 }
 
+inline int Syscall_close(int fd)
+{
+    // 关闭一个文件描述符的系统调用
+    // 传入参数为要关闭的文件描述符
+    // 成功执行返回0 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    if (!fom.close_fo(cur_proc, fo))
+    {
+        // fom中的close_fo调用会关闭这个文件描述符
+        // 主要是对相关文件的解引用并且从文件描述符表中删去这个节点
+        return -1;
+    }
+    return 0;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -460,6 +481,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_read:
         tf->reg.a0 = Syscall_read(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_close:
+        tf->reg.a0 = Syscall_close(tf->reg.a0);
         break;
     default:;
     }
