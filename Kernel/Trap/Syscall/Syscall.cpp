@@ -329,6 +329,90 @@ inline int Syscall_unlinkat(int dirfd, char* path, int flags)
     return 0;
 }
 
+inline long long Syscall_write(int fd, void* buf, Uint64 count)
+{
+    // 从一个文件描述符写入
+    // 输入fd为一个文件描述符
+    // buf为要写入的内容缓冲区 count为写入内容的大小字节数
+    // 成功返回写入的字节数 失败返回-1
+
+    if (buf == nullptr)
+    {
+        return -1;
+    }
+
+    if (fd == STDOUT_FILENO)
+    {
+        VirtualMemorySpace::EnableAccessUser();
+        for (int i = 0;i < count;i++)
+        {
+            putchar(((char*)buf)[i]);
+            // kout << (uint64)((char*)buf)[i] << endl;
+        }
+        VirtualMemorySpace::DisableAccessUser();
+        return count;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+
+    // trick实现文件信息的打印
+    // 向标准输出写
+    if (fo->tk_fd == STDOUT_FILENO)
+    {
+        VirtualMemorySpace::EnableAccessUser();
+        for (int i = 0;i < count;i++)
+        {
+            putchar(*(char*)(buf + i));
+        }
+        VirtualMemorySpace::DisableAccessUser();
+        return count;
+    }
+
+    VirtualMemorySpace::EnableAccessUser();
+    long long wr_size = 0;
+    wr_size = fom.write_fo(fo, buf, count);
+    VirtualMemorySpace::DisableAccessUser();
+    if (wr_size < 0)
+    {
+        return -1;
+    }
+    return wr_size;
+}
+
+inline long long Syscall_read(int fd, void* buf, Uint64 count)
+{
+    // 从一个文件描述符中读取的系统调用
+    // fd是要读取的文件描述符
+    // buf是存放读取内容的缓冲区 count是要读取的字节数
+    // 成功返回读取的字节数 0表示文件结束 失败返回-1
+
+    if (buf == nullptr)
+    {
+        return -1;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    long long rd_size = 0;
+    rd_size = fom.read_fo(fo, buf, count);
+    VirtualMemorySpace::DisableAccessUser();
+    if (rd_size < 0)
+    {
+        return -1;
+    }
+    return rd_size;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -373,6 +457,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_unlinkat:
         tf->reg.a0 = Syscall_unlinkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_read:
+        tf->reg.a0 = Syscall_read(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
         break;
     default:;
     }

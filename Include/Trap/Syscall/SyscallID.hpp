@@ -28,8 +28,8 @@ enum SyscallID
 	SYS_pipe2			=59,
 	SYS_getdents64		=61,
 	SYS_lseek			=62,
-	SYS_read			=63,
-	SYS_write			=64,
+	SYS_read			=63,//
+	SYS_write			=64,//
 	SYS_readv			=65,
 	SYS_writev			=66,
 	SYS_pread64			=67,
