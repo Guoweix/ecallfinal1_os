@@ -205,7 +205,7 @@ struct tms
     long tms_sutime;                // system time of children
 };
 
-Uint64 Syscall_times(tms* tms)
+inline Uint64 Syscall_times(tms* tms)
 {
     // 获取进程时间的系统调用
     // tms结构体指针 用于获取保存当前进程的运行时间的数据
@@ -244,6 +244,67 @@ Uint64 Syscall_times(tms* tms)
     return GetClockTime();
 }
 
+struct timeval
+{
+    Uint64 sec;                     // 自 Unix 纪元起的秒数
+    Uint64 usec;                    // 微秒数
+};
+
+inline int Syscall_gettimeofday(timeval* ts, int tz = 0)
+{
+    // 获取时间的系统调用
+    // timespec结构体用于获取时间值
+    // 成功返回0 失败返回-1
+
+    if (ts == nullptr)
+    {
+        return -1;
+    }
+
+    // 其他需要的信息测试平台已经预先软件处理完毕了
+    VirtualMemorySpace::EnableAccessUser();
+    Uint64 cur_time = GetClockTime();
+    ts->sec = cur_time / Timer_1s;
+    ts->usec = (cur_time % Timer_1s) / 10;
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
+struct utsname {
+    char sysname[65];
+    char nodename[65];
+    char release[65];
+    char version[65];
+    char machine[65];
+    char domainname[65];
+};
+
+inline int Syscall_uname(utsname* uts)
+{
+    // 打印系统信息的系统调用
+    // utsname结构体指针用于获取系统信息数据
+    // 成功返回0 失败返回-1
+    // 相关信息的字符串处理
+
+    if (uts == nullptr)
+    {
+        return -1;
+    }
+
+    // 操作用户区的数据
+    // 需要从核心态进入用户态
+    VirtualMemorySpace::EnableAccessUser();
+    strcpy(uts->sysname, "DBStars_OperatingSystem");
+    strcpy(uts->nodename, "DBStars_OperatingSystem");
+    strcpy(uts->release, "Debug");
+    strcpy(uts->version, "1.0");
+    strcpy(uts->machine, "RISCV 64");
+    strcpy(uts->domainname, "DBStars");
+    VirtualMemorySpace::DisableAccessUser();
+
+    return 0;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     // kout<<tf->reg.a7<<"______"<<endl;
@@ -279,6 +340,12 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_getppid:
         tf->reg.a0 = Syscall_getppid();
+        break;
+    case SYS_gettimeofday:
+        tf->reg.a0 = Syscall_gettimeofday((timeval*)tf->reg.a0, 0);
+        break;
+    case SYS_uname:
+        tf->reg.a0 = Syscall_uname((utsname*)tf->reg.a0);
         break;
     default:;
     }
