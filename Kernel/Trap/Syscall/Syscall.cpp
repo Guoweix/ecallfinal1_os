@@ -458,6 +458,52 @@ inline int Syscall_dup(int fd)
     return ret_fd;
 }
 
+inline int Syscall_dup3(int old_fd, int new_fd)
+{
+    // 复制文件描述符同时指定新的文件描述符的系统调用
+    // 成功执行返回新的文件描述符 失败返回-1
+
+    if (old_fd == new_fd)
+    {
+        return new_fd;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo_old = fom.get_from_fd(cur_proc->fo_head, old_fd);
+    if (fo_old == nullptr)
+    {
+        return -1;
+    }
+    file_object* fo_new = fom.duplicate_fo(fo_old);
+    if (fo_new == nullptr)
+    {
+        return -1;
+    }
+    // 先查看指定的新的文件描述符是否已经存在
+    file_object* fo_tmp = nullptr;
+    fo_tmp = fom.get_from_fd(cur_proc->fo_head, new_fd);
+    if (fo_tmp != nullptr)
+    {
+        // 指定的新的文件描述符已经存在
+        // 将这个从文件描述符表中删除
+        fom.delete_flobj(cur_proc->fo_head, fo_tmp);
+    }
+
+    // 没有串口 继续trick
+    if (old_fd == STDOUT_FILENO)
+    {
+        fo_new->tk_fd = STDOUT_FILENO;
+    }
+
+    fom.set_fo_fd(fo_new, new_fd);
+    // 再将这个新的fo插入进程的文件描述符表
+    int rd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+    if (rd != new_fd)
+    {
+        return -1;
+    }
+    return rd;
+}
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
@@ -512,6 +558,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_dup:
         tf->reg.a0 = Syscall_dup(tf->reg.a0);
+        break;
+    case SYS_dup3:
+        tf->reg.a0 = Syscall_dup3(tf->reg.a0, tf->reg.a1);
         break;
     default:;
     }

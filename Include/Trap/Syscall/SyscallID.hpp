@@ -13,7 +13,7 @@ enum SyscallID
 	
 	SYS_getcwd			=17,//
 	SYS_dup				=23,//
-	SYS_dup3			=24,
+	SYS_dup3			=24,//
 	SYS_fcntl			=25,
 	SYS_ioctl			=29,
 	SYS_mkdirat			=34,//
@@ -39,7 +39,7 @@ enum SyscallID
 	SYS_newfstatat		=79,
 	SYS_fstat			=80,
 	SYS_utimensat		=88,
-	SYS_exit			=93,
+	SYS_exit			=93,//
 	SYS_exit_group		=94,
 	SYS_set_tid_address	=96,
 	SYS_futex			=98,
