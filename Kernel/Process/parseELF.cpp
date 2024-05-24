@@ -232,7 +232,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry);
     proc->setName("user");
     // kout[Test] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
-    pm.show();
+    // pm.show();
 
 
     // 正确完整地执行了这个流程

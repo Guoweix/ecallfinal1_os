@@ -116,7 +116,7 @@ int hello(void* t)
     int n;
 
     // VDisk.waitDisk->signal();
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20000; i++) {
         n = 1e7;
         delay(n);
         SBI_PUTCHAR('A');
@@ -136,8 +136,9 @@ int hello1(void* t)
         while (n) {
             n--;
         }
-
+   
         SBI_PUTCHAR('B');
+         pm.immSchedule();
     }
 }
 
@@ -148,9 +149,9 @@ void pm_test()
     kout << "__________________________----" << endl;
     CreateKernelThread(hello, "Hello");
     kout << "__________________________----" << endl;
-    CreateUserImgProcess(0xffffffff88200000, 0xffffffff88200076, F_User);
+    // CreateUserImgProcess(0xffffffff88200000, 0xffffffff88200076, F_User);
 
-    pm.show();
+    // pm.show();
     // delay(5e8);
     // pm.getProc(1)->getSemaphore()->wait(pm.getProc(1));
     // kout<<"VMS"<<(void *)pm.getCurProc()->getVMS()<<endl;
@@ -244,10 +245,12 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "chdir") == 0) {
+        if (strcmp(file->name, "execve") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
-
+                while (1) {
+                
+                }
             }
             kout<<"END"<<endl;
         }
@@ -294,9 +297,9 @@ int main()
     InterruptEnable();
     // VFSM_test();
     final_test();
-
-    SBI_SHUTDOWN();
     // pm_test();
+    SBI_SHUTDOWN();
+
 
     // kout << "1" << endl;
 

@@ -250,7 +250,7 @@ bool Process::exit(int re)
 bool Process::run()
 {
     Process* cur = pm->getCurProc();
-    cur->show();
+    // cur->show();
     kout[Debug] << "switch from " << cur->name << " to " << name << endl;
     if (this != cur) {
         if (cur->status == S_Running) {
@@ -260,7 +260,7 @@ bool Process::run()
         pm->curProc = this;
         VMS->Enter();
     }
-    kout[Debug] << "switch finish" << endl;
+    // kout[Debug] << "switch finish" << endl;
     return true;
 }
 
@@ -453,6 +453,9 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 
 void ProcessManager::immSchedule()
 {
+    RegisterData a7=SYS_sched_yeild;
+    asm volatile("ld a7,%0; ebreak" :: "m"(a7) : "memory");
+    // kout<<"__________________"<<endl;
 }
 
 bool Process::initFds()
@@ -575,7 +578,7 @@ extern "C" {
 void KernelProcessExit(int re)
 {
 
-    kout[Debug] << "FFFFFFFFFF" << re << endl;
+    // kout[Debug] << "FFFFFFFFFF" << re << endl;
     // pm.getCurProc()->switchStatus(S_Terminated);
 
     RegisterData a0 = re, a7 = SYS_Exit;

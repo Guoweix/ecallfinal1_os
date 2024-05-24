@@ -9,6 +9,7 @@
 #include <Process/Process.hpp>
 #include <Trap/Syscall/Syscall.hpp>
 #include <Trap/Syscall/SyscallID.hpp>
+#include <Process/ParseELF.hpp>
 
 extern bool needSchedule;
 
@@ -126,7 +127,6 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
         create_proc->setContext((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1);
         create_proc->getContext()->epc += 4;
         create_proc->getContext()->reg.a0 = 0;
-
     } else {
         // 此时就是相当于clone
         // 创建一个新的线程 与内存间的共享有关
@@ -134,7 +134,10 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
         // 这里其实隐含很多问题 涉及到指令执行流这些 需要仔细体会
         // 在大赛要求和本内核实现下仅仅是充当创建一个函数线程的作用
         create_proc->setVMS(cur_proc->getVMS());
-
+        // pm.getCurProc()->getVMS()->show();
+        // kout<<"_____________________________________________________________" <<endl;
+        // create_proc->getVMS()->show();
+        // kout<<"_____________________________________________________________" <<endl;
         memcpy((void*)((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1),
             (const char*)tf, sizeof(TrapFrame));
         create_proc->setContext((TrapFrame*)((char*)create_proc->getStack() + create_proc->getStackSize()) - 1);
@@ -146,12 +149,11 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
     create_proc->copyFromProc(cur_proc);
     if (flags & SIGCHLD) {
         // clone的是子进程
-        kout<<"FFF"<<endl;
         create_proc->setFa(cur_proc);
     }
     // pm.switchstat_proc(create_proc, Proc_ready);
     create_proc->switchStatus(S_Ready);
-    pm.show(1);
+    // pm.show(1);
     IntrRestore(intr_flag);
     return pid_ret;
 }
@@ -205,6 +207,87 @@ int Syscall_getppid()
     }
     return -1;
 }
+
+
+int Syscall_execve(const char* path, char* const argv[], char* const envp[])
+{
+        // 执行一个指定的程序的系统调用
+    // 关键是利用解析ELF文件创建进程来实现
+    // 这里需要文件系统提供的支持
+    // argv参数是程序参数 envp参数是环境变量的数组指针 暂时未使用
+    // 执行成功跳转执行对应的程序 失败则返回-1
+
+    VirtualMemorySpace::EnableAccessUser();
+    Process* cur_proc = pm.getCurProc();
+    FAT32FILE* file_open = vfsm.open(path, "/");
+
+    if (file_open == nullptr)
+    {
+        kout[Fault] << "SYS_execve open File Fail!" << endl;
+        return -1;
+    }
+
+    file_object* fo = (file_object*)kmalloc(sizeof(file_object));
+    fom.set_fo_file(fo, file_open);
+    fom.set_fo_pos_k(fo, 0);
+    fom.set_fo_flags(fo, 0);
+
+    Process* new_proc = CreateProcessFromELF( fo, cur_proc->getCWD());
+    kfree(fo);
+
+    int exit_value = 0;
+    if (new_proc == nullptr)
+    {
+        kout[Fault] << "SYS_execve CreateProcessFromELF Fail!" << endl;
+        return -1;
+    }
+    else
+    {
+        // 这里的new_proc其实也是执行这个系统调用进程的子进程
+        // 因此这里父进程需要等待子进程执行完毕后才能继续执行
+        Process* child = nullptr;
+        while (1)
+        {
+            // 去寻找已经结束的子进程
+            // 当前场景的执行逻辑上只会有一个子进程
+            Process* pptr = nullptr;
+            for (pptr = cur_proc->fstChild;pptr != nullptr;pptr = pptr->broNext)
+            {
+                if (pptr->getStatus() == S_Terminated)
+                {
+                    child = pptr;
+                    break;
+                }
+            }
+            if (child == nullptr)
+            {
+                // 说明当前进程应该被阻塞了
+                // 触发进程管理下的信号wait条件
+                // 被阻塞之后就不会再调度这个进程了 需要等待子进程执行完毕后被唤醒
+                cur_proc->getSemaphore()->wait(cur_proc);
+                pm.immSchedule();
+            }
+            else
+            {
+                // 在父进程里回收子进程
+                VirtualMemorySpace::EnableAccessUser();
+                exit_value = child->getExitCode();
+                VirtualMemorySpace::DisableAccessUser();
+                pm.freeProc(child);
+                break;
+            }
+        }
+    }
+    // 顺利执行了execve并回收了子进程
+    // 当前进程就执行完毕了 直接退出
+    VirtualMemorySpace::DisableAccessUser();
+    // pm.exit_proc(cur_proc, exit_value);
+    cur_proc->exit(exit_value);
+    pm.immSchedule();
+    kout[Fault] << "SYS_execve reached unreacheable branch!" << endl;
+    return -1;
+}
+
 int Syscall_wait4(int pid, int* status, int options)
 {
     // 等待进程改变状态的系统调用
@@ -224,10 +307,12 @@ int Syscall_wait4(int pid, int* status, int options)
         kout[Fault] << "The Process has Not Child Process!" << endl;
         return -1;
     }
+    
     while (1) {
+
         Process* child = nullptr;
-        // 利用链接部分的指针关系去寻找满足的孩子进程
         Process* pptr = nullptr;
+
         for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
             if (pptr->getStatus() == S_Terminated) {
                 // 找到对应的进程
@@ -237,6 +322,7 @@ int Syscall_wait4(int pid, int* status, int options)
                 }
             }
         }
+
         if (child != nullptr) {
             // 当前的child进程即需要wait的进程
             int ret = child->getID();
@@ -248,8 +334,13 @@ int Syscall_wait4(int pid, int* status, int options)
 
                 VirtualMemorySpace::DisableAccessUser();
             }
+            // kout<<"SSSSSSSSSSSSSSS"<<endl;
+        // child->getVMS()->show();
+
+        // pm.getCurProc()->getVMS()->show();
             child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
             pm.freeProc(child);
+            kout[Info] << "child DEAD   " <<ret<< endl;
             return ret;
         } else if (options & WNOHANG) {
             // 当没有找到符合的子进程但是options中指定了WNOHANG
@@ -259,15 +350,25 @@ int Syscall_wait4(int pid, int* status, int options)
             // 说明还需要等待子进程
             // pm.calc_systime(cur_proc); // 从这个时刻之后的wait时间不应被计算到systime中
             cur_proc->getSemaphore()->wait(); // 父进程在子进程上等待 当子进程exit后解除信号量等待可以被回收
-            needSchedule = true;
+            // kout[Info] << "SSSSSSSSSSSSS" << endl;
+            pm.immSchedule();
+        // kout<<"EEEEEE"<<endl;
         }
+        // kout<<"EEEEEE"<<endl;
+        
     }
     return -1;
 }
 
+int Syscall_sched_yeild()
+{
+    needSchedule = true;
+    return 0;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    // kout<<tf->reg.a7<<"______"<<endl;
+    kout << tf->reg.a7 << "______" << endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -295,6 +396,10 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_exit:
         Syscall_Exit(tf, tf->reg.a0);
         break;
+
+    case SYS_sched_yeild:
+        Syscall_sched_yeild();
+        break;
     case SYS_getpid:
         tf->reg.a0 = Syscall_getpid();
         break;
@@ -308,8 +413,17 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_clone(tf, tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4);
         break;
     case SYS_wait4:
-        tf->reg.a0 = Syscall_wait4(tf->reg.a0,(int *)tf->reg.a1,tf->reg.a2);
+        kout<<"wait start epc"<<(void *)tf->epc<<"  "<<pm.getCurProc()->getVMS() <<endl;
+        pm.getCurProc()->getVMS()->show();
+
+        tf->reg.a0 = Syscall_wait4(tf->reg.a0, (int*)tf->reg.a1, tf->reg.a2);
+        kout<<"wait end epc"<<(void *)tf->epc<<"  "<<pm.getCurProc()->getVMS()  <<endl;
+        pm.getCurProc()->getVMS()->show();
         break;
+
+	case SYS_execve:
+        Syscall_execve((char *)tf->reg.a0,(char **) tf->reg.a1,(char **) tf->reg.a2);
+        break;	
     default:
         kout[Fault] << "TrapFunc_Syscall::unsolve " << tf->reg.a7 << endl;
         return false;

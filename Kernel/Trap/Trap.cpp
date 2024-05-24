@@ -6,6 +6,7 @@
 #include <Memory/vmm.hpp>
 #include <Process/Process.hpp>
 #include <Trap/Clock.hpp>
+#include <Trap/Syscall/SyscallID.hpp>
 #include <Trap/Trap.hpp>
 
 static const char* TrapInterruptCodeName[16] = // 中断/异常名字数组，便于打印调试
@@ -62,6 +63,7 @@ bool needSchedule;
 extern "C" {
 TrapFrame* Trap(TrapFrame* tf)
 {
+    int t = needSchedule;
     needSchedule = 0;
     if ((long long)tf->cause < 0)
         switch (tf->cause << 1 >> 1) // 为中断
@@ -78,7 +80,7 @@ TrapFrame* Trap(TrapFrame* tf)
             break;
         case IRQ_S_EXT: {
             int irq = plic_claim();
-            kout[Debug] << "irq " << irq << endl;
+            // kout[Debug] << "irq " << irq << endl;
             switch (irq) {
             case 0:
                 break;
@@ -107,15 +109,20 @@ TrapFrame* Trap(TrapFrame* tf)
         {
         case ExceptionCode_BreakPoint:
             switch (tf->reg.a7) {
-                kout << "ExceptionCode_BreakPoint" << endl;
+            default:
+                kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
             }
         case ExceptionCode_UserEcall: {
-            // kout[Info] << "Ecall happen" << endl;
+            kout[Info] << "Ecall start" << (void*)tf->epc << endl;
             bool re = TrapFunc_Syscall(tf);
             if (!re) {
                 TrapFailedInfo(tf);
             } else {
-                tf->epc += tf->cause == ExceptionCode_UserEcall ? 4 : 0;
+                tf->epc += tf->cause == ExceptionCode_UserEcall ? 4 : 2;
+                kout[Info] << "Ecall finish" << (void*)tf->epc << endl;
+                // pm.getCurProc()->getVMS()->show();
+                // kout<<DataWithSize((char *)tf->epc,100)<<endl;
+                
             }
             break;
         }
@@ -125,9 +132,8 @@ TrapFrame* Trap(TrapFrame* tf)
         case ExceptionCode_LoadPageFault:
         case ExceptionCode_StorePageFault:
             kout[Test] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
-            if (TrapFunc_FageFault(tf) != ERR_None)
-            {
-                kout[Info]<<"PID"<<pm.getCurProc()->getID()<<endl;
+            if (TrapFunc_FageFault(tf) != ERR_None) {
+                kout[Info] << "PID" << pm.getCurProc()->getID() << endl;
                 TrapFailedInfo(tf);
             }
             break;
@@ -135,9 +141,15 @@ TrapFrame* Trap(TrapFrame* tf)
             TrapFailedInfo(tf);
         }
 
-    if (needSchedule)
+    
+    if (needSchedule) {
+        needSchedule = t;
+        // if(t)
+        kout<<"true"<<endl;
+        // else
+        // kout<<"false"<<endl;
         return pm.Schedule(tf);
-    else
+    } else
         return tf;
 }
 

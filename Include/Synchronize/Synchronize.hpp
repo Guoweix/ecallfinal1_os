@@ -1,8 +1,9 @@
 #ifndef __SYNCHRONIZE_HPP__
 #define __SYNCHRONIZE_HPP__
 
-#include <Types.hpp>
 #include <Process/Process.hpp>
+#include <Types.hpp>
+
 
 struct ListNode {
     Process* proc;
@@ -21,6 +22,7 @@ struct ProcessQueue {
     void enqueue(Process* insertProc);
     Process* getFront();
     void dequeue();
+    bool check(Process* _check);
 };
 
 class Semaphore {
@@ -63,13 +65,13 @@ public:
         value = _value;
         queue.init();
     }
-    
+
     Semaphore()
     {
         value = 0;
         queue.init();
     }
-    
+
     inline void destroy()
     {
         queue.destroy();
@@ -85,21 +87,26 @@ public:
     Semaphore& operator=(const Semaphore&&) = delete;
 };
 
-class Mutex:public Semaphore
-{
-	public:
-		inline void Lock()
-		{wait();}
-		
-		inline void Unlock()
-		{signal();}
-		
-		inline bool TryLock()
-		{return wait();}//
-		
-		Mutex()
-        {}//
-};
+class Mutex : public Semaphore {
+public:
+    inline void Lock()
+    {
+        wait();
+    }
 
+    inline void Unlock()
+    {
+        signal();
+    }
+
+    inline bool TryLock()
+    {
+        return wait();
+    } //
+
+    Mutex()
+    {
+    } //
+};
 
 #endif

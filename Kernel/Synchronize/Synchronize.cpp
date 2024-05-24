@@ -1,9 +1,8 @@
-#include <Synchronize/Synchronize.hpp>
+#include "Process/Process.hpp"
 #include <Library/KoutSingle.hpp>
 #include <Memory/slab.hpp>
+#include <Synchronize/Synchronize.hpp>
 #include <Trap/Interrupt.hpp>
-
-
 
 void ProcessQueue::printAllQueue()
 {
@@ -74,6 +73,20 @@ Process* ProcessQueue::getFront()
     return front->next->proc;
 }
 
+bool ProcessQueue::check(Process* _check)
+{
+
+    ListNode* nxt = front->next;
+
+    while (nxt != nullptr) {
+        if (nxt->proc == _check) {
+            return true;
+        }
+        nxt = nxt->next;
+    }
+    return false;
+}
+
 void ProcessQueue::enqueue(Process* insertProc)
 {
     ListNode* t = (ListNode*)new ListNode;
@@ -103,9 +116,10 @@ int Semaphore::wait(Process* proc)
     value--;
     // kout[Info] << "Wait " << proc << endl;
     if (value < 0) {
-    // kout[Info] << "Wait " << proc << endl;
-
-        queue.enqueue(proc);
+        // kout[Info] << "Wait " << proc << endl;
+        if (!queue.check(proc)) {
+            queue.enqueue(proc);
+        }
         proc->SemRef++;
         proc->switchStatus(S_Sleeping);
     }
@@ -121,7 +135,7 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-        // kout[Info] << "signal "  << endl;
+    // kout[Info] << "signal "  << endl;
     if (value < 0) {
         Process* proc = queue.getFront();
         queue.dequeue();
