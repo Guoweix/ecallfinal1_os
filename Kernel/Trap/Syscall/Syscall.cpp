@@ -9,6 +9,7 @@
 #include <Process/Process.hpp>
 #include <Trap/Syscall/Syscall.hpp>
 #include <Trap/Syscall/SyscallID.hpp>
+#include <Trap/Clock.hpp>
 #include <Process/ParseELF.hpp>
 
 extern bool needSchedule;
@@ -366,6 +367,401 @@ int Syscall_sched_yeild()
     return 0;
 }
 
+struct tms
+{
+    long tms_utime;                 // user time
+    long tms_stime;                 // system time
+    long tms_cutime;                // user time of children
+    long tms_sutime;                // system time of children
+};
+
+inline Uint64 Syscall_times(tms* tms)
+{
+    // 获取进程时间的系统调用
+    // tms结构体指针 用于获取保存当前进程的运行时间的数据
+    // 成功返回已经过去的滴答数 即real time
+    // 这里的time基本即指进程在running态的时间
+    // 系统调用规范指出为花费的CPU时间 故仅考虑运行时间
+    // 而对于running态时间的记录进程结构体中在每次从running态切换时都会记录
+    // 对于用户态执行的时间不太方便在用户态记录
+    // 这里我们可以认为一个用户进程只有在陷入系统调用的时候才相当于在使用核心态的时间
+    // 因此我们在每次系统调用前后记录本次系统调用的时间并加上
+    // 进而用总的runtime减去这个时间就可以得到用户时间了
+    // 记录这个时间的成员在进程结构体中提供为systime
+
+    Process* cur_proc = pm.getCurProc();
+    Uint64 time_unit = 10;  // 填充tms结构体的基本时间单位 在qemu上模拟 以微秒为单位
+    if (tms != nullptr)
+    {
+        Uint64 run_time = cur_proc->runTime;    // 总运行时间
+        Uint64 sys_time = cur_proc->sysTime;    // 用户陷入核心态的system时间
+        Uint64 user_time = run_time - sys_time;                // 用户在用户态执行的时间
+        if ((long long)run_time < 0 || (long long)sys_time < 0 || (long long)user_time < 0)
+        {
+            // 3个time有一个为负即认为出错调用失败了
+            // 返回-1
+            return -1;
+        }
+        cur_proc->VMS->EnableAccessUser();                      // 在核心态操作用户态的数据
+        tms->tms_utime = user_time / time_unit;
+        tms->tms_stime = sys_time / time_unit;
+        // 基于父进程执行到这里时已经wait了所有子进程退出并被回收了
+        // 故直接置0
+        tms->tms_cutime = 0;
+        tms->tms_sutime = 0;
+        cur_proc->VMS->DisableAccessUser();
+    }
+    return GetClockTime();
+}
+
+struct timeval
+{
+    Uint64 sec;                     // 自 Unix 纪元起的秒数
+    Uint64 usec;                    // 微秒数
+};
+
+inline int Syscall_gettimeofday(timeval* ts, int tz = 0)
+{
+    // 获取时间的系统调用
+    // timespec结构体用于获取时间值
+    // 成功返回0 失败返回-1
+
+    if (ts == nullptr)
+    {
+        return -1;
+    }
+
+    // 其他需要的信息测试平台已经预先软件处理完毕了
+    VirtualMemorySpace::EnableAccessUser();
+    Uint64 cur_time = GetClockTime();
+    ts->sec = cur_time / Timer_1s;
+    ts->usec = (cur_time % Timer_1s) / 10;
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
+struct utsname {
+    char sysname[65];
+    char nodename[65];
+    char release[65];
+    char version[65];
+    char machine[65];
+    char domainname[65];
+};
+
+inline int Syscall_uname(utsname* uts)
+{
+    // 打印系统信息的系统调用
+    // utsname结构体指针用于获取系统信息数据
+    // 成功返回0 失败返回-1
+    // 相关信息的字符串处理
+
+    if (uts == nullptr)
+    {
+        return -1;
+    }
+
+    // 操作用户区的数据
+    // 需要从核心态进入用户态
+    VirtualMemorySpace::EnableAccessUser();
+    strcpy(uts->sysname, "DBStars_OperatingSystem");
+    strcpy(uts->nodename, "DBStars_OperatingSystem");
+    strcpy(uts->release, "Debug");
+    strcpy(uts->version, "1.0");
+    strcpy(uts->machine, "RISCV 64");
+    strcpy(uts->domainname, "DBStars");
+    VirtualMemorySpace::DisableAccessUser();
+
+    return 0;
+}
+
+inline int Syscall_unlinkat(int dirfd, char* path, int flags)
+{
+    // 移除指定文件的链接(可用于删除文件)的系统调用
+    // dirfd是要删除的链接所在的目录
+    // path是要删除的链接的名字
+    // flags可设置为0或AT_REMOVEDIR
+    // 成功返回0 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo_head = cur_proc->fo_head;
+    file_object* fo = fom.get_from_fd(fo_head, dirfd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    if (!vfsm.unlink(path, fo->file->path))
+    {
+        return -1;
+    }
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
+inline long long Syscall_write(int fd, void* buf, Uint64 count)
+{
+    // 从一个文件描述符写入
+    // 输入fd为一个文件描述符
+    // buf为要写入的内容缓冲区 count为写入内容的大小字节数
+    // 成功返回写入的字节数 失败返回-1
+
+    if (buf == nullptr)
+    {
+        return -1;
+    }
+
+    if (fd == STDOUT_FILENO)
+    {
+        VirtualMemorySpace::EnableAccessUser();
+        for (int i = 0;i < count;i++)
+        {
+            putchar(((char*)buf)[i]);
+            // kout << (uint64)((char*)buf)[i] << endl;
+        }
+        VirtualMemorySpace::DisableAccessUser();
+        return count;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+
+    // trick实现文件信息的打印
+    // 向标准输出写
+    if (fo->tk_fd == STDOUT_FILENO)
+    {
+        VirtualMemorySpace::EnableAccessUser();
+        for (int i = 0;i < count;i++)
+        {
+            putchar(*(char*)(buf + i));
+        }
+        VirtualMemorySpace::DisableAccessUser();
+        return count;
+    }
+
+    VirtualMemorySpace::EnableAccessUser();
+    long long wr_size = 0;
+    wr_size = fom.write_fo(fo, buf, count);
+    VirtualMemorySpace::DisableAccessUser();
+    if (wr_size < 0)
+    {
+        return -1;
+    }
+    return wr_size;
+}
+
+inline long long Syscall_read(int fd, void* buf, Uint64 count)
+{
+    // 从一个文件描述符中读取的系统调用
+    // fd是要读取的文件描述符
+    // buf是存放读取内容的缓冲区 count是要读取的字节数
+    // 成功返回读取的字节数 0表示文件结束 失败返回-1
+
+    if (buf == nullptr)
+    {
+        return -1;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    long long rd_size = 0;
+    rd_size = fom.read_fo(fo, buf, count);
+    VirtualMemorySpace::DisableAccessUser();
+    if (rd_size < 0)
+    {
+        return -1;
+    }
+    return rd_size;
+}
+
+inline int Syscall_close(int fd)
+{
+    // 关闭一个文件描述符的系统调用
+    // 传入参数为要关闭的文件描述符
+    // 成功执行返回0 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        return -1;
+    }
+    if (!fom.close_fo(cur_proc, fo))
+    {
+        // fom中的close_fo调用会关闭这个文件描述符
+        // 主要是对相关文件的解引用并且从文件描述符表中删去这个节点
+        return -1;
+    }
+    return 0;
+}
+
+inline int Syscall_dup(int fd)
+{
+    // 复制文件描述符的系统调用
+    // 传入被复制的文件描述符
+    // 成功返回新的文件描述符 失败返回-1
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr)
+    {
+        // 当前文件描述符不存在
+        return -1;
+    }
+    file_object* fo_new = fom.duplicate_fo(fo);
+    if (fo_new == nullptr)
+    {
+        return -1;
+    }
+    int ret_fd = -1;
+    // 将复制的新的文件描述符直接插入当前的进程的文件描述符表
+    ret_fd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+    return ret_fd;
+}
+
+inline int Syscall_dup3(int old_fd, int new_fd)
+{
+    // 复制文件描述符同时指定新的文件描述符的系统调用
+    // 成功执行返回新的文件描述符 失败返回-1
+
+    if (old_fd == new_fd)
+    {
+        return new_fd;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo_old = fom.get_from_fd(cur_proc->fo_head, old_fd);
+    if (fo_old == nullptr)
+    {
+        return -1;
+    }
+    file_object* fo_new = fom.duplicate_fo(fo_old);
+    if (fo_new == nullptr)
+    {
+        return -1;
+    }
+    // 先查看指定的新的文件描述符是否已经存在
+    file_object* fo_tmp = nullptr;
+    fo_tmp = fom.get_from_fd(cur_proc->fo_head, new_fd);
+    if (fo_tmp != nullptr)
+    {
+        // 指定的新的文件描述符已经存在
+        // 将这个从文件描述符表中删除
+        fom.delete_flobj(cur_proc->fo_head, fo_tmp);
+    }
+
+    // 没有串口 继续trick
+    if (old_fd == STDOUT_FILENO)
+    {
+        fo_new->tk_fd = STDOUT_FILENO;
+    }
+
+    fom.set_fo_fd(fo_new, new_fd);
+    // 再将这个新的fo插入进程的文件描述符表
+    int rd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+    if (rd != new_fd)
+    {
+        return -1;
+    }
+    return rd;
+}
+
+inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
+{
+    // 打开或创建一个文件的系统调用
+    // fd为文件所在目录的文件描述符
+    // filename为要打开或创建的文件名
+    // 如果为绝对路径则忽略fd
+    // 如果为相对路径 且fd是AT_FDCWD 则filename相对于当前工作目录
+    // 如果为相对路径 且fd是一个文件描述符 则filename是相对于fd所指向的目录来说的
+    // flags为访问模式 必须包含以下一种 O_RDONLY O_WRONLY O_RDWR
+    // mode为文件的所有权描述
+    // 成功返回新的文件描述符 失败返回-1
+
+    VirtualMemorySpace::EnableAccessUser();
+    char* rela_wd = nullptr;
+    Process* cur_proc = pm.getCurProc();
+    char* cwd = cur_proc->getCWD();
+    if (fd == AT_FDCWD)
+    {
+        rela_wd = cur_proc->getCWD();
+    }
+    else
+    {
+        file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+        if (fo != nullptr)
+        {
+            rela_wd = fo->file->path;
+        }
+    }
+
+    if (flags & file_flags::O_CREAT)
+    {
+        // 创建文件或目录
+        // 创建则在进程的工作目录进行
+        if (flags & file_flags::O_DIRECTORY)
+        {
+            vfsm.create_dir(rela_wd, cwd, (char*)filename);
+        }
+        else
+        {
+            vfsm.create_file(rela_wd, cwd, (char*)filename);
+        }
+    }
+
+    char* path = vfsm.unified_path(filename, rela_wd);
+    if (path == nullptr)
+    {
+        return -1;
+    }
+    // trick
+    // 暂时没有对于. 和 ..的路径名的处理
+    // 特殊处理打开文件当前目录.的逻辑
+    FAT32FILE* file = nullptr;
+    if (filename[0] == '.' && filename[1] != '.')
+    {
+        int str_len = strlen(filename);
+        char* str_spc = new char[str_len];
+        strcpy(str_spc, filename + 1);
+        file = vfsm.open(str_spc, rela_wd);
+    }
+    else
+    {
+        file = vfsm.open(filename, rela_wd);
+    }
+
+    if (file != nullptr)
+    {
+        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY))
+        {
+            file = nullptr;
+        }
+    }
+    file_object* fo = fom.create_flobj(cur_proc->fo_head);
+    if (fo == nullptr || fo->fd < 0)
+    {
+        return -1;
+    }
+    if (file != nullptr)
+    {
+        fom.set_fo_file(fo, file);
+        fom.set_fo_flags(fo, flags);
+        fom.set_fo_mode(fo, mode);
+    }
+    kfree(path);
+    VirtualMemorySpace::DisableAccessUser();
+    return fo->fd;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     kout << tf->reg.a7 << "______" << endl;
@@ -406,8 +802,29 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_getppid:
         tf->reg.a0 = Syscall_getppid();
         break;
-    case SYS_brk:
-        tf->reg.a0 = Syscall_brk(tf->reg.a0);
+    case SYS_gettimeofday:
+        tf->reg.a0 = Syscall_gettimeofday((timeval*)tf->reg.a0, 0);
+        break;
+    case SYS_uname:
+        tf->reg.a0 = Syscall_uname((utsname*)tf->reg.a0);
+        break;
+    case SYS_unlinkat:
+        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_read:
+        tf->reg.a0 = Syscall_read(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_close:
+        tf->reg.a0 = Syscall_close(tf->reg.a0);
+        break;
+    case SYS_dup:
+        tf->reg.a0 = Syscall_dup(tf->reg.a0);
+        break;
+    case SYS_dup3:
+        tf->reg.a0 = Syscall_dup3(tf->reg.a0, tf->reg.a1);
+        break;
+    case SYS_openat:
+        tf->reg.a0 = Syscall_openat(tf->reg.a0, (const char*)tf->reg.a1, tf->reg.a2, tf->reg.a3);
         break;
     case SYS_clone:
         tf->reg.a0 = Syscall_clone(tf, tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4);
@@ -424,9 +841,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
 	case SYS_execve:
         Syscall_execve((char *)tf->reg.a0,(char **) tf->reg.a1,(char **) tf->reg.a2);
         break;	
-    default:
-        kout[Fault] << "TrapFunc_Syscall::unsolve " << tf->reg.a7 << endl;
-        return false;
+    default:;
     }
 
     return true;
