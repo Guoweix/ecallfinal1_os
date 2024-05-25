@@ -186,6 +186,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
         // 这边就是用filesz来读取具体的内容
         fom.seek_fo(fo, pgm_hdr.p_offset, file_ptr::Seek_beg);
         vms->Enter();
+        kout<<Red<<"START"<<pgm_hdr.p_filesz<<endl;
         rd_size = fom.read_fo(fo, (void*)vmr_begin, pgm_hdr.p_filesz);
         vms->Leave();
         if (rd_size != pgm_hdr.p_filesz) {
@@ -210,7 +211,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
     kout<<"++++++++++++++++++++++="<<endl;
-
+    kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
     HeapMemoryRegion* hmr = (HeapMemoryRegion*)kmalloc(sizeof(HeapMemoryRegion));
     kout<<"++++++++++++++++++++++="<<endl;

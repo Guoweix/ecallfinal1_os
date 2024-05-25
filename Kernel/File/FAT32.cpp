@@ -192,12 +192,14 @@ bool FAT32::get_clus(Uint64 clus, unsigned char* buf)
     }
 
     int lba = clus_to_lba(clus);
-    // kout<<lba<<endl;
+    kout<<Yellow<<lba<<endl;
     // for (int i = 0; i < Dbr.clus_sector_num; i++)
     // {
     //     Disk.readSector(lba + i, (Sector*)buf + i * Dbr.sector_size);
     // }
     Disk.readSector(lba, (Sector *)buf,Dbr.clus_sector_num);
+    // kout<<Blue<<buf<<endl;
+    // kout<<Blue<<DataWithSizeUnited(buf,512,16);
 
     return true;
 }
@@ -511,6 +513,7 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
     }
     if (pos + size > table.size)
     {
+        // kout[Fault]<<"error"<<endl;
         size = table.size - pos;
     }
     Uint64 start = pos / fat->Dbr.clus_size;
@@ -519,27 +522,33 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
     // kout << start << ' ' << end << endl;
     unsigned char* p = new unsigned char[(end - start) * fat->Dbr.clus_size];
 
-    int i = 0;
-    while (i < start)
+    int k = 0;
+    while (k < start)
     {
         if (rclus < 2 || rclus >= 0xffffff7)
             return -1;
         rclus = fat->get_next_clus(rclus);
-        i++;
+        k++;
     }
     // kout << i << endl;
+    kout<<"FILE__________________"<<end-start<<endl;
     for (int i = 0; i < end - start; i++)
     {
         if (rclus < 2 || rclus >= 0xffffff7)
             return -1;
 
         fat->get_clus(rclus, &p[i * fat->Dbr.clus_size]);
+        kout<<Green<<i * fat->Dbr.clus_size<<" "<<&p[i * fat->Dbr.clus_size]<<endl;
+        kout<<Green<<DataWithSizeUnited( &p[i * fat->Dbr.clus_size],fat->Dbr.clus_size,16);
         // kout.memory(&p[i * fat->Dbr.clus_size], fat->Dbr.clus_size);
         rclus = fat->get_next_clus(rclus);
     }
     // kout[red] << "---------------------------------" << endl;
 
-    pos -= start * fat->Dbr.clus_size;
+    pos %=   fat->Dbr.clus_size;
+        kout<<Red<< &p[8 * fat->Dbr.clus_size]<<endl;
+        kout<<Red<<DataWithSizeUnited( &p[8 * fat->Dbr.clus_size],fat->Dbr.clus_size,16);
+    // kout<<Red<<DataWithSizeUnited(p,0x1141,16);
 
     for (int i = 0; i < size; i++)
     {
@@ -695,6 +704,7 @@ Uint32 FAT32::get_next_clus(Uint32 clus)
 {
     Uint32* temp = new Uint32[Dbr.clus_size / 4];
     //
+    kout<<LightYellow<<temp<<endl;
     Disk.readSector(FAT1lba + clus * 4 / sectorSize, (Sector*)temp);
 
     Uint32 t = temp[clus % (sectorSize / 4)];

@@ -1,16 +1,17 @@
 #include "Error.hpp"
 #include "Library/KoutSingle.hpp"
+#include "Library/SBI.h"
 #include "Memory/vmm.hpp"
 #include "Trap/Interrupt.hpp"
 #include "Trap/Trap.hpp"
 #include "Types.hpp"
 #include <File/FileObject.hpp>
 #include <File/vfsm.hpp>
+#include <Process/ParseELF.hpp>
 #include <Process/Process.hpp>
+#include <Trap/Clock.hpp>
 #include <Trap/Syscall/Syscall.hpp>
 #include <Trap/Syscall/SyscallID.hpp>
-#include <Trap/Clock.hpp>
-#include <Process/ParseELF.hpp>
 
 extern bool needSchedule;
 
@@ -209,10 +210,9 @@ int Syscall_getppid()
     return -1;
 }
 
-
 int Syscall_execve(const char* path, char* const argv[], char* const envp[])
 {
-        // 执行一个指定的程序的系统调用
+    // 执行一个指定的程序的系统调用
     // 关键是利用解析ELF文件创建进程来实现
     // 这里需要文件系统提供的支持
     // argv参数是程序参数 envp参数是环境变量的数组指针 暂时未使用
@@ -222,8 +222,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     Process* cur_proc = pm.getCurProc();
     FAT32FILE* file_open = vfsm.open(path, "/");
 
-    if (file_open == nullptr)
-    {
+    if (file_open == nullptr) {
         kout[Fault] << "SYS_execve open File Fail!" << endl;
         return -1;
     }
@@ -233,43 +232,34 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     fom.set_fo_pos_k(fo, 0);
     fom.set_fo_flags(fo, 0);
 
-    Process* new_proc = CreateProcessFromELF( fo, cur_proc->getCWD());
+    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD());
     kfree(fo);
 
     int exit_value = 0;
-    if (new_proc == nullptr)
-    {
+    if (new_proc == nullptr) {
         kout[Fault] << "SYS_execve CreateProcessFromELF Fail!" << endl;
         return -1;
-    }
-    else
-    {
+    } else {
         // 这里的new_proc其实也是执行这个系统调用进程的子进程
         // 因此这里父进程需要等待子进程执行完毕后才能继续执行
         Process* child = nullptr;
-        while (1)
-        {
+        while (1) {
             // 去寻找已经结束的子进程
             // 当前场景的执行逻辑上只会有一个子进程
             Process* pptr = nullptr;
-            for (pptr = cur_proc->fstChild;pptr != nullptr;pptr = pptr->broNext)
-            {
-                if (pptr->getStatus() == S_Terminated)
-                {
+            for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
+                if (pptr->getStatus() == S_Terminated) {
                     child = pptr;
                     break;
                 }
             }
-            if (child == nullptr)
-            {
+            if (child == nullptr) {
                 // 说明当前进程应该被阻塞了
                 // 触发进程管理下的信号wait条件
                 // 被阻塞之后就不会再调度这个进程了 需要等待子进程执行完毕后被唤醒
                 cur_proc->getSemaphore()->wait(cur_proc);
                 pm.immSchedule();
-            }
-            else
-            {
+            } else {
                 // 在父进程里回收子进程
                 VirtualMemorySpace::EnableAccessUser();
                 exit_value = child->getExitCode();
@@ -308,7 +298,7 @@ int Syscall_wait4(int pid, int* status, int options)
         kout[Fault] << "The Process has Not Child Process!" << endl;
         return -1;
     }
-    
+
     while (1) {
 
         Process* child = nullptr;
@@ -336,12 +326,12 @@ int Syscall_wait4(int pid, int* status, int options)
                 VirtualMemorySpace::DisableAccessUser();
             }
             // kout<<"SSSSSSSSSSSSSSS"<<endl;
-        // child->getVMS()->show();
+            // child->getVMS()->show();
 
-        // pm.getCurProc()->getVMS()->show();
+            // pm.getCurProc()->getVMS()->show();
             child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
             pm.freeProc(child);
-            kout[Info] << "child DEAD   " <<ret<< endl;
+            kout[Info] << "child DEAD   " << ret << endl;
             return ret;
         } else if (options & WNOHANG) {
             // 当没有找到符合的子进程但是options中指定了WNOHANG
@@ -353,10 +343,9 @@ int Syscall_wait4(int pid, int* status, int options)
             cur_proc->getSemaphore()->wait(); // 父进程在子进程上等待 当子进程exit后解除信号量等待可以被回收
             // kout[Info] << "SSSSSSSSSSSSS" << endl;
             pm.immSchedule();
-        // kout<<"EEEEEE"<<endl;
+            // kout<<"EEEEEE"<<endl;
         }
         // kout<<"EEEEEE"<<endl;
-        
     }
     return -1;
 }
@@ -367,12 +356,11 @@ int Syscall_sched_yeild()
     return 0;
 }
 
-struct tms
-{
-    long tms_utime;                 // user time
-    long tms_stime;                 // system time
-    long tms_cutime;                // user time of children
-    long tms_sutime;                // system time of children
+struct tms {
+    long tms_utime; // user time
+    long tms_stime; // system time
+    long tms_cutime; // user time of children
+    long tms_sutime; // system time of children
 };
 
 inline Uint64 Syscall_times(tms* tms)
@@ -390,19 +378,17 @@ inline Uint64 Syscall_times(tms* tms)
     // 记录这个时间的成员在进程结构体中提供为systime
 
     Process* cur_proc = pm.getCurProc();
-    Uint64 time_unit = 10;  // 填充tms结构体的基本时间单位 在qemu上模拟 以微秒为单位
-    if (tms != nullptr)
-    {
-        Uint64 run_time = cur_proc->runTime;    // 总运行时间
-        Uint64 sys_time = cur_proc->sysTime;    // 用户陷入核心态的system时间
-        Uint64 user_time = run_time - sys_time;                // 用户在用户态执行的时间
-        if ((long long)run_time < 0 || (long long)sys_time < 0 || (long long)user_time < 0)
-        {
+    Uint64 time_unit = 10; // 填充tms结构体的基本时间单位 在qemu上模拟 以微秒为单位
+    if (tms != nullptr) {
+        Uint64 run_time = cur_proc->runTime; // 总运行时间
+        Uint64 sys_time = cur_proc->sysTime; // 用户陷入核心态的system时间
+        Uint64 user_time = run_time - sys_time; // 用户在用户态执行的时间
+        if ((long long)run_time < 0 || (long long)sys_time < 0 || (long long)user_time < 0) {
             // 3个time有一个为负即认为出错调用失败了
             // 返回-1
             return -1;
         }
-        cur_proc->VMS->EnableAccessUser();                      // 在核心态操作用户态的数据
+        cur_proc->VMS->EnableAccessUser(); // 在核心态操作用户态的数据
         tms->tms_utime = user_time / time_unit;
         tms->tms_stime = sys_time / time_unit;
         // 基于父进程执行到这里时已经wait了所有子进程退出并被回收了
@@ -414,10 +400,9 @@ inline Uint64 Syscall_times(tms* tms)
     return GetClockTime();
 }
 
-struct timeval
-{
-    Uint64 sec;                     // 自 Unix 纪元起的秒数
-    Uint64 usec;                    // 微秒数
+struct timeval {
+    Uint64 sec; // 自 Unix 纪元起的秒数
+    Uint64 usec; // 微秒数
 };
 
 inline int Syscall_gettimeofday(timeval* ts, int tz = 0)
@@ -426,8 +411,7 @@ inline int Syscall_gettimeofday(timeval* ts, int tz = 0)
     // timespec结构体用于获取时间值
     // 成功返回0 失败返回-1
 
-    if (ts == nullptr)
-    {
+    if (ts == nullptr) {
         return -1;
     }
 
@@ -456,16 +440,15 @@ inline int Syscall_uname(utsname* uts)
     // 成功返回0 失败返回-1
     // 相关信息的字符串处理
 
-    if (uts == nullptr)
-    {
+    if (uts == nullptr) {
         return -1;
     }
 
     // 操作用户区的数据
     // 需要从核心态进入用户态
     VirtualMemorySpace::EnableAccessUser();
-    strcpy(uts->sysname, "DBStars_OperatingSystem");
-    strcpy(uts->nodename, "DBStars_OperatingSystem");
+    strcpy(uts->sysname, "ECALLFINAL1_OperatingSystem");
+    strcpy(uts->nodename, "ECALLFINAL1_OperatingSystem");
     strcpy(uts->release, "Debug");
     strcpy(uts->version, "1.0");
     strcpy(uts->machine, "RISCV 64");
@@ -486,13 +469,11 @@ inline int Syscall_unlinkat(int dirfd, char* path, int flags)
     Process* cur_proc = pm.getCurProc();
     file_object* fo_head = cur_proc->fo_head;
     file_object* fo = fom.get_from_fd(fo_head, dirfd);
-    if (fo == nullptr)
-    {
+    if (fo == nullptr) {
         return -1;
     }
     VirtualMemorySpace::EnableAccessUser();
-    if (!vfsm.unlink(path, fo->file->path))
-    {
+    if (!vfsm.unlink(path, fo->file->path)) {
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
@@ -506,16 +487,14 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     // buf为要写入的内容缓冲区 count为写入内容的大小字节数
     // 成功返回写入的字节数 失败返回-1
 
-    if (buf == nullptr)
-    {
+    if (buf == nullptr) {
         return -1;
     }
 
-    if (fd == STDOUT_FILENO)
-    {
+    if (fd == STDOUT_FILENO) {
         VirtualMemorySpace::EnableAccessUser();
-        for (int i = 0;i < count;i++)
-        {
+        kout<<Yellow<<buf<<endl;
+        for (int i = 0; i < count; i++) {
             putchar(((char*)buf)[i]);
             // kout << (uint64)((char*)buf)[i] << endl;
         }
@@ -525,19 +504,17 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr)
-    {
+    if (fo == nullptr) {
         return -1;
     }
 
     // trick实现文件信息的打印
     // 向标准输出写
-    if (fo->tk_fd == STDOUT_FILENO)
-    {
+    if (fo->tk_fd == STDOUT_FILENO) {
+        // putchar('s');
         VirtualMemorySpace::EnableAccessUser();
-        for (int i = 0;i < count;i++)
-        {
-            putchar(*(char*)(buf + i));
+        for (int i = 0; i < count; i++) {
+            putchar(*((char*)buf+i));
         }
         VirtualMemorySpace::DisableAccessUser();
         return count;
@@ -547,8 +524,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     long long wr_size = 0;
     wr_size = fom.write_fo(fo, buf, count);
     VirtualMemorySpace::DisableAccessUser();
-    if (wr_size < 0)
-    {
+    if (wr_size < 0) {
         return -1;
     }
     return wr_size;
@@ -561,23 +537,20 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
-    if (buf == nullptr)
-    {
+    if (buf == nullptr) {
         return -1;
     }
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr)
-    {
+    if (fo == nullptr) {
         return -1;
     }
     VirtualMemorySpace::EnableAccessUser();
     long long rd_size = 0;
     rd_size = fom.read_fo(fo, buf, count);
     VirtualMemorySpace::DisableAccessUser();
-    if (rd_size < 0)
-    {
+    if (rd_size < 0) {
         return -1;
     }
     return rd_size;
@@ -591,12 +564,10 @@ inline int Syscall_close(int fd)
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr)
-    {
+    if (fo == nullptr) {
         return -1;
     }
-    if (!fom.close_fo(cur_proc, fo))
-    {
+    if (!fom.close_fo(cur_proc, fo)) {
         // fom中的close_fo调用会关闭这个文件描述符
         // 主要是对相关文件的解引用并且从文件描述符表中删去这个节点
         return -1;
@@ -612,14 +583,12 @@ inline int Syscall_dup(int fd)
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr)
-    {
+    if (fo == nullptr) {
         // 当前文件描述符不存在
         return -1;
     }
     file_object* fo_new = fom.duplicate_fo(fo);
-    if (fo_new == nullptr)
-    {
+    if (fo_new == nullptr) {
         return -1;
     }
     int ret_fd = -1;
@@ -633,43 +602,37 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     // 复制文件描述符同时指定新的文件描述符的系统调用
     // 成功执行返回新的文件描述符 失败返回-1
 
-    if (old_fd == new_fd)
-    {
+    if (old_fd == new_fd) {
         return new_fd;
     }
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo_old = fom.get_from_fd(cur_proc->fo_head, old_fd);
-    if (fo_old == nullptr)
-    {
+    if (fo_old == nullptr) {
         return -1;
     }
     file_object* fo_new = fom.duplicate_fo(fo_old);
-    if (fo_new == nullptr)
-    {
+    if (fo_new == nullptr) {
         return -1;
     }
     // 先查看指定的新的文件描述符是否已经存在
     file_object* fo_tmp = nullptr;
     fo_tmp = fom.get_from_fd(cur_proc->fo_head, new_fd);
-    if (fo_tmp != nullptr)
-    {
+    if (fo_tmp != nullptr) {
         // 指定的新的文件描述符已经存在
         // 将这个从文件描述符表中删除
         fom.delete_flobj(cur_proc->fo_head, fo_tmp);
     }
 
     // 没有串口 继续trick
-    if (old_fd == STDOUT_FILENO)
-    {
+    if (old_fd == STDOUT_FILENO) {
         fo_new->tk_fd = STDOUT_FILENO;
     }
 
     fom.set_fo_fd(fo_new, new_fd);
     // 再将这个新的fo插入进程的文件描述符表
     int rd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
-    if (rd != new_fd)
-    {
+    if (rd != new_fd) {
         return -1;
     }
     return rd;
@@ -691,68 +654,52 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
     char* cwd = cur_proc->getCWD();
-    if (fd == AT_FDCWD)
-    {
+    if (fd == AT_FDCWD) {
         rela_wd = cur_proc->getCWD();
-    }
-    else
-    {
+    } else {
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-        if (fo != nullptr)
-        {
+        if (fo != nullptr) {
             rela_wd = fo->file->path;
         }
     }
 
-    if (flags & file_flags::O_CREAT)
-    {
+    if (flags & file_flags::O_CREAT) {
         // 创建文件或目录
         // 创建则在进程的工作目录进行
-        if (flags & file_flags::O_DIRECTORY)
-        {
+        if (flags & file_flags::O_DIRECTORY) {
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
-        }
-        else
-        {
+        } else {
             vfsm.create_file(rela_wd, cwd, (char*)filename);
         }
     }
 
     char* path = vfsm.unified_path(filename, rela_wd);
-    if (path == nullptr)
-    {
+    if (path == nullptr) {
         return -1;
     }
     // trick
     // 暂时没有对于. 和 ..的路径名的处理
     // 特殊处理打开文件当前目录.的逻辑
     FAT32FILE* file = nullptr;
-    if (filename[0] == '.' && filename[1] != '.')
-    {
+    if (filename[0] == '.' && filename[1] != '.') {
         int str_len = strlen(filename);
         char* str_spc = new char[str_len];
         strcpy(str_spc, filename + 1);
         file = vfsm.open(str_spc, rela_wd);
-    }
-    else
-    {
+    } else {
         file = vfsm.open(filename, rela_wd);
     }
 
-    if (file != nullptr)
-    {
-        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY))
-        {
+    if (file != nullptr) {
+        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
     }
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
-    if (fo == nullptr || fo->fd < 0)
-    {
+    if (fo == nullptr || fo->fd < 0) {
         return -1;
     }
-    if (file != nullptr)
-    {
+    if (file != nullptr) {
         fom.set_fo_file(fo, file);
         fom.set_fo_flags(fo, flags);
         fom.set_fo_mode(fo, mode);
@@ -781,18 +728,16 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscalll_chdir((const char*)tf->reg.a0);
         break;
     case SYS_write:
-        if (tf->reg.a0 == 1) {
-            for (int i = 0; i < tf->reg.a2; i++) {
-                Putchar(*((char*)tf->reg.a1 + i));
-            }
-        }
+        tf->reg.a0=Syscall_write(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2 );
         break;
 
     case SYS_Exit:
     case SYS_exit:
         Syscall_Exit(tf, tf->reg.a0);
         break;
-
+    case SYS_brk:
+        tf->reg.a0 = Syscall_brk(tf->reg.a0);
+        break;
     case SYS_sched_yeild:
         Syscall_sched_yeild();
         break;
@@ -822,26 +767,29 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_dup3:
         tf->reg.a0 = Syscall_dup3(tf->reg.a0, tf->reg.a1);
+        // kout<<tf->reg.a0<<"________________----"<<endl;
         break;
     case SYS_openat:
         tf->reg.a0 = Syscall_openat(tf->reg.a0, (const char*)tf->reg.a1, tf->reg.a2, tf->reg.a3);
         break;
     case SYS_clone:
+        
         tf->reg.a0 = Syscall_clone(tf, tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4);
         break;
     case SYS_wait4:
-        kout<<"wait start epc"<<(void *)tf->epc<<"  "<<pm.getCurProc()->getVMS() <<endl;
+        kout << "wait start epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
         pm.getCurProc()->getVMS()->show();
 
         tf->reg.a0 = Syscall_wait4(tf->reg.a0, (int*)tf->reg.a1, tf->reg.a2);
-        kout<<"wait end epc"<<(void *)tf->epc<<"  "<<pm.getCurProc()->getVMS()  <<endl;
+        kout << "wait end epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
         pm.getCurProc()->getVMS()->show();
         break;
 
-	case SYS_execve:
-        Syscall_execve((char *)tf->reg.a0,(char **) tf->reg.a1,(char **) tf->reg.a2);
-        break;	
-    default:;
+    case SYS_execve:
+        Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
+        break;
+    default:
+        kout[Fault]<<"this syscall isn't solve"<<tf->reg.a7<<endl;
     }
 
     return true;

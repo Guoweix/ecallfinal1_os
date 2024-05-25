@@ -186,6 +186,14 @@ void Driver_test()
     Disk.readSector(0, sec);
     kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
 }
+void new_test()
+{
+    char * a=new char[5001];
+    kout<<(void *)a<<"end"<<(void *)&a[5000]<<endl;
+
+    char * b=new char[4000];
+    kout<<(void *) b<<endl;
+}
 
 void VFSM_test()
 {
@@ -209,7 +217,7 @@ void VFSM_test()
 
         kout << file->name << endl;
         Process* task;
-        if (strcmp(file->name, "chdir") == 0) {
+        if (strcmp(file->name, "uname") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
 
@@ -245,7 +253,7 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "execve") == 0) {
+        if (strcmp(file->name, "uname") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
                 while (1) {
@@ -265,7 +273,7 @@ int main()
     ClockInit();
 
 
-    kout.SetEnabledType(0);
+    // kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -295,8 +303,9 @@ int main()
 
     // Driver_test();
     InterruptEnable();
+    new_test();
     // VFSM_test();
-    final_test();
+    // final_test();
     // pm_test();
     SBI_SHUTDOWN();
 
