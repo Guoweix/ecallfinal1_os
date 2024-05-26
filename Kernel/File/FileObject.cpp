@@ -159,6 +159,7 @@ file_object* FileObjectManager::get_from_fd(file_object* fo_head, int fd)
     }
     if (ret_fo == nullptr)
     {
+        return nullptr;
         // 对于未找到的情况加个输出信息
         // kout[yellow] << "The specified fd cannot be found!" << endl;
     }

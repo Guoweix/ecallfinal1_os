@@ -16,11 +16,13 @@ public:
     FAT32FILE* open(FAT32FILE* file);
     void close(FAT32FILE* t);
 
+
     bool create_file(const char* path, char* cwd, char* fileName, Uint8 type = FATtable::FILE);
     bool create_dir(const char* path, char* cwd, char* dirName);
     bool del_file(const char* path, char* cwd);
     bool link(const char* srcpath, const char* ref_path, char* cwd);//ref_path为被指向的文件
     bool unlink(const char* path, char* cwd);
+    bool unlink(char* abs_path);
     FAT32FILE* get_next_file(FAT32FILE* dir, FAT32FILE* cur = nullptr, bool (*p)(FATtable* temp) = VALID); // 获取到的dir下cur的下一个满足p条件的文件，如果没有则返回空
 
     char* unified_path(const char* path, char* cwd);

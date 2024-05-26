@@ -136,7 +136,7 @@ PAGE* PMM::get_page_from_addr(void* addr)
 void* PMM::malloc(Uint64 bytesize,Uint32 usage)
 {
     int need_page_count = bytesize / PAGESIZE;
-    if (bytesize % PAGESIZE != 0)
+    if (bytesize % need_page_count != 0)
     {
         // 说明分配字节数不是整数倍
         // 强制整数 但是伴随产生内存碎片

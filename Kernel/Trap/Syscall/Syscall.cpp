@@ -1,7 +1,10 @@
 #include "Error.hpp"
+#include "File/FAT32.hpp"
 #include "Library/KoutSingle.hpp"
+#include "Library/Kstring.hpp"
 #include "Library/SBI.h"
 #include "Memory/vmm.hpp"
+#include "Synchronize/Synchronize.hpp"
 #include "Trap/Interrupt.hpp"
 #include "Trap/Trap.hpp"
 #include "Types.hpp"
@@ -200,12 +203,15 @@ int Syscall_getppid()
 
     Process* cur_proc = pm.getCurProc();
     Process* fa_proc = cur_proc->father;
+
     if (fa_proc == nullptr) {
+        kout << Yellow << "getppid::nofather" << endl;
         // 调用规范总是成功
         // 如果是无父进程 可以认为将该进程挂到根进程的孩子进程下
-        return pm.getidle()->getID();
+        return pm.getidle()->getID() + 1;
     } else {
-        return fa_proc->getID();
+        kout << Yellow << "getppid::father" << fa_proc->getID() << endl;
+        return fa_proc->getID() + 1;
     }
     return -1;
 }
@@ -356,14 +362,49 @@ int Syscall_sched_yeild()
     return 0;
 }
 
-struct tms {
-    long tms_utime; // user time
-    long tms_stime; // system time
-    long tms_cutime; // user time of children
-    long tms_sutime; // system time of children
-};
+int Syscall_fstat(int fd, kstat* kst)
+{
+    // 获取文件状态的系统调用
+    // 输入fd为文件句柄 kst为接收保存文件状态的指针
+    // 目前只需要填充几个值
+    // 成功返回0 失败返回-1
 
-inline Uint64 Syscall_times(tms* tms)
+    if (kst == nullptr) {
+        return -1;
+    }
+
+    Process* cur_proc = pm.getCurProc();
+    file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    if (fo == nullptr) {
+        return -1;
+    }
+    FAT32FILE* file = fo->file;
+    if (file == nullptr) {
+        return -1;
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    memset(kst, 0, sizeof(kstat));
+    kst->st_size = file->table.size;
+    kst->st_mode = fo->mode;
+    kst->st_nlink = 1;
+    // ... others to be added
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
+int Syscall_linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned flags)
+{
+    Process* curProc = pm.getCurProc();
+
+    VirtualMemorySpace::EnableAccessUser();
+
+    VirtualMemorySpace::DisableAccessUser();
+
+    return -1;
+}
+
+
+Uint64 Syscall_times(tms* tms)
 {
     // 获取进程时间的系统调用
     // tms结构体指针 用于获取保存当前进程的运行时间的数据
@@ -380,9 +421,11 @@ inline Uint64 Syscall_times(tms* tms)
     Process* cur_proc = pm.getCurProc();
     Uint64 time_unit = 10; // 填充tms结构体的基本时间单位 在qemu上模拟 以微秒为单位
     if (tms != nullptr) {
-        Uint64 run_time = cur_proc->runTime; // 总运行时间
+        Uint64 run_time = cur_proc->runTime + Timer_10ms; // 总运行时间
         Uint64 sys_time = cur_proc->sysTime; // 用户陷入核心态的system时间
         Uint64 user_time = run_time - sys_time; // 用户在用户态执行的时间
+        kout << Red << cur_proc->runTime << endl;
+        kout << Red << cur_proc->sysTime << endl;
         if ((long long)run_time < 0 || (long long)sys_time < 0 || (long long)user_time < 0) {
             // 3个time有一个为负即认为出错调用失败了
             // 返回-1
@@ -395,6 +438,13 @@ inline Uint64 Syscall_times(tms* tms)
         // 故直接置0
         tms->tms_cutime = 0;
         tms->tms_sutime = 0;
+        Process* child = cur_proc->fstChild;
+        while (child) {
+            tms->tms_cutime += (child->runTime - child->sysTime) / time_unit;
+            tms->tms_sutime += child->sysTime / time_unit;
+            child = child->broNext;
+        }
+
         cur_proc->VMS->DisableAccessUser();
     }
     return GetClockTime();
@@ -458,7 +508,7 @@ inline int Syscall_uname(utsname* uts)
     return 0;
 }
 
-inline int Syscall_unlinkat(int dirfd, char* path, int flags)
+int Syscall_unlinkat(int dirfd, char* path, int flags)
 {
     // 移除指定文件的链接(可用于删除文件)的系统调用
     // dirfd是要删除的链接所在的目录
@@ -466,17 +516,23 @@ inline int Syscall_unlinkat(int dirfd, char* path, int flags)
     // flags可设置为0或AT_REMOVEDIR
     // 成功返回0 失败返回-1
 
+    kout<<Green<<"Unlinkat 1"<<endl;
     Process* cur_proc = pm.getCurProc();
+    kout<<Green<<"Unlinkat 2"<<endl;
     file_object* fo_head = cur_proc->fo_head;
+    kout<<Green<<"Unlinkat 3"<<endl;
     file_object* fo = fom.get_from_fd(fo_head, dirfd);
+    kout<<Green<<"Unlinkat 4"<<endl;
     if (fo == nullptr) {
         return -1;
     }
     VirtualMemorySpace::EnableAccessUser();
     if (!vfsm.unlink(path, fo->file->path)) {
+    kout<<Green<<"Unlinkat 5"<<endl;
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
+    kout<<Green<<"Unlinkat 6"<<endl;
     return 0;
 }
 
@@ -493,7 +549,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
 
     if (fd == STDOUT_FILENO) {
         VirtualMemorySpace::EnableAccessUser();
-        kout<<Yellow<<buf<<endl;
+        kout << Yellow << buf << endl;
         for (int i = 0; i < count; i++) {
             putchar(((char*)buf)[i]);
             // kout << (uint64)((char*)buf)[i] << endl;
@@ -514,7 +570,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         // putchar('s');
         VirtualMemorySpace::EnableAccessUser();
         for (int i = 0; i < count; i++) {
-            putchar(*((char*)buf+i));
+            putchar(*((char*)buf + i));
         }
         VirtualMemorySpace::DisableAccessUser();
         return count;
@@ -562,8 +618,11 @@ inline int Syscall_close(int fd)
     // 传入参数为要关闭的文件描述符
     // 成功执行返回0 失败返回-1
 
+    kout << Yellow << "syscall close " << fd << endl;
     Process* cur_proc = pm.getCurProc();
+
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+
     if (fo == nullptr) {
         return -1;
     }
@@ -709,6 +768,127 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     return fo->fd;
 }
 
+int Syscall_mount(const char* special, const char* dir, const char* fstype, Uint64 flags, const void* data)
+{
+    return 0;
+}
+int Syscall_umount2(const char* special, int flags)
+{
+    return 0;
+}
+
+int Syscall_nanosleep(timespec* req, timespec* rem)
+{
+    // 执行线程睡眠的系统调用
+    // sleep()库函数基于此系统调用
+    // 输入睡眠的时间间隔
+    // 成功返回0 失败返回-1
+
+    if (req == nullptr || rem == nullptr) {
+        return -1;
+    }
+
+    // Process * cur_proc = pm.getCurProc();
+
+    ClockTick wait_time = 0; // 计算qemu上需要等待的时钟滴答数
+    VirtualMemorySpace::EnableAccessUser();
+    wait_time = req->tv_sec * Timer_1s + req->tv_nsec / 1000000 * Timer_1ms + req->tv_nsec % 1000000 / 1000 * Timer_1us + req->tv_nsec % 1000 * Timer_1ns;
+    rem->tv_sec = rem->tv_nsec = 0;
+    VirtualMemorySpace::DisableAccessUser();
+    // semaphore.wait(cur_proc);       // 当前进程在semaphore上等待 切换为sleeping态
+    // pm.set_waittime_limit(cur_proc, wait_time);
+    ClockTime start_timebase = GetClockTime();
+    while (1) {
+        ClockTime cur_time = GetClockTime();
+        if (cur_time - start_timebase >= wait_time) {
+            break;
+        }
+        pm.immSchedule();
+    }
+
+    return 0;
+}
+int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
+{
+    struct Dirent {
+        Uint64 d_ino; // 索引结点号
+        Sint64 d_off; // 到下一个dirent的偏移
+        unsigned short d_reclen; // 当前dirent的长度
+        unsigned char d_type; // 文件类型
+        char d_name[0]; // 文件名
+    } __attribute__((packed));
+
+    Process* proc = pm.getCurProc();
+    file_object* dir = fom.get_from_fd(proc->getFoHead(), fd);
+
+    if (dir == nullptr) {
+        return -1;
+    }
+
+    FAT32FILE* file = vfsm.get_next_file(dir->file, nullptr);
+
+    VirtualMemorySpace::EnableAccessUser();
+    if (file == nullptr) {
+        return 0;
+    }
+    int n_read = 0;
+    int i = 0;
+    kout << Red << "getdents buf start" << (void*)_buf << endl;
+    bool wirte = true;
+
+    while (file) {
+
+        kout << Green << file->name << endl;
+
+        Dirent* dirent = (Dirent*)(_buf + n_read);
+
+        Uint64 size = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
+        n_read += size;
+        if (n_read > bufSize) {
+            wirte = 0;
+        }
+        if (wirte) {
+            dirent->d_ino = i + 1;
+            dirent->d_off = 32;
+            dirent->d_type = 0;
+            int j = 0;
+            for (; j < strlen(file->name); j++) {
+                dirent->d_name[j] = file->name[j];
+            }
+            dirent->d_name[j] = 0;
+
+            dirent->d_reclen = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
+        }
+        file = vfsm.get_next_file(dir->file, file);
+    }
+    // FileNode* *nodes  = new FileNode* [bufSize];
+    // int cnt=VFSM.GetAllFileIn(dir,nodes,bufSize,0);
+    // if(cnt == 0)
+    // {
+    // 	return 0;
+    // }
+    // int n_read = 0;
+    // for(int i=0;i<1;i++)//size会超掉
+    // {
+    // 	Dirent * dirent = (Dirent *)(_buf + n_read) ;
+    // 	dirent->d_ino = i+1;
+    // 	dirent->d_off = 32;
+    // 	dirent->d_type = 0;
+    // 	const char * name = nodes[i]->GetName();
+    // 	int j = 0;
+    // 	for(;j<strLen(name);j++)
+    // 	{
+    // 		dirent->d_name[j] = name[j];
+    // 	}
+    // 	dirent->d_name[j] = 0;
+    // }
+    // VirtualMemorySpace::DisableAccessUser();
+    // kout<<Red<<"IIIIIIIIIIIIIIIIi"<<endl;
+
+    kout << Red << "getdents buf end" << (void*)(_buf + n_read) << endl;
+    return n_read;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
     kout << tf->reg.a7 << "______" << endl;
@@ -728,9 +908,11 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscalll_chdir((const char*)tf->reg.a0);
         break;
     case SYS_write:
-        tf->reg.a0=Syscall_write(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2 );
+        tf->reg.a0 = Syscall_write(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
         break;
-
+    case SYS_linkat:
+        tf->reg.a0 = Syscall_linkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2, (char*)tf->reg.a3, tf->reg.a4);
+        break;
     case SYS_Exit:
     case SYS_exit:
         Syscall_Exit(tf, tf->reg.a0);
@@ -754,7 +936,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_uname((utsname*)tf->reg.a0);
         break;
     case SYS_unlinkat:
-        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
+        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0,(char*)tf->reg.a1,tf->reg.a2);
         break;
     case SYS_read:
         tf->reg.a0 = Syscall_read(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
@@ -769,27 +951,45 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_dup3(tf->reg.a0, tf->reg.a1);
         // kout<<tf->reg.a0<<"________________----"<<endl;
         break;
+    case SYS_times:
+        tf->reg.a0 = Syscall_times((tms*)tf->reg.a0);
+        break;
     case SYS_openat:
         tf->reg.a0 = Syscall_openat(tf->reg.a0, (const char*)tf->reg.a1, tf->reg.a2, tf->reg.a3);
         break;
+    case SYS_getdents64:
+        tf->reg.a0 = Syscall_getdents64(tf->reg.a0, tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_fstat:
+        tf->reg.a0 = Syscall_fstat(tf->reg.a0, (kstat*)tf->reg.a1);
+        break;
+    case SYS_mount:
+        tf->reg.a0 = Syscall_mount((const char*)tf->reg.a0, (const char*)tf->reg.a1, (const char*)tf->reg.a2, tf->reg.a3, (const void*)tf->reg.a4);
+        break;
+    case SYS_umount2:
+        tf->reg.a0 = Syscall_umount2((const char*)tf->reg.a0, tf->reg.a1);
+        break;
     case SYS_clone:
-        
+
         tf->reg.a0 = Syscall_clone(tf, tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4);
         break;
     case SYS_wait4:
-        kout << "wait start epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
-        pm.getCurProc()->getVMS()->show();
-
+        // kout << "wait start epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
+        // pm.getCurProc()->getVMS()->show();
         tf->reg.a0 = Syscall_wait4(tf->reg.a0, (int*)tf->reg.a1, tf->reg.a2);
-        kout << "wait end epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
-        pm.getCurProc()->getVMS()->show();
+        // kout << "wait end epc" << (void*)tf->epc << "  " << pm.getCurProc()->getVMS() << endl;
+        // pm.getCurProc()->getVMS()->show();
+        break;
+
+    case SYS_nanosleep:
+        tf->reg.a0 = Syscall_nanosleep((timespec*)tf->reg.a0, (timespec*)tf->reg.a1);
         break;
 
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
     default:
-        kout[Fault]<<"this syscall isn't solve"<<tf->reg.a7<<endl;
+        kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
     }
 
     return true;

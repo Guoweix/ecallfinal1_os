@@ -102,7 +102,6 @@ public:
     char* path;
 
 
-
     FAT32FILE(FATtable tb, char* lName, Uint64 _clus = 0, Uint64 pos = 0, char* path = nullptr);
     ~FAT32FILE();
     bool set_path(char* _path);
@@ -128,6 +127,7 @@ private:
     Uint64 DATAlba;
 
 
+    // char  cache[4096];
 
 public:
     DBR Dbr;

@@ -136,9 +136,9 @@ int hello1(void* t)
         while (n) {
             n--;
         }
-   
+
         SBI_PUTCHAR('B');
-         pm.immSchedule();
+        pm.immSchedule();
     }
 }
 
@@ -188,11 +188,11 @@ void Driver_test()
 }
 void new_test()
 {
-    char * a=new char[5001];
-    kout<<(void *)a<<"end"<<(void *)&a[5000]<<endl;
+    char* a = new char[5001];
+    kout << (void*)a << "end" << (void*)&a[5000] << endl;
 
-    char * b=new char[4000];
-    kout<<(void *) b<<endl;
+    char* b = new char[4000];
+    kout << (void*)b << endl;
 }
 
 void VFSM_test()
@@ -217,13 +217,13 @@ void VFSM_test()
 
         kout << file->name << endl;
         Process* task;
-        if (strcmp(file->name, "uname") == 0) {
-            task = CreateProcessFromELF(fo, "/");
-            while (task->getStatus() != S_Terminated) {
+        // if (strcmp(file->name, "uname") == 0) {
+        // task = CreateProcessFromELF(fo, "/");
+        // while (task->getStatus() != S_Terminated) {
 
-            }
-            kout<<"END"<<endl;
-        }
+        // }
+        // kout<<"END"<<endl;
+        // }
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
@@ -253,14 +253,13 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "uname") == 0) {
+        if (strcmp(file->name, "unlink") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
                 while (1) {
-                
                 }
             }
-            kout<<"END"<<endl;
+            kout << "END" << endl;
         }
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
@@ -272,8 +271,8 @@ int main()
     TrapInit();
     ClockInit();
 
-
     // kout.SetEnabledType(0);
+    
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -303,12 +302,11 @@ int main()
 
     // Driver_test();
     InterruptEnable();
-    new_test();
+    // new_test();
     // VFSM_test();
-    // final_test();
+    final_test();
     // pm_test();
     SBI_SHUTDOWN();
-
 
     // kout << "1" << endl;
 

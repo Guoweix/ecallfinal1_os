@@ -32,21 +32,17 @@ char* VFSM::unified_path(const char* path, char* cwd)
 {
     char* re = new char[200];
     re[0] = 0;
-    if (path[0] != '/')
-    {
+    if (path[0] != '/') {
         strcpy(re, cwd);
-        if (strcmp(cwd, "/") != 0)
-        {
+        if (strcmp(cwd, "/") != 0) {
             int str_len = strlen(cwd);
-            if (cwd[str_len - 1] != '/')
-            {
+            if (cwd[str_len - 1] != '/') {
                 strcat(re, "/");
             }
         }
     }
     strcat(re, path);
-    if (re[strlen(re) - 1] == '/' && strlen(re) != 1)
-    {
+    if (re[strlen(re) - 1] == '/' && strlen(re) != 1) {
         re[strlen(re) - 1] == 0;
     }
     return re;
@@ -59,8 +55,7 @@ bool VFSM::destory()
 FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
 {
 
-    if (path[0] == '/' && path[1] == 0)
-    {
+    if (path[0] == '/' && path[1] == 0) {
         return get_root();
     }
 
@@ -68,19 +63,14 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
     FAT32FILE* t;
     t = OpenedFile;
     char* cpath = path;
-    while (t != nullptr)
-    {
-        if (cpath = pathcmp(path, t->path))
-        {
+    while (t != nullptr) {
+        if (cpath = pathcmp(path, t->path)) {
             // kout[Fau]<<rpath<<endl;
-            if (*cpath == '\0')
-            {
+            if (*cpath == '\0') {
                 // kout << "??" << endl;
                 isOpened = true;
                 return t;
-            }
-            else if (t->TYPE & (FAT32FILE::__DIR) && (t->TYPE & FAT32FILE::__VFS))
-            {
+            } else if (t->TYPE & (FAT32FILE::__DIR) && (t->TYPE & FAT32FILE::__VFS)) {
                 return t->fat->find_file_by_path(cpath);
             }
         }
@@ -94,11 +84,11 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
         t->path = path;
     else
         // kout[Fau] << "can't find file" << endl;
-    // kout[Fault]<<"Sda"<<endl;
-    // t->show();
-    // kout.memory(&t->table,32);
+        // kout[Fault]<<"Sda"<<endl;
+        // t->show();
+        // kout.memory(&t->table,32);
 
-    return t;
+        return t;
 }
 
 FAT32FILE* VFSM::open(const char* path, char* cwd)
@@ -108,8 +98,7 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
     FAT32FILE* t;
     // kout[yellow] << rpath << endl;
     t = find_file_by_path(rpath, isOpened);
-    if (t)
-    {
+    if (t) {
         t->ref++;
     }
     // kout[blue]<<"dsa"<<endl;
@@ -129,9 +118,10 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
 void VFSM::close(FAT32FILE* t)
 {
     t->ref--;
-    if (t->ref == 0)
-    {
-        t->pre->next = t->next;
+    if (t->ref == 0) {
+        if (t->pre) {
+            t->pre->next = t->next;
+        }
         if (t->next)
             t->next->pre = t->pre;
         delete t;
@@ -142,8 +132,7 @@ void VFSM::show_opened_file()
 {
     FAT32FILE* t = OpenedFile;
     kout << "__________________" << endl;
-    while (t)
-    {
+    while (t) {
         t->show();
         t = t->next;
     }
@@ -157,17 +146,15 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
     // kout[yellow]<<"yes"<<endl;
     char* rpath = unified_path(path, cwd);
     // kout[yellow] << rpath << endl;
-    FAT32FILE* t, * re;
+    FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
-    if (!t)
-    {
+    if (!t) {
         kout[Fault] << "can't find dir" << endl;
         return false;
     }
     // t->show();
     re = t->fat->create_file(t, fileName, type);
-    if (!re)
-    {
+    if (!re) {
         kout[Fault] << "failed create file" << endl;
         return false;
     }
@@ -181,24 +168,21 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
     return true;
 }
 
-
 bool VFSM::create_dir(const char* path, char* cwd, char* dirName)
 {
     bool isOpened;
     // kout[yellow]<<"yes"<<endl;
     char* rpath = unified_path(path, cwd);
-    FAT32FILE* t, * re;
+    FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
-    if (!t)
-    {
+    if (!t) {
         kout[Fault] << "can't find dir" << endl;
         return false;
     }
 
     // t->show();
     re = t->fat->create_file(t, dirName);
-    if (!re)
-    {
+    if (!re) {
         kout[Fault] << "failed create file" << endl;
         return false;
     }
@@ -209,17 +193,15 @@ bool VFSM::create_dir(const char* path, char* cwd, char* dirName)
     return true;
 }
 
-
 bool VFSM::del_file(const char* path, char* cwd)
 {
     bool isOpened;
     // kout[yellow]<<"yes"<<endl;
     char* rpath = unified_path(path, cwd);
-    FAT32FILE* t, * re;
+    FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
     // t->show();
-    if (isOpened)
-    {
+    if (isOpened) {
         kout[Fault] << "file isn't close" << endl;
         return false;
     }
@@ -230,16 +212,14 @@ FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtabl
 {
     FAT32FILE* t;
     t = dir->fat->get_next_file(dir, cur, p);
-    if (t==nullptr) {
+    if (t == nullptr) {
         return nullptr;
     }
     t->path = new char[200];
-    if (dir != get_root())
-    {
+    if (dir != get_root()) {
         strcpy(t->path, dir->path);
         strcat(t->path, "/");
-    }
-    else
+    } else
         strcpy(t->path, "/");
 
     strcat(t->path, t->name);
@@ -257,27 +237,28 @@ FAT32FILE* VFSM::open(FAT32FILE* file)
 }
 bool VFSM::link(const char* srcpath, const char* ref_path, char* cwd)
 {
-    int k=strlen(ref_path);
-    while (ref_path[--k]!='/');
-    char * file_name=new char[200];
-    char * file_path=new char[200];
-    strcpy(file_name,&ref_path[k+1]);
-    file_path[k]=0;
-    FAT32FILE * from,*to;
-    create_file(file_path,cwd,file_name);
-    from=open(ref_path,cwd);
+    int k = strlen(ref_path);
+    while (ref_path[--k] != '/')
+        ;
+    char* file_name = new char[200];
+    char* file_path = new char[200];
+    strcpy(file_name, &ref_path[k + 1]);
+    file_path[k] = 0;
+    FAT32FILE *from, *to;
+    create_file(file_path, cwd, file_name);
+    from = open(ref_path, cwd);
     from->show();
-    to=open(srcpath,cwd);
+    to = open(srcpath, cwd);
     to->show();
 
-    from->table.low_clus=to->table.low_clus;
-    from->table.high_clus=to->table.high_clus;
-    from->table.size=to->table.size;
-    from->clus=to->clus;
-    from->fat=to->fat;
+    from->table.low_clus = to->table.low_clus;
+    from->table.high_clus = to->table.high_clus;
+    from->table.size = to->table.size;
+    from->clus = to->clus;
+    from->fat = to->fat;
 
-    delete [] file_name;
-    delete [] file_path;
+    delete[] file_name;
+    delete[] file_path;
     close(from);
     close(to);
     return true;
@@ -287,15 +268,30 @@ bool VFSM::unlink(const char* path, char* cwd)
     bool isOpened;
     // kout[yellow]<<"yes"<<endl;
     char* rpath = unified_path(path, cwd);
-    FAT32FILE* t, * re;
+    FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
     // t->show();
-    if (isOpened)
-    {
+    if (isOpened) {
         kout[Fault] << "file isn't close" << endl;
         return false;
     }
     return t->fat->unlink(t);
 }
+
+bool VFSM::unlink(char* abs_path)
+{
+    bool isOpened;
+    // kout[yellow]<<"yes"<<endl;
+    // char* rpath = unified_path(path, cwd);
+    FAT32FILE *t, *re;
+    t = find_file_by_path(abs_path, isOpened);
+    // t->show();
+    if (isOpened) {
+        kout[Fault] << "file isn't close" << endl;
+        return false;
+    }
+    return t->fat->unlink(t);
+}
+
 
 VFSM vfsm;

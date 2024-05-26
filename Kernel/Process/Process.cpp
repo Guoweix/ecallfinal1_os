@@ -239,7 +239,7 @@ bool Process::exit(int re)
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
     }
     exitCode = re;
-    VMS->Leave();
+    // VMS->Leave();
     destroyFds();
     if (!(flags & F_AutoDestroy) && father != nullptr) {
         father->waitSem->signal();

@@ -1,4 +1,5 @@
 #include "Trap/Syscall/Syscall.hpp"
+#include "Types.hpp"
 #include <Arch/Riscv.h>
 #include <Driver/Plic.hpp>
 #include <Driver/VirtioDisk.hpp>
@@ -73,7 +74,7 @@ TrapFrame* Trap(TrapFrame* tf)
             ++ClockTick;
             // if (ClockTick%100==0)
             // kout<<"*";
-            if (ClockTick % 1000 == 0) {
+            if (ClockTick % 30 == 0) {
                 needSchedule = true;
             }
             SetClockTimeEvent(GetClockTime() + TickDuration);
@@ -104,7 +105,7 @@ TrapFrame* Trap(TrapFrame* tf)
         default:
             TrapFailedInfo(tf);
         }
-    else
+    else {
         switch (tf->cause) // 为异常
         {
         case ExceptionCode_BreakPoint:
@@ -113,16 +114,21 @@ TrapFrame* Trap(TrapFrame* tf)
                 kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
             }
         case ExceptionCode_UserEcall: {
-            kout[Info] << "Ecall start" << (void*)tf->epc << endl;
+            ClockTime trapStartTime=GetClockTime();
+            // kout[Info] << "Ecall start" << (void*)tf->epc << endl;
             bool re = TrapFunc_Syscall(tf);
             if (!re) {
                 TrapFailedInfo(tf);
             } else {
                 tf->epc += tf->cause == ExceptionCode_UserEcall ? 4 : 2;
-                kout[Info] << "Ecall finish" << (void*)tf->epc << endl;
+                // kout[Info] << "Ecall finish" << (void*)tf->epc << endl;
                 // pm.getCurProc()->getVMS()->show();
                 // kout<<DataWithSize((char *)tf->epc,100)<<endl;
-                
+            }
+
+            if (!needSchedule) {//如果不需要进程切换则认为程序在系统态运行
+                ClockTime trapEndTime=GetClockTime();
+                pm.getCurProc()->sysTime+=trapEndTime-trapStartTime;
             }
             break;
         }
@@ -140,17 +146,19 @@ TrapFrame* Trap(TrapFrame* tf)
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
         }
-
-    
+    }
     if (needSchedule) {
         needSchedule = t;
         // if(t)
-        kout<<"true"<<endl;
+        kout << "true" << endl;
         // else
         // kout<<"false"<<endl;
         return pm.Schedule(tf);
     } else
+    {
+        
         return tf;
+    }
 }
 
 extern void TrapEntry(void); // 定义外部函数，用于获取汇编里定义的地址

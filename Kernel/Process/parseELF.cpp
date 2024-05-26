@@ -211,7 +211,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
     kout<<"++++++++++++++++++++++="<<endl;
-    kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
+    // kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
     HeapMemoryRegion* hmr = (HeapMemoryRegion*)kmalloc(sizeof(HeapMemoryRegion));
     kout<<"++++++++++++++++++++++="<<endl;

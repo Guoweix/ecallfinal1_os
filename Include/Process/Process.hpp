@@ -139,7 +139,8 @@ public:
     inline void setContext(TrapFrame * _context){ context=_context; }
     inline ProcStatus getStatus(){return  status;}
     inline Uint32 getExitCode(){return  exitCode;}
-
+    inline void setSysTime(ClockTime t){sysTime=t;}
+    inline ClockTime getSysTime(){ return sysTime;}
  
     bool initFds();
     bool destroyFds();
