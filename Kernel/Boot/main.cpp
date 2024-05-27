@@ -198,11 +198,12 @@ void new_test()
 void VFSM_test()
 {
     FAT32FILE* file;
+
+    // vfsm.create_file("/", char *cwd, char *fileName);
+
     file = vfsm.get_next_file(vfsm.get_root());
     file_object* fo = new file_object();
-    // kout << file;
     while (file) {
-        kout << file->name << endl;
         if (file->table.size == 0) {
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
@@ -215,13 +216,9 @@ void VFSM_test()
         fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
 
-        kout << file->name << endl;
-        Process* task;
-        // if (strcmp(file->name, "uname") == 0) {
-        // task = CreateProcessFromELF(fo, "/");
-        // while (task->getStatus() != S_Terminated) {
 
-        // }
+        kout<<"file name"<<file<<" " << file->name << endl;;
+        
         // kout<<"END"<<endl;
         // }
 
@@ -296,6 +293,7 @@ void test_final1()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         kout.SetEnabledType(0);
+
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
         if (test != nullptr)
         {
@@ -315,16 +313,17 @@ void test_final1()
         }
         kout.SetEnabledType(-1);
         file = vfsm.get_next_file(vfsm.get_root(), file);
-        if (++test_cnt >= 40)
-        {
-            break;
-        }
     }
+    kout<<"test finish"<<endl;
 }
 
 
+unsigned VMMINFO;
 int main()
 {
+    VMMINFO=kout.RegisterType("VMMINFO", KoutEX::Green );
+    kout.SwitchTypeOnoff(VMMINFO, false);
+
     TrapInit();
     ClockInit();
 
@@ -359,7 +358,7 @@ int main()
     // Driver_test();
     InterruptEnable();
     // new_test();
-    VFSM_test();
+    // VFSM_test();
     // final_test();
     test_final1();
     // pm_test();

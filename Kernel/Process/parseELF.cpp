@@ -256,7 +256,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc
 
     if (rd_size != sizeof(proc_data->e_header) || !proc_data->e_header.is_ELF()) {
         // kout[red] << "Create Process from ELF Error!" << endl;
-        // kout[red] << "Read File is NOT ELF!" << endl;
+        kout[Error] << "Read File is NOT ELF!" << endl;
         kfree(proc_data);
         return nullptr;
     }

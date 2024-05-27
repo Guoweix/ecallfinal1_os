@@ -137,7 +137,7 @@ TrapFrame* Trap(TrapFrame* tf)
         case ExceptionCode_InstructionPageFault:
         case ExceptionCode_LoadPageFault:
         case ExceptionCode_StorePageFault:
-            kout[Test] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
+            kout[VMMINFO] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
             if (TrapFunc_FageFault(tf) != ERR_None) {
                 kout[Info] << "PID" << pm.getCurProc()->getID() << endl;
                 TrapFailedInfo(tf);

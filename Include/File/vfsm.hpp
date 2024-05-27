@@ -16,7 +16,7 @@ public:
     FAT32FILE* open(FAT32FILE* file);
     void close(FAT32FILE* t);
 
-
+    void showRootDirFile();
     bool create_file(const char* path, char* cwd, char* fileName, Uint8 type = FATtable::FILE);
     bool create_dir(const char* path, char* cwd, char* dirName);
     bool del_file(const char* path, char* cwd);

@@ -13,6 +13,8 @@
 extern "C" {
 extern class PageTable boot_page_table_sv39[];
 };
+
+
 constexpr Uint32 PageSizeBit = 12;
 constexpr Uint64 PageSizeN[3]{PAGESIZE,PAGESIZE*512,PAGESIZE*512*512};
 class PageTable { // 页表项
@@ -433,7 +435,7 @@ protected:
 
     static ErrorType InitForBoot()
     {
-        kout[Info] << "Initing Boot VirtualMemorySpace..." << endl;
+        kout[VMMINFO] << "Initing Boot VirtualMemorySpace..." << endl;
         BootVMS = new VirtualMemorySpace();
         BootVMS->Init();
         {
@@ -444,14 +446,14 @@ protected:
 
         BootVMS->PDT = PageTable::Boot(); // 页表项
         BootVMS->SharedCount = 1;
-        kout[Info] << "Init BootVMS " << BootVMS << " OK" << endl;
+        kout[VMMINFO] << "Init BootVMS " << BootVMS << " OK" << endl;
         return ERR_None;
     }
 
     static ErrorType InitForKernel()
     {
         KernelVMS = BootVMS;
-        kout[Info] << "Init KernelVMS " << KernelVMS << " OK" << endl;
+        kout[VMMINFO] << "Init KernelVMS " << KernelVMS << " OK" << endl;
         return ERR_None;
     }
 
@@ -529,7 +531,7 @@ public:
         VmrCache = vmr;
         ++VmrCount;
 
-        kout[Info] << "Insert vmr  " << (void*)vmr << " Success!" << endl;
+        kout[VMMINFO] << "Insert vmr  " << (void*)vmr << " Success!" << endl;
     }
 
     VirtualMemoryRegion* FindVMR(PtrUint p)
@@ -586,11 +588,11 @@ public:
 
     ErrorType SolvePageFault(TrapFrame* tf)
     {
-        kout[Test] << "SolvePageFault in " << (void*)tf->tval << endl;
+        kout[VMMINFO] << "SolvePageFault in " << (void*)tf->tval << endl;
         VirtualMemoryRegion* vmr = FindVMR(tf->tval); // 找到是谁管理这块地址空间
 
-        kout[Info] << "Solve Page Fault " << (void*)tf->tval << " is managed by " << vmr << endl;
-        kout[Info] << "VMS" << (void*)this << endl;
+        kout[VMMINFO] << "Solve Page Fault " << (void*)tf->tval << " is managed by " << vmr << endl;
+        kout[VMMINFO] << "VMS" << (void*)this << endl;
 
         if (vmr == nullptr) {
             show();
@@ -610,7 +612,7 @@ public:
                 pt2->Init();
                 e2.SetLargePage(pg2, vmr->ToPageEntryFlags()); // 设置为大页
                 asm volatile("sfence.vma \n fence.i \n fence"); // 刷新TLB
-                kout[Test] << "Allocated large page and mapped it" << endl;
+                kout[VMMINFO] << "Allocated large page and mapped it" << endl;
                 return ERR_None;
             }
         } else {
@@ -656,7 +658,7 @@ public:
             asm volatile("sfence.vma \n fence.i \n fence"); // 刷新TLB
             //}
         }
-        kout[Test] << "SolvePageFault OK" << endl;
+        kout[VMMINFO] << "SolvePageFault OK" << endl;
 
         return ERR_None;
     }
@@ -689,7 +691,7 @@ public:
 
     ErrorType CreateFrom(VirtualMemorySpace* src)
     {
-        kout[Test] << "VirtualMemorySpace::CreateFrom " << src << ", this is " << this << endl;
+        kout[VMMINFO] << "VirtualMemorySpace::CreateFrom " << src << ", this is " << this << endl;
         CreatePDT();
         VirtualMemoryRegion *p = src->vmrHead.Nxt(), *q = nullptr;
         while (p) {
@@ -700,7 +702,7 @@ public:
             q->CopyMemory(*PDT, *src->PDT, 2,0);
             p = p->Nxt();
         }
-        kout[Test] << "VirtualMemorySpace::CreateFrom " << src << ", OK this is " << this << endl;
+        kout[VMMINFO] << "VirtualMemorySpace::CreateFrom " << src << ", OK this is " << this << endl;
         VirtualMemoryRegion* t;
     }
 };

@@ -8,6 +8,7 @@ bool VFSM::init()
     a.size = 0;
     OpenedFile = new FAT32FILE(a, ".ROOT");
     OpenedFile->fat = fat; // 挂载root
+    
 
     OpenedFile->TYPE = 0;
     OpenedFile->TYPE |= (FAT32FILE::__DIR | FAT32FILE::__VFS | FAT32FILE::__ROOT);
@@ -18,6 +19,7 @@ bool VFSM::init()
     a.low_clus = fat->Dbr.root_clus;
     OpenedFile->clus = fat->Dbr.root_clus;
 
+    kout<<"OpenedFile->clus"<<(void *)OpenedFile->clus<<endl;
     OpenedFile->next = nullptr;
     OpenedFile->pre = nullptr;
     return true;
@@ -94,6 +96,14 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
         return t;
 }
 
+
+void VFSM::showRootDirFile()
+{
+
+}
+
+
+
 FAT32FILE* VFSM::open(const char* path, char* cwd)
 {
     bool isOpened;
@@ -111,9 +121,10 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
 
     if (isOpened)
         return t;
-    kout<<"A2"<<endl;
-    kout<<(void *)t<<endl;
-    kout<<"A2"<<endl;
+
+    if (t==nullptr) {
+        kout[Fault]<<"file can't find"<<endl;
+    }
     t->next = OpenedFile->next;
     kout<<"A3"<<endl;
     OpenedFile->next = t;
@@ -220,8 +231,10 @@ bool VFSM::del_file(const char* path, char* cwd)
 }
 FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtable* temp))
 {
+    // kout<<"get_next_file"<<endl;
     FAT32FILE* t;
     t = dir->fat->get_next_file(dir, cur, p);
+    // kout<<"~get_next_file"<<endl;
     if (t == nullptr) {
         return nullptr;
     }

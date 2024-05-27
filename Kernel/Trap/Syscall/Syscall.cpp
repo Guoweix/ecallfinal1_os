@@ -742,6 +742,10 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     kout<<Red<<"OpenedFile7"<<endl;
     }
 
+
+    
+
+
     char* path = vfsm.unified_path(filename, rela_wd);
     kout<<Red<<"OpenedFile8"<<endl;
     if (path == nullptr) {
@@ -770,6 +774,9 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
             file = nullptr;
         }
     }
+
+
+
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
     kout<<Red<<"OpenedFile13"<<endl;
     if (fo == nullptr || fo->fd < 0) {
