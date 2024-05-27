@@ -708,15 +708,21 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // flags为访问模式 必须包含以下一种 O_RDONLY O_WRONLY O_RDWR
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
+    kout<<Red<<"OpenedFile"<<endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
+    kout<<Red<<"OpenedFile1"<<endl;
     char* cwd = cur_proc->getCWD();
+    kout<<Red<<"OpenedFile2"<<endl;
     if (fd == AT_FDCWD) {
+    kout<<Red<<"OpenedFile3"<<endl;
         rela_wd = cur_proc->getCWD();
     } else {
+    kout<<Red<<"OpenedFile4"<<endl;
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
+    kout<<Red<<"OpenedFile5"<<endl;
         if (fo != nullptr) {
             rela_wd = fo->file->path;
         }
@@ -725,17 +731,23 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     if (flags & file_flags::O_CREAT) {
         // 创建文件或目录
         // 创建则在进程的工作目录进行
+    kout<<Red<<"OpenedFile6"<<endl;
         if (flags & file_flags::O_DIRECTORY) {
+    kout<<Red<<"OpenedFile6 DIR"<<endl;
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
         } else {
+    kout<<Red<<"OpenedFile6 FILE"<<endl;
             vfsm.create_file(rela_wd, cwd, (char*)filename);
         }
+    kout<<Red<<"OpenedFile7"<<endl;
     }
 
     char* path = vfsm.unified_path(filename, rela_wd);
+    kout<<Red<<"OpenedFile8"<<endl;
     if (path == nullptr) {
         return -1;
     }
+    kout<<Red<<"OpenedFile9"<<endl;
     // trick
     // 暂时没有对于. 和 ..的路径名的处理
     // 特殊处理打开文件当前目录.的逻辑
@@ -744,24 +756,31 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
         int str_len = strlen(filename);
         char* str_spc = new char[str_len];
         strcpy(str_spc, filename + 1);
+    kout<<Red<<"OpenedFile10"<<endl;
+    kout<<Red<<str_spc<<endl;
         file = vfsm.open(str_spc, rela_wd);
     } else {
+    kout<<Red<<"OpenedFile11"<<endl;
         file = vfsm.open(filename, rela_wd);
     }
 
     if (file != nullptr) {
+    kout<<Red<<"OpenedFile12"<<endl;
         if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
     }
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
+    kout<<Red<<"OpenedFile13"<<endl;
     if (fo == nullptr || fo->fd < 0) {
         return -1;
     }
+    kout<<Red<<"OpenedFile14"<<endl;
     if (file != nullptr) {
         fom.set_fo_file(fo, file);
         fom.set_fo_flags(fo, flags);
         fom.set_fo_mode(fo, mode);
+    kout<<Red<<"OpenedFile15"<<endl;
     }
     kfree(path);
     VirtualMemorySpace::DisableAccessUser();

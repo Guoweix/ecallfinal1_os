@@ -336,6 +336,7 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr)
 
 void Process::switchStatus(ProcStatus tarStatus)
 {
+    kout<<Yellow<<id<<"   status to"<<tarStatus<<endl;
     ClockTime t = GetClockTime();
     ClockTime d = t - timeBase;
     timeBase = t;
@@ -389,9 +390,17 @@ Process* ProcessManager::getProc(PID _id)
 
 bool ProcessManager::freeProc(Process* proc)
 {
+    kout<<Yellow<<"freeProc "<<proc->getID()<<endl;
+    if (proc->getStatus()==S_None) {
+        return true;
+    }
     if (proc == curProc) {
         kout[Fault] << "freeProcess == curProc" << curProc->id << endl;
     }
+    if (proc == &Proc[0]) {
+        kout[Fault] << "freeProcess == idle0" << curProc->id << endl;
+    }
+    
     Proc[proc->id].switchStatus(S_None);
     procCount--;
     return false;
@@ -410,9 +419,10 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
     Process* tar;
 
-    kout[Debug] << "Schedule NOW" << endl;
+    kout[Debug] << "Schedule NOW  "<< curProc->getName() << endl;
     curProc->context = preContext;
 
+    // kout<<Blue<<procCount<<endl;
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
         ClockTime minWaitingTarget = -1;
@@ -426,9 +436,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
             // }
             // kout<<p<<"P+i "<<(p+i)%MaxProcessCount<<tar->status<<endl;
             // pm.show();
-
             if (tar->status == S_Ready) {
-
                 tar->getVMS()->showVMRCount();
                 tar->run();
                 // if (tar->getID()==3) {

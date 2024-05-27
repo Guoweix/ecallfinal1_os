@@ -230,6 +230,7 @@ void VFSM_test()
     }
 }
 
+
 void final_test()
 {
     FAT32FILE* file;
@@ -253,9 +254,10 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "unlink") == 0) {
+        if (strcmp(file->name, "close") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
+                pm.show();
                 while (1) {
                 }
             }
@@ -266,13 +268,61 @@ void final_test()
     }
 }
 
+void test_final1()
+{
+    file_object* fo = (file_object*)kmalloc(sizeof(file_object));
+    FAT32FILE* file;
+    Process * test;
+    file = vfsm.get_next_file(vfsm.get_root());
+    int test_cnt = 0;
+    while (file)
+    {
+        // file->show();
+        if (file->table.size == 0)
+        {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+        if (file->TYPE == FAT32FILE::__DIR)
+        {
+            file = vfsm.get_next_file(vfsm.get_root(), file);
+            continue;
+        }
+
+        fom.set_fo_file(fo, file);
+        fom.set_fo_pos_k(fo, 0);
+        test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
+        if (test != nullptr)
+        {
+           while (1)
+            {
+                if (test->getStatus() == S_Terminated )
+                {
+                    kout<<pm.getCurProc()->getName()<<' ' <<test->getID();
+                    pm.freeProc(test);
+                    // delay(1e8);
+                    // pm.show();
+                    test = nullptr;
+                    break;
+                }
+            }
+
+        }
+        file = vfsm.get_next_file(vfsm.get_root(), file);
+        if (++test_cnt >= 40)
+        {
+            break;
+        }
+    }
+}
+
+
 int main()
 {
     TrapInit();
     ClockInit();
 
     // kout.SetEnabledType(0);
-    
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -305,6 +355,7 @@ int main()
     // new_test();
     // VFSM_test();
     final_test();
+    // test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 

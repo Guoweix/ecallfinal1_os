@@ -126,6 +126,7 @@ public:
     void setFa(Process* fa);
     inline void setID(Uint32 _id) { id = _id; }
     inline PID getID() { return id; }
+    inline char * getName() { return name; }
     inline Semaphore* getSemaphore() { return waitSem; }
     void setStack(void* _stack, Uint32 _stacksize);
     inline Uint32 getStackSize() { return stacksize; };

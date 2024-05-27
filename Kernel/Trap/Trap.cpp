@@ -74,7 +74,7 @@ TrapFrame* Trap(TrapFrame* tf)
             ++ClockTick;
             // if (ClockTick%100==0)
             // kout<<"*";
-            if (ClockTick % 30 == 0) {
+            if (ClockTick % 100 == 0) {
                 needSchedule = true;
             }
             SetClockTimeEvent(GetClockTime() + TickDuration);
