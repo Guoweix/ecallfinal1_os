@@ -521,8 +521,8 @@ namespace POS
 	{
 		kout<<LightRed<<"<KernelMonitor>: Kernel fault! Enter infinite loop..."<<endline
 					  <<"                 You can add you code in File:\""<<__FILE__<<"\" Line:"<<__LINE__<<" to solve fault."<<endl;
-		SBI_SHUTDOWN();
-		while (1);//Replace your code here, such as shutdown...
+		// SBI_SHUTDOWN();
+		// while (1);//Replace your code here, such as shutdown...
 	}
 };
 
