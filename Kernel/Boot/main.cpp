@@ -322,7 +322,7 @@ int main()
     TrapInit();
     ClockInit();
 
-    // kout.SetEnabledType(0);
+    kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -354,8 +354,8 @@ int main()
     InterruptEnable();
     // new_test();
     // VFSM_test();
-    final_test();
-    // test_final1();
+    // final_test();
+    test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 

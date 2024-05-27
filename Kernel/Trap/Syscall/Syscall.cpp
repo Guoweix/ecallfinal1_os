@@ -1008,7 +1008,8 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
     default:
-        kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
+        // kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
+        tf->reg.a0=-1;
     }
 
     return true;
