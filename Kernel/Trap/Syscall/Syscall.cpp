@@ -774,6 +774,9 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
             file = nullptr;
         }
     }
+    else {
+        return  -1;
+    }
 
 
 

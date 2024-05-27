@@ -92,27 +92,34 @@ extern PMM pmm;
 // 声明作为标准库通用的内存分配函数
 inline void* kmalloc(Uint64 bytesize)
 {
-
+    // kout <<"Kmalloc " << bytesize << '\n';
+    void* re;
     if (bytesize < 4000) {
         void* p = slab.allocate(bytesize);
+        // kout << "slab alloc addr" << p << endl;
         if (p == nullptr) {
             p = pmm.malloc(bytesize, 1);
         }
-        return p;
+        re = p;
     } else {
-        return pmm.malloc(bytesize, 1);
+        // kout << "pmm alloc addr" << endl;
+        re = pmm.malloc(bytesize, 1);
     }
+
+    // kout <<  "Kmalloc " << (Uint64)re<<' '<<re << '\n';
+    return re;
 }
 
 inline void kfree(void* freeaddress)
 {
+    // kout << "Kfree " << (Uint64)freeaddress <<' '<<freeaddress << '\n';
+
     if (freeaddress != nullptr) {
         PAGE* cur = pmm.get_page_from_addr(freeaddress);
 
         if (cur->flags == 1) {
             pmm.free(freeaddress);
-        } 
-        else {
+        } else {
             slab.free(freeaddress, cur->flags);
         }
     }

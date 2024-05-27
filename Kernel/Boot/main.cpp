@@ -216,9 +216,9 @@ void VFSM_test()
         fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
 
+        kout << "file name" << file << " " << file->name << endl;
+        ;
 
-        kout<<"file name"<<file<<" " << file->name << endl;;
-        
         // kout<<"END"<<endl;
         // }
 
@@ -226,7 +226,6 @@ void VFSM_test()
         // kout << file;
     }
 }
-
 
 void final_test()
 {
@@ -251,7 +250,7 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "close") == 0) {
+        if (strcmp(file->name, "mkdir_") == 0) {
             task = CreateProcessFromELF(fo, "/");
             while (task->getStatus() != S_Terminated) {
                 pm.show();
@@ -269,67 +268,65 @@ void test_final1()
 {
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     FAT32FILE* file;
-    Process * test;
+    Process* test;
     int test_cnt = 0;
 
-    
-
-
     file = vfsm.get_next_file(vfsm.get_root());
-    while (file)
-    {
+    while (file) {
         // file->show();
-        if (file->table.size == 0)
-        {
+        if (file->table.size == 0) {
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
         }
-        if (file->TYPE == FAT32FILE::__DIR)
-        {
+        if (file->TYPE == FAT32FILE::__DIR) {
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
         }
 
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        kout.SetEnabledType(0);
-        kout.SwitchTypeOnoff(Fault,true);
+        kout << file->name << endl;
+        // kout.SetEnabledType(0);
+        kout.SwitchTypeOnoff(Fault, true);
+
 
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
-        if (test != nullptr)
-        {
-           while (1)
-            {
-                if (test->getStatus() == S_Terminated )
-                {
-                    kout<<pm.getCurProc()->getName()<<' ' <<test->getID();
+
+        if (test != nullptr) {
+            while (1) {
+                if (test->getStatus() == S_Terminated) {
+                    kout << pm.getCurProc()->getName() << ' ' << test->getID();
                     pm.freeProc(test);
                     // delay(1e8);
                     // pm.show();
                     test = nullptr;
                     break;
                 }
-            }
+                else {
+                    pm.immSchedule();
+                }
 
+            }
         }
-        kout.SetEnabledType(-1);
+        // kout.SetEnabledType(-1);
+
         file = vfsm.get_next_file(vfsm.get_root(), file);
     }
-    kout<<"test finish"<<endl;
+        kout.SetEnabledType(-1);
+    kout << "test finish" << endl;
 }
-
 
 unsigned VMMINFO;
 int main()
 {
-    VMMINFO=kout.RegisterType("VMMINFO", KoutEX::Green );
+    VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     kout.SwitchTypeOnoff(VMMINFO, false);
     kout.SetEnableEffect(false);
 
     TrapInit();
     ClockInit();
 
-    // kout.SetEnabledType(0);
+    kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();

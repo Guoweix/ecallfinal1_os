@@ -146,6 +146,7 @@ void SlabB::free(void* freeaddress)
 // 这边具体逻辑还需要算法修改
 void* SlabAllocator::allocate(Uint64 bytesize)
 {
+    // kout<<LightYellow<<sB1.getSlabBCount()<<' '<<sB2.getSlabBCount()<<' '<<sB3.getSlabBCount()<<endl;
     if (bytesize <= SLAB_SIZE_B1) {
         if (sB1.getSlabBCount() <= 0)
             return nullptr;

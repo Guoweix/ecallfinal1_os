@@ -186,7 +186,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
         // 这边就是用filesz来读取具体的内容
         fom.seek_fo(fo, pgm_hdr.p_offset, file_ptr::Seek_beg);
         vms->Enter();
-        kout<<Red<<"START"<<pgm_hdr.p_filesz<<endl;
+        // kout<<Red<<"START"<<pgm_hdr.p_filesz<<endl;
         rd_size = fom.read_fo(fo, (void*)vmr_begin, pgm_hdr.p_filesz);
         vms->Leave();
         if (rd_size != pgm_hdr.p_filesz) {
@@ -196,7 +196,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
         // kout << Hex((uint64)(vmr_begin)) << endl;
         // kout << Memory((void*)0x1000, (void*)0x2000, 100);
     }
-    kout<<"++++++++++++++++++++++="<<endl;
+    kout << "++++++++++++++++++++++=" << endl;
 
     // 上面的循环已经读取了所有的段信息
     // 接下来更新进程需要的相关信息即可
@@ -210,14 +210,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vms->InsertVMR(vmr_user_stack);
 
     memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
-    kout<<"++++++++++++++++++++++="<<endl;
+    kout << "++++++++++++++++++++++=" << endl;
     // kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
     HeapMemoryRegion* hmr = (HeapMemoryRegion*)kmalloc(sizeof(HeapMemoryRegion));
-    kout<<"++++++++++++++++++++++="<<endl;
+    kout << "++++++++++++++++++++++=" << endl;
     hmr->Init(breakpoint);
     vms->InsertVMR(hmr);
-    kout<<(void*)hmr->GetStart();
+    kout << (void*)hmr->GetStart();
     memset((char*)hmr->GetStart(), 0, hmr->GetLength());
     // kout<<DataWithSize((void *)0x800020,1000);
     vms->Leave();
@@ -228,13 +228,12 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     vms->DisableAccessUser();
 
-
+    kout << "AAAA1" << endl;
 
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry);
-    proc->setName("user");
-    // kout[Test] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
-    // pm.show();
-
+    proc->setName(fo->file->name);
+    kout << "AAAA2" << endl;
+    pm.show();
 
     // 正确完整地执行了这个流程
     // 接触阻塞并且返回0
@@ -258,6 +257,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc
         // kout[red] << "Create Process from ELF Error!" << endl;
         kout[Error] << "Read File is NOT ELF!" << endl;
         kfree(proc_data);
+        IntrRestore(t);
         return nullptr;
     }
 
@@ -271,7 +271,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc
     proc->setVMS(vms);
     proc->setFa(pm.getCurProc());
 
-    char * abs_cwd=vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
+    char* abs_cwd = vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
     proc->setProcCWD(abs_cwd);
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);

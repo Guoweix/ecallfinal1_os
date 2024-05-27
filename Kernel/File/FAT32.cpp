@@ -335,7 +335,7 @@ Uint64 FAT32::clus_to_lba(Uint64 clus)
     return (clus - 2) * Dbr.clus_sector_num + DATAlba;
 }
 
-FAT32FILE* FAT32::FAT32::find_file_by_path(char* path)
+FAT32FILE* FAT32::find_file_by_path(char* path)
 {
     char* sigleName = new char[50];
     unsigned char* clus = new unsigned char[Dbr.clus_size];
@@ -552,6 +552,8 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
         // kout[Fault]<<"error"<<endl;
         size = table.size - pos;
     }
+    // kout<<fat<<endl; 
+    // kout<<fat->Dbr<<endl; 
     Uint64 start = pos / fat->Dbr.clus_size;
     Uint64 end = (pos + size) / fat->Dbr.clus_size + (((pos + size) % fat->Dbr.clus_size) ? 1 : 0);
     Uint64 rclus = clus;
@@ -567,7 +569,6 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
         k++;
     }
     // kout << i << endl;
-    // kout<<"FILE__________________"<<end-start<<endl;
     for (int i = 0; i < end - start; i++)
     {
         if (rclus < 2 || rclus >= 0xffffff7)
@@ -579,7 +580,6 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
         // kout.memory(&p[i * fat->Dbr.clus_size], fat->Dbr.clus_size);
         rclus = fat->get_next_clus(rclus);
     }
-    // kout[red] << "---------------------------------" << endl;
 
     pos %=   fat->Dbr.clus_size;
         // kout<<Red<< &p[8 * fat->Dbr.clus_size]<<endl;
@@ -804,30 +804,41 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
         kout[Fault] << dir->name << "isn't a dir" << endl;
         return nullptr;
     }
+    kout<<Blue<<"dir_fat 1"<<dir->fat<<endl;
     unsigned char* clus = new unsigned char[Dbr.clus_size];
+    kout<<"clus"<<clus<<endl;
+    pmm.show();
     Uint64 src_clus;
+    kout<<Blue<<"dir_fat 2"<<dir->fat<<endl;
     if (cur)
         // kout<<"1"<<endl,
         src_clus = cur->table_clus_pos;
     else
     //    kout<<"2"<<endl,
        src_clus = dir->clus;
+    kout<<Blue<<"dir_fat 3"<<dir->fat<<endl;
     // kout<<"src_clus"<<(void *)src_clus<<endl;
+    kout<<dir<<' '<<clus;
     get_clus(src_clus, clus);
+    
+    kout<<Blue<<"dir_fat 35"<<dir->fat<<endl;
     FATtable* ft = (FATtable*)clus;
     FAT32FILE* re = nullptr;
     Sint32 t;
     Sint32 k;
+    kout<<Blue<<"dir_fat 4"<<dir->fat<<endl;
     char* sName = new char[30];
     sName[26] = 0;
     sName[27] = 0;
     char* lName = new char[100];
     Uint64 pos; //= cur ? (cur->table_clus_off + 1 ): 0; // 当没传入cur时从文件初开始遍历；
+    kout<<Blue<<"dir_fat 5"<<dir->fat<<endl;
     if (cur) 
         pos=cur->table_clus_off + 1 ;
     else
         pos=0;
     
+    kout<<Blue<<"dir_fat 6"<<dir->fat<<endl;
 
     while (src_clus < 0xffffff8)
     {
@@ -880,6 +891,7 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
             get_clus(src_clus, clus);
     }
 
+    kout<<Blue<<"dir_fat 7"<<dir->fat<<endl;
     delete[] sName;
     delete[] clus;
     delete[] lName;

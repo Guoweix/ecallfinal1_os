@@ -186,6 +186,7 @@ void FileObjectManager::free_all_flobj(file_object* fo_head)
     {
         fo_del = fo_ptr->next;
         fo_ptr->next = fo_ptr->next->next;
+        // kout<<"FileObjectManager::free_all_flobj"<<fo_del<<endl;
         kfree(fo_del);
     }
     return;
@@ -430,6 +431,7 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 进程完全不需要进行对文件的任何操作
     // 这就是这一层封装和隔离的妙处所在
     FAT32FILE* file = fo->file;
+    // kout<<"close_fo"<<fo->file<<fo->file->name<<endl;
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点
     file_object* fo_head = proc->fo_head;
