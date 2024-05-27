@@ -213,7 +213,7 @@ void VFSM_test()
         }
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        kout[Info] << "____________________1___________________--" << endl;
+        // kout[Info] << "____________________1___________________--" << endl;
 
         kout << file->name << endl;
         Process* task;
@@ -249,7 +249,7 @@ void final_test()
         }
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        kout[Info] << "____________________1___________________--" << endl;
+        // kout[Info] << "____________________1___________________--" << endl;
 
         // kout << file->name << endl;
 
@@ -273,8 +273,12 @@ void test_final1()
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     FAT32FILE* file;
     Process * test;
-    file = vfsm.get_next_file(vfsm.get_root());
     int test_cnt = 0;
+
+    
+
+
+    file = vfsm.get_next_file(vfsm.get_root());
     while (file)
     {
         // file->show();
@@ -291,6 +295,7 @@ void test_final1()
 
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
+        kout.SetEnabledType(0);
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
         if (test != nullptr)
         {
@@ -308,6 +313,7 @@ void test_final1()
             }
 
         }
+        kout.SetEnabledType(-1);
         file = vfsm.get_next_file(vfsm.get_root(), file);
         if (++test_cnt >= 40)
         {
@@ -322,7 +328,7 @@ int main()
     TrapInit();
     ClockInit();
 
-    kout.SetEnabledType(0);
+    // kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -353,7 +359,7 @@ int main()
     // Driver_test();
     InterruptEnable();
     // new_test();
-    // VFSM_test();
+    VFSM_test();
     // final_test();
     test_final1();
     // pm_test();

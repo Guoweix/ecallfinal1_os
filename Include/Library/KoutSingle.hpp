@@ -1,6 +1,6 @@
 #ifndef POS_KOUTSINGLE_HPP
 #define POS_KOUTSINGLE_HPP
-
+#include <Library/SBI.h>
 /*
 	KoutSingle(or Kout All in one)
 	By:qianpinyi
@@ -8,6 +8,7 @@
 	To used this library, you should implement "Putchar" declared below and define "KOUT kout" in one compile unit which is also mentioned in the end of this file.
 */
 
+#include "Arch/Riscv.hpp"
 extern "C"
 {
 	void Putchar(char ch);
@@ -520,6 +521,7 @@ namespace POS
 	{
 		kout<<LightRed<<"<KernelMonitor>: Kernel fault! Enter infinite loop..."<<endline
 					  <<"                 You can add you code in File:\""<<__FILE__<<"\" Line:"<<__LINE__<<" to solve fault."<<endl;
+		SBI_SHUTDOWN();
 		while (1);//Replace your code here, such as shutdown...
 	}
 };
