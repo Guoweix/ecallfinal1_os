@@ -205,12 +205,12 @@ int Syscall_getppid()
     Process* fa_proc = cur_proc->father;
 
     if (fa_proc == nullptr) {
-        kout << Yellow << "getppid::nofather" << endl;
+        // kout << Yellow << "getppid::nofather" << endl;
         // 调用规范总是成功
         // 如果是无父进程 可以认为将该进程挂到根进程的孩子进程下
         return pm.getidle()->getID() + 1;
     } else {
-        kout << Yellow << "getppid::father" << fa_proc->getID() << endl;
+        // kout << Yellow << "getppid::father" << fa_proc->getID() << endl;
         return fa_proc->getID() + 1;
     }
     return -1;
@@ -516,19 +516,14 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     // flags可设置为0或AT_REMOVEDIR
     // 成功返回0 失败返回-1
 
-    kout<<Green<<"Unlinkat 1"<<endl;
     Process* cur_proc = pm.getCurProc();
-    kout<<Green<<"Unlinkat 2"<<endl;
     file_object* fo_head = cur_proc->fo_head;
-    kout<<Green<<"Unlinkat 3"<<endl;
     file_object* fo = fom.get_from_fd(fo_head, dirfd);
-    kout<<Green<<"Unlinkat 4"<<endl;
     if (fo == nullptr) {
         return -1;
     }
     VirtualMemorySpace::EnableAccessUser();
     if (!vfsm.unlink(path, fo->file->path)) {
-    kout<<Green<<"Unlinkat 5"<<endl;
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
@@ -549,7 +544,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
 
     if (fd == STDOUT_FILENO) {
         VirtualMemorySpace::EnableAccessUser();
-        kout << Yellow << buf << endl;
+        // kout << Yellow << buf << endl;
         for (int i = 0; i < count; i++) {
             putchar(((char*)buf)[i]);
             // kout << (uint64)((char*)buf)[i] << endl;
@@ -618,7 +613,7 @@ inline int Syscall_close(int fd)
     // 传入参数为要关闭的文件描述符
     // 成功执行返回0 失败返回-1
 
-    kout << Yellow << "syscall close " << fd << endl;
+    // kout << Yellow << "syscall close " << fd << endl;
     Process* cur_proc = pm.getCurProc();
 
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
@@ -837,6 +832,9 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
 
     return 0;
 }
+
+
+
 int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 {
     struct Dirent {
@@ -920,7 +918,7 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout << tf->reg.a7 << "______" << endl;
+    kout<<endline<<"Syscall:" << tf->reg.a7 << endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:

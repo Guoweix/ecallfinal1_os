@@ -199,7 +199,9 @@ void VFSM_test()
 {
     FAT32FILE* file;
 
-    // vfsm.create_file("/", char *cwd, char *fileName);
+    vfsm.create_file("/", "/", "temp.txt");
+    vfsm.create_file("/", "/", "temp1.txt");
+    vfsm.create_file("/", "/", "temp2.txt");
 
     file = vfsm.get_next_file(vfsm.get_root());
     file_object* fo = new file_object();
@@ -250,17 +252,26 @@ void final_test()
         // kout << file->name << endl;
 
         Process* task;
-        if (strcmp(file->name, "mkdir_") == 0) {
+        if (strcmp(file->name, "unlink") == 0) {
             task = CreateProcessFromELF(fo, "/");
-            while (task->getStatus() != S_Terminated) {
-                pm.show();
-                while (1) {
+            while (1) {
+                if (task->getStatus() == S_Terminated) {
+                    goto FinalTestEnd;
                 }
             }
             kout << "END" << endl;
         }
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
+    }
+
+
+    FinalTestEnd:
+        kout<<"finish test"<<endl;
+        
+    while (1) {
+        delay(1e7);
+        Putchar('.');
     }
 }
 

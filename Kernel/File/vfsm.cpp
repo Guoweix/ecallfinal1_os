@@ -235,9 +235,9 @@ FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtabl
 {
     // kout<<"get_next_file"<<endl;
     FAT32FILE* t;
-    kout<<Red<<"dir:fat"<<dir->fat<<endl;
+    // kout<<Red<<"dir:fat"<<dir->fat<<endl;
     t = dir->fat->get_next_file(dir, cur, p);
-    kout<<Green<<"dir:fat"<<dir->fat<<endl;
+    // kout<<Green<<"dir:fat"<<dir->fat<<endl;
 
     // kout<<"~get_next_file"<<endl;
     if (t == nullptr) {
@@ -252,7 +252,7 @@ FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtabl
 
     strcat(t->path, t->name);
     t->fat = dir->fat;
-    kout<<Red<<t->fat<<endl;
+    // kout<<Red<<t->fat<<endl;
     return t;
 }
 FAT32FILE* VFSM::open(FAT32FILE* file)
