@@ -420,8 +420,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     Process* tar;
 
     kout[Debug] << "Schedule NOW  "<< curProc->getName() << endl;
-    curProc->context = preContext;
-
+    curProc->context = preContext;//记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
     // kout<<Blue<<procCount<<endl;
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
@@ -429,34 +428,28 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     RetrySchedule:
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
             tar = &Proc[(i + p) % MaxProcessCount];
-            // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {
+            // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {//Sleep的休眠时间管理，目前还未实现
             //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)
             //         tar->SwitchStat(Process::S_Ready);
             // }
             // kout<<p<<"P+i "<<(p+i)%MaxProcessCount<<tar->status<<endl;
             // pm.show();
-            if (tar->status == S_Ready) {
+            if (tar->status == S_Ready) {//如果是ready态则进行切换
                 tar->getVMS()->showVMRCount();
                 tar->run();
-                // if (tar->getID()==3) {
-                //     asm volatile("li s0,0\ncsrw sstatus,s0,li s1,0x80020\ncsrw sepc,s1\nsret");
-
-                // }
-
                 // kout[Debug] << (void*)tar->context->epc;
-
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
 
                 return tar->context;
-            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))
+            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))//如果为自动销毁且为僵死态则进行销毁
                 tar->destroy();
         }
     }
 
-    return pm.getKernelProc()->context;
+    return pm.getKernelProc()->context;//如果没有任何调度则进入内核态，防止出错
 }
 
 void ProcessManager::immSchedule()

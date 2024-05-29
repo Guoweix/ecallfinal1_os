@@ -109,16 +109,19 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
 {
     bool isOpened;
     char* rpath = unified_path(path, cwd);
-    kout<<Green<<rpath<<endl;
+    // char* rpath = unified_path("", cwd);
+
+    kout<<Green<<rpath<<" "<<path<<" "<<cwd<<endl;
+
     FAT32FILE* t;
     // kout[yellow] << rpath << endl;
     t = find_file_by_path(rpath, isOpened);
     if (t) {
         t->ref++;
     }
-    kout<<"A1"<<endl;
+    // kout<<"A1"<<endl;
     // kout[blue]<<"dsa"<<endl;
-    // t->show();
+    t->show();
 
     if (isOpened)
         return t;
@@ -168,7 +171,8 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
     Uint64 len = strlen(path);
     bool isOpened;
     char* rpath = unified_path(path, cwd);
-    kout <<"Create FILE" <<rpath << endl;
+    kout <<"Create FILE  " <<rpath << endl;
+
     FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
     if (!t) {
@@ -176,11 +180,14 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
         return false;
     }
     t->show();
+    kout<<path<<' '<<cwd<<' '<<fileName<<endl;
     re = t->fat->create_file(t, fileName, type);
     if (!re) {
         kout[Fault] << "failed create file" << endl;
         return false;
     }
+    // t->fat->show_empty_clus(2);
+    re->show();
 
     rpath[len + 1] = 0;
     rpath[len] = '/';

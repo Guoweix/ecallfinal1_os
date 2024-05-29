@@ -67,6 +67,7 @@ struct tms
 
 Uint64 Syscall_times(tms * tms);
 
+int Syscall_openat(int fd, const char* filename, int flags, int mode);
 int Syscall_linkat(int olddirfd,char *oldpath,int newdirfd,char *newpath,unsigned flags);
 int Syscall_unlinkat(int dirfd, char* path, int flags);
 inline int Syscall_getpid();

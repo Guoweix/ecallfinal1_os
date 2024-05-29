@@ -139,6 +139,8 @@ public:
     bool get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
     bool set_clus(Uint64 clus, unsigned char* buf);
     bool set_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
+    bool clear_clus(Uint64 clus);
+    bool show_empty_clus(Uint64 clus);
 
     Uint64 find_empty_clus();
     bool set_table(FAT32FILE* file);

@@ -79,13 +79,13 @@ public:
     ClockTime readyTime; // 就绪态等待时间(保留设计 暂不使用)
     Uint32 SemRef; // wait的进程数
 
-    PID id;
-    ProcessManager* pm;
-    ProcStatus status;
-    void* stack;
+    PID id;//pid 从0开始计数
+    ProcessManager* pm;//与之相关联的进程管理器
+    ProcStatus status;//进程状态
+    void* stack;//进程的内核栈
     Uint32 stacksize;
-    VirtualMemorySpace* VMS;
-    file_object* fo_head;
+    VirtualMemorySpace* VMS;//虚拟内存管理
+    file_object* fo_head;//文件object拥有通过文件描述符管理文件，实际是一个打开文件的链表
 
 public:
     // 关于父节点及子节点的链接
@@ -96,19 +96,14 @@ public:
 
 private:
     
-    char* curWorkDir;
-
-    Semaphore* waitSem;
-
-    HeapMemoryRegion* Heap;
-
-    TrapFrame* context;
-
-    Uint64 flags;
-    char name[PROC_NAME_LEN];
+    char* curWorkDir;//工作路径
+    Semaphore* waitSem;//进程专属信号量
+    HeapMemoryRegion* Heap;//进程的堆区
+    TrapFrame* context;//上下文
+    Uint64 flags;//表示进程的状态，如用户态还是内核态，同时可以实现自动内存回收
+    char name[PROC_NAME_LEN];//进程名称
     Uint32 nameSpace;
-
-    Uint32 exitCode;
+    Uint32 exitCode;//结束返回值
 
 public:
     void show(int level = 0);

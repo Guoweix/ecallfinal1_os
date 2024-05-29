@@ -199,17 +199,14 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     info.flag = 1;
 
     InterruptEnable();
-    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
+    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; //通知QEMU 
 
-    while (last_used_idx==used->id) {
+    while (last_used_idx==used->id) {//轮询操作,等待中断
     }
     
     // kout[Debug] << "!!!!!4!!!!!" << endl;
     InterruptDisable();
 
-    // kout<<DataWithSizeUnited(avail,128,32);
-    // kout<<DataWithSizeUnited(pages,64,32);
-    // kout<<DataWithSizeUnited(&pages[4096],64,32);
     free_chain(idx[0]);
     IntrRestore(a);
 }
@@ -219,7 +216,7 @@ void VirtioDisk::virtio_disk_intr()
     // kout << "intr" << endl;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;
-    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;
+    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;//确认受到响应
 
 }
 
@@ -263,7 +260,7 @@ bool DISK::DiskInit()
 
     VDisk.init();
 
-    kout[Info] << "Disk init OK" << endl;
+    kout[Info] << "Disk init K" << endl;
     return true;
 }
 

@@ -199,17 +199,15 @@ void VFSM_test()
 {
     FAT32FILE* file;
 
-    vfsm.create_file("/", "/", "temp.txt");
-    vfsm.create_file("/", "/", "temp1.txt");
-    vfsm.create_file("/", "/", "temp2.txt");
+    vfsm.create_file("/", "/", "test_unlink");
 
     file = vfsm.get_next_file(vfsm.get_root());
     file_object* fo = new file_object();
     while (file) {
-        if (file->table.size == 0) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
-            continue;
-        }
+        // if (file->table.size == 0) {
+        // file = vfsm.get_next_file(vfsm.get_root(), file);
+        // continue;
+        // }
         if (file->TYPE == FAT32FILE::__DIR) {
             file = vfsm.get_next_file(vfsm.get_root(), file);
             continue;
@@ -218,23 +216,49 @@ void VFSM_test()
         fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
 
-        kout << "file name" << file << " " << file->name << endl;
-        ;
-
-        // kout<<"END"<<endl;
-        // }
+        // kout << "file name" << file << " " << file->name << endl;
+        // ;
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
         // kout << file;
     }
+    FAT32FILE* f = vfsm.open("test_unlink", "/");
+    if (f) {
+        kout << "test_unlink find:" << f->name << endl;
+    } else {
+        kout[Fault] << "can't open" << endl;
+    }
+}
+
+bool VFSM_test1(char i)
+{
+    char  fn[20];
+    char t[20]={i,0};
+    strcpy(fn,"fuck_fuck_you");
+    strcat(fn,t);
+    kout<<"____________________CREATE____________________"<<endl;
+    
+    vfsm.create_file("/", "/", fn);
+    kout<<"____________________Find________________"<<endl;
+    FAT32FILE* f = vfsm.open(fn, "/");
+     if (f) {
+        kout << "test_unlink find:" << f->name << endl;
+    } else {
+        kout[Fault] << "can't open" << endl;
+    }
+    
 }
 
 void final_test()
 {
+
+
+// VFSM_test();
     FAT32FILE* file;
     file = vfsm.get_next_file(vfsm.get_root());
     file_object* fo = new file_object();
     // kout << file;
+    char ch='A';
     while (file) {
         kout << file->name << endl;
         if (file->table.size == 0) {
@@ -248,11 +272,12 @@ void final_test()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
-
-        // kout << file->name << endl;
+        
+        // VFSM_test1(ch++);
 
         Process* task;
         if (strcmp(file->name, "unlink") == 0) {
+
             task = CreateProcessFromELF(fo, "/");
             while (1) {
                 if (task->getStatus() == S_Terminated) {
@@ -265,10 +290,11 @@ void final_test()
         // kout << file;
     }
 
+FinalTestEnd:
+    kout << "finish test" << endl;
 
-    FinalTestEnd:
-        kout<<"finish test"<<endl;
-        
+// VFSM_test();
+
     while (1) {
         delay(1e7);
         Putchar('.');
@@ -300,7 +326,6 @@ void test_final1()
         // kout.SetEnabledType(0);
         kout.SwitchTypeOnoff(Fault, true);
 
-
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
         if (test != nullptr) {
@@ -312,18 +337,16 @@ void test_final1()
                     // pm.show();
                     test = nullptr;
                     break;
-                }
-                else {
+                } else {
                     pm.immSchedule();
                 }
-
             }
         }
         // kout.SetEnabledType(-1);
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
     }
-        kout.SetEnabledType(-1);
+    kout.SetEnabledType(-1);
     kout << "test finish" << endl;
 }
 
@@ -331,13 +354,12 @@ unsigned VMMINFO;
 int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
-    kout.SwitchTypeOnoff(VMMINFO, false);
-    kout.SetEnableEffect(false);
-
+    kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
+    // kout.SetEnableEffect(false);
+    // kout.SetEnabledType(0);
     TrapInit();
     ClockInit();
 
-    kout.SetEnabledType(0);
     kout[Info] << "System start success!" << endl;
     pmm.Init();
     // pmm.show();
@@ -345,30 +367,32 @@ int main()
     // pmm_test();
     VirtualMemorySpace::InitStatic();
 
-    // pagefault_test();
-    // kout[Info] << "hello" << (void*)hello << endl;
-    // kout[Info] << "hello1" << (void*)hello1 << endl;
-    // kout[Info] << "KernelProcessEntry" << (void*)KernelProcessEntry << endl;
-
-    // kout<<DataWithSize((void *)0xffffffff88200000,118);
-
     pm.init();
-
-    // kout["kkkkkk"]<<&((VRingAvail*)nullptr)->ring<<endl;
 
     Disk.DiskInit();
     kout[Info] << "Diskinit finish" << endl;
     vfsm.init();
     kout[Info] << "vfsm finish" << endl;
-    // int t;
-    // Sector *sec=(Sector *)pmm.malloc(512,t);
-    // Disk.readSector(0, sec);
-    // kout<<DataWithSize(sec,sizeof(Sector));
 
     // Driver_test();
     InterruptEnable();
     // new_test();
     // VFSM_test();
+
+    // char * a="/";
+    // char * b="/";
+    // char * c="test_unlink";
+    // vfsm.create_file(a, b, c);
+    // FAT32FILE* f = vfsm.open(c, a);
+    // if (f) {
+    //     kout << "test_unlink find:" << f->name << endl;
+    // } else {
+    //     kout << "can't open" << endl;
+    // }
+
+// for (char ch='A';ch<'Z'+1;ch++) {
+// VFSM_test1(ch);
+// }
     // final_test();
     test_final1();
     // pm_test();

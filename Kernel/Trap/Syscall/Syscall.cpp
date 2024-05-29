@@ -403,7 +403,6 @@ int Syscall_linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, uns
     return -1;
 }
 
-
 Uint64 Syscall_times(tms* tms)
 {
     // 获取进程时间的系统调用
@@ -527,7 +526,7 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
-    kout<<Green<<"Unlinkat 6"<<endl;
+    kout << Green << "Unlinkat 6" << endl;
     return 0;
 }
 
@@ -692,7 +691,16 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     return rd;
 }
 
-inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
+
+
+void VFSM_test();
+int Syscall_openat1(int fd, const char* filename, int flags, int mode)
+{
+    kout<<Red<<"_____________________________________________________________"<<endl;
+    VFSM_test();
+    kout<<Red<<"_____________________________________________________________"<<endl;
+}
+int Syscall_openat(int fd, const char* filename, int flags, int mode)
 {
     // 打开或创建一个文件的系统调用
     // fd为文件所在目录的文件描述符
@@ -703,91 +711,100 @@ inline int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // flags为访问模式 必须包含以下一种 O_RDONLY O_WRONLY O_RDWR
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
-    kout<<Red<<"OpenedFile"<<endl;
+    // kout << Red << "OpenedFile" << endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
-    kout<<Red<<"OpenedFile1"<<endl;
+    // kout << Red << "OpenedFile1" << endl;
     char* cwd = cur_proc->getCWD();
-    kout<<Red<<"OpenedFile2"<<endl;
+    // kout << Red << "OpenedFile2" << endl;
     if (fd == AT_FDCWD) {
-    kout<<Red<<"OpenedFile3"<<endl;
+        // kout << Red << "OpenedFile3" << endl;
         rela_wd = cur_proc->getCWD();
     } else {
-    kout<<Red<<"OpenedFile4"<<endl;
+        // kout << Red << "OpenedFile4" << endl;
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    kout<<Red<<"OpenedFile5"<<endl;
+        // kout << Red << "OpenedFile5" << endl;
         if (fo != nullptr) {
             rela_wd = fo->file->path;
         }
     }
 
+    if (filename[0] == '.' && filename[1] != '.') {
+        filename+=2;
+    }
+
     if (flags & file_flags::O_CREAT) {
         // 创建文件或目录
         // 创建则在进程的工作目录进行
-    kout<<Red<<"OpenedFile6"<<endl;
+        kout << Red << "OpenedFile6" << endl;
         if (flags & file_flags::O_DIRECTORY) {
-    kout<<Red<<"OpenedFile6 DIR"<<endl;
+            kout << Red << "OpenedFile6 DIR" << endl;
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
         } else {
-    kout<<Red<<"OpenedFile6 FILE"<<endl;
-            vfsm.create_file(rela_wd, cwd, (char*)filename);
+            kout << Red << "OpenedFile6 FILE" << endl;
+           if(! vfsm.create_file(rela_wd, cwd, (char*)filename))
+                kout[Fault]<<"create"<<endl;
         }
-    kout<<Red<<"OpenedFile7"<<endl;
+
+        // kout << Red << "OpenedFile7" << endl;
     }
 
 
-    
 
 
-    char* path = vfsm.unified_path(filename, rela_wd);
-    kout<<Red<<"OpenedFile8"<<endl;
-    if (path == nullptr) {
-        return -1;
-    }
-    kout<<Red<<"OpenedFile9"<<endl;
+    // char* path = vfsm.unified_path(filename, rela_wd);
+    // kout << Red << "OpenedFile8" << endl;
+    // if (path == nullptr) {
+    //     return -1;
+    // }
+    // kout << Red << "OpenedFile9" << endl;
+
     // trick
     // 暂时没有对于. 和 ..的路径名的处理
     // 特殊处理打开文件当前目录.的逻辑
     FAT32FILE* file = nullptr;
-    if (filename[0] == '.' && filename[1] != '.') {
-        int str_len = strlen(filename);
-        char* str_spc = new char[str_len];
-        strcpy(str_spc, filename + 1);
-    kout<<Red<<"OpenedFile10"<<endl;
-    kout<<Red<<str_spc<<endl;
-        file = vfsm.open(str_spc, rela_wd);
-    } else {
-    kout<<Red<<"OpenedFile11"<<endl;
-        file = vfsm.open(filename, rela_wd);
-    }
+    
+    // if (filename[0] == '.' && filename[1] != '.') {
+    //     int str_len = strlen(filename);
+    //     char* str_spc = new char[str_len];
+    //     strcpy(str_spc, filename + 1);
+    //     kout << Red << "OpenedFile10" << endl;
+    //     kout << Red << str_spc << endl;
+    //     file = vfsm.open(str_spc, rela_wd);
+    // } else {
+    //     kout << Red << "OpenedFile11" << endl;
+    //     file = vfsm.open(filename, rela_wd);
+    // }
+
+
+
+    file = vfsm.open(filename, rela_wd);
+
 
     if (file != nullptr) {
-    kout<<Red<<"OpenedFile12"<<endl;
+        kout << Red << "OpenedFile12" << endl;
         if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
+    } else {
+        return -1;
     }
-    else {
-        return  -1;
-    }
-
-
 
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
-    kout<<Red<<"OpenedFile13"<<endl;
+    kout << Red << "OpenedFile13" << endl;
     if (fo == nullptr || fo->fd < 0) {
         return -1;
     }
-    kout<<Red<<"OpenedFile14"<<endl;
+    kout << Red << "OpenedFile14" << endl;
     if (file != nullptr) {
         fom.set_fo_file(fo, file);
         fom.set_fo_flags(fo, flags);
         fom.set_fo_mode(fo, mode);
-    kout<<Red<<"OpenedFile15"<<endl;
+        kout << Red << "OpenedFile15" << endl;
     }
-    kfree(path);
+    // kfree(path);
     VirtualMemorySpace::DisableAccessUser();
     return fo->fd;
 }
@@ -832,8 +849,6 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
 
     return 0;
 }
-
-
 
 int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 {
@@ -918,7 +933,7 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout<<endline<<"Syscall:" << tf->reg.a7 << endl;
+    kout << endline << "Syscall:" << tf->reg.a7 << endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -963,7 +978,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_uname((utsname*)tf->reg.a0);
         break;
     case SYS_unlinkat:
-        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0,(char*)tf->reg.a1,tf->reg.a2);
+        tf->reg.a0 = Syscall_unlinkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
         break;
     case SYS_read:
         tf->reg.a0 = Syscall_read(tf->reg.a0, (void*)tf->reg.a1, tf->reg.a2);
@@ -1017,7 +1032,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     default:
         // kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
-        tf->reg.a0=-1;
+        tf->reg.a0 = -1;
     }
 
     return true;
