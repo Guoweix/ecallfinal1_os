@@ -141,6 +141,9 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
 }
 void VFSM::close(FAT32FILE* t)
 {
+    if (t==OpenedFile) {
+        return;
+    }
     t->ref--;
     kout<<"Close :: ref"<<t->ref<<endl;
     // show_opened_file();

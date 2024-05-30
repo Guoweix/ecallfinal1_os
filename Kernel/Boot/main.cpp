@@ -138,7 +138,7 @@ int hello1(void* t)
         }
 
         SBI_PUTCHAR('B');
-        pm.immSchedule();
+        // pm.immSchedule();
     }
 }
 
@@ -357,8 +357,8 @@ int main()
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
-    // kout.SetEnableEffect(false);
-    // kout.SetEnabledType(0);
+    kout.SetEnableEffect(false);
+    kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(NEWINFO,false);
 
     TrapInit();
@@ -382,6 +382,7 @@ int main()
     InterruptEnable();
     // new_test();
     // VFSM_test();
+    // pm_test();
 
     // char * a="/";
     // char * b="/";
