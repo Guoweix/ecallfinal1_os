@@ -130,28 +130,29 @@ private:
     // char  cache[4096];
 
 public:
-    DBR Dbr;
-    Uint64 clus_to_lba(Uint64 clus);
+    DBR Dbr;//fat原始信息记录
+    Uint64 clus_to_lba(Uint64 clus);//clus号和lba互相转化
     Uint64 lba_to_clus(Uint64 lba);
-    FAT32FILE* get_child_form_clus(char* child_name, Uint64 src_lba); // 返回文件table
 
-    bool get_clus(Uint64 clus, unsigned char* buf);
+
+    bool get_clus(Uint64 clus, unsigned char* buf);//获取簇中的数据
     bool get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
-    bool set_clus(Uint64 clus, unsigned char* buf);
+    bool set_clus(Uint64 clus, unsigned char* buf);//设置簇
     bool set_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
     bool clear_clus(Uint64 clus);
-    bool show_empty_clus(Uint64 clus);
+    bool show_empty_clus(Uint64 clus);//Debug用，测试簇中空虚的FATTABLE
 
-    Uint64 find_empty_clus();
-    bool set_table(FAT32FILE* file);
+    Uint64 find_empty_clus();//查找空簇,主要是遍历fat1
+    bool set_table(FAT32FILE* file);//从文件到fatTable
     Uint32 get_next_clus(Uint32 clus);
-    bool set_next_clus(Uint32 clus, Uint32 nxt_clus);
+    bool set_next_clus(Uint32 clus, Uint32 nxt_clus);//为簇设置下一个簇
 
 
     bool init();
     FAT32();
     ~FAT32();
     FAT32FILE* find_file_by_path(char* path);
+    FAT32FILE* get_child_form_clus(char* child_name, Uint64 src_lba); // 从文件夹簇中读取出fat32file文件对象
     FAT32FILE* open(char* path);
     bool close(FAT32FILE* p);
     bool link();

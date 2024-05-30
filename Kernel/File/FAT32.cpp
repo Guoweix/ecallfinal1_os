@@ -42,6 +42,7 @@ bool FAT32::unlink(FAT32FILE* file)
     Uint64 nxt;
 
     delete[] p;
+    return  true;
 }
 
 FAT32FILE::~FAT32FILE()
@@ -722,6 +723,7 @@ void FAT32FILE::show()
          << "CLUS " << clus << endl
          << "POS  " << table_clus_pos << endl
          << "OFF  " << table_clus_off << endl
+         << "ref  " << ref << endl
          << endl;
     // <<"Creation Time"<<1980+(table.S_date[1]&0xfe)<<'/'
 }

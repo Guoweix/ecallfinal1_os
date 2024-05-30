@@ -336,7 +336,7 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr)
 
 void Process::switchStatus(ProcStatus tarStatus)
 {
-    // kout<<Yellow<<id<<"   status to"<<tarStatus<<endl;
+    kout<<Yellow<<name<<"   status to"<<tarStatus<<endl;
     ClockTime t = GetClockTime();
     ClockTime d = t - timeBase;
     timeBase = t;
@@ -390,7 +390,7 @@ Process* ProcessManager::getProc(PID _id)
 
 bool ProcessManager::freeProc(Process* proc)
 {
-    // kout<<Yellow<<"freeProc "<<proc->getID()<<endl;
+    kout<<Yellow<<"freeProc "<<proc->getID()<<endl;
     if (proc->getStatus()==S_None) {
         return true;
     }

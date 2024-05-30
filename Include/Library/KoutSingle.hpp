@@ -541,5 +541,6 @@ using namespace POS;//Remove this if you want to use it by yourself.
 //};
 
 extern unsigned VMMINFO;
+extern unsigned NEWINFO;
 
 #endif

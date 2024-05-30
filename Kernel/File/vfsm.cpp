@@ -62,6 +62,7 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
 {
 
     if (path[0] == '/' && path[1] == 0) {
+        isOpened=true;
         return get_root();
     }
 
@@ -116,12 +117,9 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
     FAT32FILE* t;
     // kout[yellow] << rpath << endl;
     t = find_file_by_path(rpath, isOpened);
-    if (t) {
-        t->ref++;
-    }
     // kout<<"A1"<<endl;
     // kout[blue]<<"dsa"<<endl;
-    t->show();
+    // t->show();
 
     if (isOpened)
         return t;
@@ -131,9 +129,8 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
         return nullptr;
     }
     t->next = OpenedFile->next;
-    kout<<"A3"<<endl;
+    t->pre=OpenedFile;
     OpenedFile->next = t;
-    kout<<"A4"<<endl;
     if (t->next)
         t->next->pre = t;
     kout<<"A5"<<endl;
@@ -145,12 +142,20 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
 void VFSM::close(FAT32FILE* t)
 {
     t->ref--;
+    kout<<"Close :: ref"<<t->ref<<endl;
+    // show_opened_file();
+    kout<<Red<<"t pre:"<<t->pre<<" t next "<<t->next<<endl;
     if (t->ref == 0) {
         if (t->pre) {
+            // t->pre->show();
             t->pre->next = t->next;
         }
         if (t->next)
+        {
+            // t->next->show();
             t->next->pre = t->pre;
+        }
+
         delete t;
     }
 }
@@ -179,7 +184,7 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
         kout[Fault] << "can't find dir" << endl;
         return false;
     }
-    t->show();
+    // t->show();
     kout<<path<<' '<<cwd<<' '<<fileName<<endl;
     re = t->fat->create_file(t, fileName, type);
     if (!re) {
@@ -187,7 +192,7 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
         return false;
     }
     // t->fat->show_empty_clus(2);
-    re->show();
+    // re->show();
 
     rpath[len + 1] = 0;
     rpath[len] = '/';
@@ -267,6 +272,7 @@ FAT32FILE* VFSM::open(FAT32FILE* file)
     file->ref++;
     file->next = OpenedFile->next;
     OpenedFile->next = file;
+    file->pre=OpenedFile;
     if (file->next)
         file->next->pre = file;
     return file;

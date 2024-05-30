@@ -331,7 +331,7 @@ void test_final1()
         if (test != nullptr) {
             while (1) {
                 if (test->getStatus() == S_Terminated) {
-                    kout << pm.getCurProc()->getName() << ' ' << test->getID();
+                    kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
                     pm.freeProc(test);
                     // delay(1e8);
                     // pm.show();
@@ -346,17 +346,21 @@ void test_final1()
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
     }
-    kout.SetEnabledType(-1);
+    // kout.SetEnabledType(-1);
     kout << "test finish" << endl;
 }
 
 unsigned VMMINFO;
+unsigned NEWINFO;
 int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
+    NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     // kout.SetEnabledType(0);
+    kout.SwitchTypeOnoff(NEWINFO,false);
+
     TrapInit();
     ClockInit();
 

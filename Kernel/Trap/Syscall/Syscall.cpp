@@ -270,6 +270,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
                 VirtualMemorySpace::EnableAccessUser();
                 exit_value = child->getExitCode();
                 VirtualMemorySpace::DisableAccessUser();
+                kout<<cur_proc->getName() <<"execve free"<<child->getName()<<endl;
                 pm.freeProc(child);
                 break;
             }
@@ -336,6 +337,7 @@ int Syscall_wait4(int pid, int* status, int options)
 
             // pm.getCurProc()->getVMS()->show();
             child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
+            kout<<Red<<cur_proc->getName() <<"wait4 freeProc "<<child->getName();
             pm.freeProc(child);
             kout[Info] << "child DEAD   " << ret << endl;
             return ret;
@@ -514,15 +516,32 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     // path是要删除的链接的名字
     // flags可设置为0或AT_REMOVEDIR
     // 成功返回0 失败返回-1
+    kout<<"Unlinkat dir fd "<<dirfd<<endl;
 
+    char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
-    file_object* fo_head = cur_proc->fo_head;
-    file_object* fo = fom.get_from_fd(fo_head, dirfd);
-    if (fo == nullptr) {
+    char* cwd = cur_proc->getCWD();
+    if (dirfd == AT_FDCWD) {
+        rela_wd = cur_proc->getCWD();
+    } else {
+        file_object* fo = fom.get_from_fd(cur_proc->fo_head, dirfd);
+        if (fo != nullptr) {
+            rela_wd = fo->file->path;
+        }
+        else {
+        kout<<"unlink can't find file"<<endl;
         return -1;
+        }
+
     }
+
+    if (path[0]=='.'&&path[1]!='.') {
+        path+=2;
+    }
+    // vfsm.show_opened_file();
     VirtualMemorySpace::EnableAccessUser();
-    if (!vfsm.unlink(path, fo->file->path)) {
+    if (!vfsm.unlink(path, rela_wd)) {
+        kout<<"unlink failed"<<endl;
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
@@ -612,7 +631,7 @@ inline int Syscall_close(int fd)
     // 传入参数为要关闭的文件描述符
     // 成功执行返回0 失败返回-1
 
-    // kout << Yellow << "syscall close " << fd << endl;
+    kout << Yellow << "syscall close " << fd << endl;
     Process* cur_proc = pm.getCurProc();
 
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
@@ -620,11 +639,16 @@ inline int Syscall_close(int fd)
     if (fo == nullptr) {
         return -1;
     }
+    // vfsm.show_opened_file();
+    // vfsm.close(fo->file);
+    // vfsm.show_opened_file();
     if (!fom.close_fo(cur_proc, fo)) {
         // fom中的close_fo调用会关闭这个文件描述符
         // 主要是对相关文件的解引用并且从文件描述符表中删去这个节点
+        kout<<"close error"<<endl;
         return -1;
     }
+        kout<<"close success"<<endl;
     return 0;
 }
 
@@ -782,7 +806,6 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
 
     file = vfsm.open(filename, rela_wd);
 
-
     if (file != nullptr) {
         kout << Red << "OpenedFile12" << endl;
         if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
@@ -792,6 +815,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         return -1;
     }
 
+    file->show();
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
     kout << Red << "OpenedFile13" << endl;
     if (fo == nullptr || fo->fd < 0) {
@@ -805,6 +829,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
+    kout<<fo->fd<<endl;
     VirtualMemorySpace::DisableAccessUser();
     return fo->fd;
 }
