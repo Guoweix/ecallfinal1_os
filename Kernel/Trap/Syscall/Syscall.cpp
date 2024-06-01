@@ -866,6 +866,24 @@ int Syscall_umount2(const char* special, int flags)
     return 0;
 }
 
+int Syscall_munmap(void *start,Uint64 len)
+{
+	VirtualMemorySpace *vms=pm.getCurProc()->getVMS();
+	VirtualMemoryRegion *vmr=vms->FindVMR((PtrSint)start);
+	if (vmr==nullptr)
+		return -1;
+	if (vmr->GetFlags()&VirtualMemoryRegion::VM_File)
+	{
+		MemapFileRegion *mfr=(MemapFileRegion*)vmr;
+		ErrorType err=mfr->Save();
+		if (err<0)
+			kout[Error]<<"Syscall_munmap: mfr failed to save! ErrorCode: "<<err<<endl;
+		delete mfr;
+	}
+	else vms->RemoveVMR(vmr,1);
+	return 0;
+}
+
 
 PtrSint Syscall_mmap(void *start,Uint64 len,int prot,int flags,int fd,int off)//Currently flags will be ignored...
 {
@@ -1187,6 +1205,11 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case  SYS_mmap:
         tf->reg.a0=Syscall_mmap((void *)tf->reg.a0, tf->reg.a1, tf->reg.a2,tf->reg.a3,tf->reg.a4,tf->reg.a5);
         break;
+    case  SYS_munmap:
+        tf->reg.a0=Syscall_munmap((void *)tf->reg.a0, tf->reg.a1);
+        break;
+
+
     case SYS_nanosleep:
         tf->reg.a0 = Syscall_nanosleep((timespec*)tf->reg.a0, (timespec*)tf->reg.a1);
         break;

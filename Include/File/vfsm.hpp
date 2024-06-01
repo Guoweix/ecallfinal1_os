@@ -1,6 +1,7 @@
 #ifndef __VFSM_HPP__
 #define __VFSM_HPP__
 
+#include "Library/KoutSingle.hpp"
 #include "Memory/pmm.hpp"
 #include "Memory/vmm.hpp"
 #include "Types.hpp"
@@ -50,7 +51,9 @@ class MemapFileRegion:public VirtualMemoryRegion
 			VirtualMemorySpace *old=VirtualMemorySpace::Current();
 			VMS->Enter();
 			VMS->EnableAccessUser();
-			Sint64 re=File->write((unsigned char *)StartAddr,Offset,Length);
+			Uint64 re=0;	
+			kout<<Red<<"Save"<<endl;
+			// Sint64 re=File->write((unsigned char *)StartAddr,Offset,Length);
 			VMS->DisableAccessUser();
 			old->Enter();
 			return re>=0?ERR_None:-re;//??

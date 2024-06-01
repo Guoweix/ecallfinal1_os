@@ -276,7 +276,7 @@ void final_test()
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "mmap") == 0) {
+        if (strcmp(file->name, "munmap") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {

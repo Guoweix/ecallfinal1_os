@@ -48,6 +48,8 @@ int Syscall_umount2(const char* special, int flags);
 int Syscall_mount(const char* special, const char* dir, const char* fstype, Uint64 flags, const void* data);
 
 
+int Syscall_munmap(void *start,Uint64 len);
+
 struct timespec
 {
     long tv_sec;                    // 秒
