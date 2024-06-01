@@ -478,8 +478,7 @@ FAT32FILE* FAT32::create_dir(FAT32FILE* dir, char* fileName)
     FAT32FILE* re;
     re = create_file(dir, fileName, FATtable::SUBDIRENCTORY);
     Uint64 rclus = find_empty_clus();
-    re->table.high_clus |= (rclus >> 16) & 0xff;
-    re->table.low_clus |= rclus & 0xff;
+
     re->clus = rclus;
     set_table(re); // 更新目录项
 
@@ -659,8 +658,8 @@ bool FAT32FILE::write(unsigned char* src, Uint64 size)
 {
 
     kout << Red << "write  " << endl;
-    if (TYPE & 0x1) {
-        // kout[red] << "this is a director" << endl;
+    if (table.type & 0x1) {
+        kout[Fault] << "this is a director" << endl;
         return false;
     }
 
@@ -905,6 +904,11 @@ bool FAT32::set_table(FAT32FILE* file)
     Uint8* temp = new Uint8[Dbr.clus_size];
     FATtable* ft;
     get_clus(file->table_clus_pos, temp);
+
+    file->table.high_clus |= (file->clus >> 16) & 0xff;
+    file->table.low_clus |= file->clus & 0xff;
+
+
     ft = (FATtable*)temp;
     memcpy(&ft[file->table_clus_off], (char*)&(file->table), 32);
     set_clus(file->table_clus_pos, temp);

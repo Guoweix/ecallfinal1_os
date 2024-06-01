@@ -1,3 +1,4 @@
+#include "File/FAT32.hpp"
 #include "Library/KoutSingle.hpp"
 #include <File/vfsm.hpp>
 
@@ -81,7 +82,7 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
                 return t->fat->find_file_by_path(cpath);
             }
         }
-
+        ASSERTEX(t!=t->next,"LinkTable loop found in "<<__FILE__<<" "<<__LINE__);
         t = t->next;
     }
     // 当链表中均不存在该文件时，从根目录下开始搜索
@@ -272,7 +273,15 @@ FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtabl
 }
 FAT32FILE* VFSM::open(FAT32FILE* file)
 {
+    FAT32FILE * t=OpenedFile;
     file->ref++;
+    while (t) {
+        if (t==file) {
+            return  t;
+        }
+        t=t->next;
+    } 
+    
     file->next = OpenedFile->next;
     OpenedFile->next = file;
     file->pre=OpenedFile;

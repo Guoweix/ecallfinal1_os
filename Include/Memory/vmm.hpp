@@ -14,9 +14,8 @@ extern "C" {
 extern class PageTable boot_page_table_sv39[];
 };
 
-
 constexpr Uint32 PageSizeBit = 12;
-constexpr Uint64 PageSizeN[3]{PAGESIZE,PAGESIZE*512,PAGESIZE*512*512};
+constexpr Uint64 PageSizeN[3] { PAGESIZE, PAGESIZE * 512, PAGESIZE * 512 * 512 };
 class PageTable { // 页表项
 public:
     struct Entry {
@@ -323,6 +322,10 @@ public:
     {
         return EndAddress - StartAddress;
     }
+    inline void SetEnd(PtrUint _EndAddress)
+    {
+        EndAddress =_EndAddress;
+    }
 
     bool ShouldUseLargePage(Uint32 flags, PtrUint faultAddress)
     {
@@ -586,6 +589,23 @@ public:
         kout << endl;
     }
 
+    inline PtrUint GetUsableVMR(PtrUint start, PtrUint end, PtrUint length) // return 0 means invalid
+    {
+        if (start >= end || length == 0 || end - start < length)
+            return 0;
+        start = start >> PageSizeBit << PageSizeBit;
+        end = end + PAGESIZE - 1 >> PageSizeBit << PageSizeBit;
+        length = length + PAGESIZE - 1 >> PageSizeBit << PageSizeBit;
+        if (vmrHead.Nxt() == nullptr || maxN(PAGESIZE * 4ull, start) + length <= minN(vmrHead.Nxt()->StartAddress, end))
+            return maxN(PAGESIZE * 4ull, start);
+        for (VirtualMemoryRegion* vmr = vmrHead.Nxt(); vmr; vmr = vmr->Nxt())
+            if (vmr->Nxt() == nullptr) //??
+                return 0;
+            else if (maxN(vmr->EndAddress, start) + length <= minN(vmr->Nxt()->StartAddress, end))
+                return maxN(vmr->EndAddress, start);
+        return 0;
+    }
+
     ErrorType SolvePageFault(TrapFrame* tf)
     {
         kout[VMMINFO] << "SolvePageFault in " << (void*)tf->tval << endl;
@@ -599,7 +619,8 @@ public:
             return ERR_AccessInvalidVMR;
         }
         // 根据内存访问模式决定是否使用大页
-        bool useLargePage = vmr->ShouldUseLargePage(vmr->GetFlags(), tf->tval);
+        // bool useLargePage = vmr->ShouldUseLargePage(vmr->GetFlags(), tf->tval);
+        bool useLargePage = false;
         if (useLargePage) {
             // 处理大页映射
             PageTable::Entry& e2 = (*PDT)[PageTable::VPN<2>(tf->tval)];
@@ -699,7 +720,7 @@ public:
             ASSERTEX(q, "VirtualMemorySpace::CreateFrom failed to allocate VMR!");
             q->Init(p->StartAddress, p->EndAddress, p->Flags);
             InsertVMR(q);
-            q->CopyMemory(*PDT, *src->PDT, 2,0);
+            q->CopyMemory(*PDT, *src->PDT, 2, 0);
             p = p->Nxt();
         }
         kout[VMMINFO] << "VirtualMemorySpace::CreateFrom " << src << ", OK this is " << this << endl;
