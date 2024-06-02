@@ -42,7 +42,7 @@ bool FAT32::unlink(FAT32FILE* file)
     Uint64 nxt;
 
     delete[] p;
-    return  true;
+    return true;
 }
 
 FAT32FILE::~FAT32FILE()
@@ -405,7 +405,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                 kout << Yellow << i << endl;
 
                 k++;
-                if(i>=Dbr.clus_size/32)
+                if (i >= Dbr.clus_size / 32)
                     break;
                 if (k == n + 1) {
 
@@ -416,7 +416,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     temp.type = type;
                     re = i;
                     ft[i] = temp;
-                    kout<<"SSSS "<<i<<'\t';
+                    kout << "SSSS " << i << '\t';
                     i--;
                     char* p = fileName;
                     for (int j = 0; j < n; j++) {
@@ -432,7 +432,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                         p = unicodecopy((char*)temp.lname1, p, 6);
                         p = unicodecopy((char*)temp.lname2, p, 2);
                         ft[i] = temp;
-                        kout<<"SSSS "<<i<<'\t';
+                        kout << "SSSS " << i << '\t';
                         i--;
                         // kout.memory(&temp, 32);
                     }
@@ -451,7 +451,6 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     return rfile;
                 }
                 i++;
-                
             }
         }
 
@@ -908,7 +907,6 @@ bool FAT32::set_table(FAT32FILE* file)
     file->table.high_clus |= (file->clus >> 16) & 0xff;
     file->table.low_clus |= file->clus & 0xff;
 
-
     ft = (FATtable*)temp;
     memcpy(&ft[file->table_clus_off], (char*)&(file->table), 32);
     set_clus(file->table_clus_pos, temp);
@@ -930,4 +928,38 @@ bool VALID(FATtable* t)
 bool EXCEPTDOT(FATtable* t)
 {
     return t->attribute != 0x2e;
+}
+
+PIPEFILE::PIPEFILE()
+    : FAT32FILE(FATtable(), nullptr)
+{
+    TYPE=__SPECICAL;
+    clus=0xffffff8;
+    table_clus_off=0;
+    table_clus_pos=0;
+    fat=nullptr;
+}
+PIPEFILE::~PIPEFILE()
+{
+}
+
+Sint64 read(unsigned char* buf, Uint64 size)
+{
+    kout[Info]<<"pipe read didn't solved"<<endl;
+    return  false;
+}
+Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size)
+{
+    kout[Info]<<"pipe read didn't solved"<<endl;
+    return  false;
+}
+bool write(unsigned char* src, Uint64 size)
+{
+    kout[Info]<<"pipe write didn't solved"<<endl;
+    return  false;
+}
+bool write(unsigned char* src, Uint64 pos, Uint64 size)
+{
+    kout[Info]<<"pipe write didn't solved"<<endl;
+    return  false;
 }

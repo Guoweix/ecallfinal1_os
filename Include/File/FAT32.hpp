@@ -67,12 +67,19 @@ union FATtable
     };
 
     Sint32 get_name(char* REname); // 返回值为-1时说明无效，0为短名称，大于1的序列为长名称(长名称无法完成拷贝),-2为点目录
+    FATtable()
+    {
+
+    }
 };
 bool ALLTURE(FATtable* t);
 bool VALID(FATtable* t);
 bool EXCEPTDOT(FATtable* t);
 class FAT32;
 class VFSM;
+
+
+
 
 class FAT32FILE
 {
@@ -114,6 +121,24 @@ public:
 
     void show();
 };
+
+
+class PIPEFILE: public FAT32FILE
+{
+public:
+
+    PIPEFILE();
+    ~PIPEFILE();
+
+    Sint64 read(unsigned char* buf, Uint64 size);
+    Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size);
+    bool write(unsigned char* src, Uint64 size);
+    bool write(unsigned char* src, Uint64 pos, Uint64 size);
+
+
+    void show();
+};
+
 
 class FAT32
 {
