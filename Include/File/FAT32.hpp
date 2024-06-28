@@ -35,6 +35,7 @@ union FATtable
         FILE = 0x1 << 5,
         DEVICE = 0x1 << 6,
     };
+    
     struct
     {
         char name[8];
@@ -54,6 +55,7 @@ union FATtable
         Uint16 low_clus;
         Uint32 size;
     };
+
     struct
     {
         Uint8 attribute;
@@ -68,6 +70,7 @@ union FATtable
 
     Sint32 get_name(char* REname); // 返回值为-1时说明无效，0为短名称，大于1的序列为长名称(长名称无法完成拷贝),-2为点目录
 };
+
 bool ALLTURE(FATtable* t);
 bool VALID(FATtable* t);
 bool EXCEPTDOT(FATtable* t);
@@ -87,6 +90,7 @@ public:
         __LINK = 1ull << 5,
         __SPECICAL = 1ull << 6,
     };
+    
     char* name = nullptr;
     Uint32 TYPE;
     FATtable table;
