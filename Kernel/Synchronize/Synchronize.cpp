@@ -17,6 +17,7 @@ void ProcessQueue::printAllQueue()
         nxt = nxt->next;
     }
 }
+
 void ProcessQueue::init()
 {
     // front = (ListNode*)slab.allocate(sizeof(ListNode));
@@ -150,6 +151,7 @@ void Semaphore::signal()
     unlockProcess();
     IntrRestore(intr_flag);
 }
+
 int Semaphore::getValue()
 {
     bool intr_flag;
