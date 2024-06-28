@@ -11,49 +11,52 @@
 #include <Trap/Trap.hpp>
 #include <Types.hpp>
 
-#define PROC_NAME_LEN 50
-#define UserPageSize 12 * PAGESIZE
+#define PROC_NAME_LEN 50 //进程名字
+#define UserPageSize 12 * PAGESIZE  //用户页大小
 
-const Uint32 MaxProcessCount = 128;
-const PtrSint InnerUserProcessLoadAddr = 0x800020,
-              InnerUserProcessStackSize = PAGESIZE * 32,
-              InnerUserProcessStackAddr = 0x80000000 - InnerUserProcessStackSize;
+const Uint32 MaxProcessCount = 128;  //最大进程数量
+const PtrSint InnerUserProcessLoadAddr = 0x800020,  //进程加载地址
+              InnerUserProcessStackSize = PAGESIZE * 32,  //所有进程栈空间大小
+              InnerUserProcessStackAddr = 0x80000000 - InnerUserProcessStackSize;  //栈起始地址
 
 // class VMM;
-class Semaphore;
+class Semaphore;//信号量
 class FileObjectManager;
 
 // struct RegContext { //     RegisterData ra, sp, s[12]; // };
 class file_object;
 
-inline RegisterData GetCPUID()
+inline RegisterData GetCPUID() //读取CPU ID到寄存器
 {
     RegisterData id;
-    asm volatile("mv %0,tp" : "=r"(id));
+    asm volatile("mv %0,tp" : "=r"(id));  //汇编并且不能被编译器优化
     return id;
 }
 
 class ProcessManager;
 
+//退出的状态（如何退出
 enum ExitType : Sint32 {
     Exit_Destroy = -1,
     Exit_Normal = 0,
     Exit_BadSyscall,
     Exit_Execve,
     Exit_SegmentationFault,
-
 };
+
+//进程状态
 enum ProcStatus : Uint32 {
     S_None = 0,
-    S_Allocated,
-    S_Initing,
-    S_Ready,
-    S_Running,
-    S_UserRunning,
-    S_Sleeping,
-    S_Terminated,
-
+    S_Allocated,  //已经被分配
+    S_Initing,    //正在初始化
+    S_Ready,      //已经准备好了
+    S_Running,    //正在运行
+    S_UserRunning,//好像没用现在
+    S_Sleeping,   //正在休眠
+    S_Terminated, //终结
 };
+
+//进程标记位信息
 enum ProcFlag : Uint64 {
     F_User = 0,
     F_Kernel = 1ull << 0,
@@ -62,30 +65,31 @@ enum ProcFlag : Uint64 {
     F_OutsideName = 1ull << 3,
 };
 
+//存储每个进程的结构体
 class Process {
-    friend ProcessManager;
-    friend Semaphore;
+    friend ProcessManager;    //管理打开的进程（目前数组）
+    friend Semaphore;         //进程需要某信号，需要信号中断
     friend FileObjectManager;
 public:
-    ClockTime timeBase; // Round Robin时间片轮转调度实现需要 计时起点
-    ClockTime runTime; // 进程运行的时间
+    ClockTime timeBase;      //Round Robin时间片轮转调度实现需要 计时起点
+    ClockTime runTime;       //进程运行的时间
     ClockTime
-        trapSysTimeBase; // 为用户进程设计的 记录当前陷入系统调用时的起始时刻
-    ClockTime sysTime; // 为用户设计的时间 进行系统调用陷入核心态的时间
-    ClockTime sleepTime; // 挂起态等待时间 wait系统调用会更新
-                         // 其他像时间等系统调用会使用
-    ClockTime waitTimeLimit; // 进程睡眠需要 设置睡眠时间的限制
-                             // 当sleeptime达到即可自唤醒
-    ClockTime readyTime; // 就绪态等待时间(保留设计 暂不使用)
-    Uint32 SemRef; // wait的进程数
+        trapSysTimeBase;     //为用户进程设计的 记录当前陷入系统调用时的起始时刻
+    ClockTime sysTime;       //为用户设计的时间 进行系统调用陷入核心态的时间
+    ClockTime sleepTime;     //挂起态等待时间 wait系统调用会更新
+    //其他像时间等系统调用会使用
+    ClockTime waitTimeLimit; //进程睡眠需要 设置睡眠时间的限制
+                             //当sleeptime达到即可自唤醒
+    ClockTime readyTime;     //就绪态等待时间(保留设计 暂不使用)
+    Uint32 SemRef;           //wait的进程数
 
-    PID id;//pid 从0开始计数
-    ProcessManager* pm;//与之相关联的进程管理器
-    ProcStatus status;//进程状态
-    void* stack;//进程的内核栈
+    PID id;                  //进程号pid 从0开始计数
+    ProcessManager* pm;      //与之相关联的进程管理器
+    ProcStatus status;       //进程状态
+    void* stack;             //进程的内核栈（保证更安全，用户态不会访问到它不该访问的）
     Uint32 stacksize;
-    VirtualMemorySpace* VMS;//虚拟内存管理
-    file_object* fo_head;//文件object拥有通过文件描述符管理文件，实际是一个打开文件的链表
+    VirtualMemorySpace* VMS; //虚拟内存管理，所有用一个
+    file_object* fo_head;    //文件object拥有通过文件描述符管理文件，实际是一个打开文件的链表
 
 public:
     // 关于父节点及子节点的链接
@@ -96,14 +100,14 @@ public:
 
 private:
     
-    char* curWorkDir;//工作路径
-    Semaphore* waitSem;//进程专属信号量
-    HeapMemoryRegion* Heap;//进程的堆区
-    TrapFrame* context;//上下文
-    Uint64 flags;//表示进程的状态，如用户态还是内核态，同时可以实现自动内存回收
+    char* curWorkDir;        //工作路径
+    Semaphore* waitSem;      //进程专属信号量
+    HeapMemoryRegion* Heap;  //进程的堆区
+    TrapFrame* context;      //进程上下文
+    Uint64 flags;            //表示进程的状态，如用户态还是内核态，同时可以实现自动内存回收
     char name[PROC_NAME_LEN];//进程名称
     Uint32 nameSpace;
-    Uint32 exitCode;//结束返回值
+    Uint32 exitCode;         //结束返回值
 
 public:
     void show(int level = 0);
@@ -152,16 +156,17 @@ public:
     void destroy();
 };
 
+//进程管理器
 class ProcessManager {
     friend Process;
     friend Semaphore;
 
 protected:
-    Process Proc[MaxProcessCount];
-    Process* curProc;
+    Process Proc[MaxProcessCount];//数组管理
+    Process* curProc;             //当前正在调用执行的进程
 
-    Uint32 procCount;
-    SpinLock lock;
+    Uint32 procCount;             //进程数量
+    SpinLock lock;                //锁，为了正确性和安全
 
 public:
     void init();
@@ -189,11 +194,12 @@ public:
     inline PID getProcCount() { return procCount; }
 };
 
-extern ProcessManager pm;
+extern ProcessManager pm;  //全局变量
+
 extern "C" {
-extern void KernelProcessEntry(int re);
+extern void KernelProcessEntry(int re);  
 extern void UserProcessEntry();
-void KernelProcessExit(int re);
+void KernelProcessExit(int re);        //用来进程执行完返回
 // void UserProcessExit(Process * proc);
 };
 

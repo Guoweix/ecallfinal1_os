@@ -15,7 +15,7 @@
 
 void ProcessManager::init()
 {
-
+    //给每个进程初始化
     for (int i = 0; i < MaxProcessCount; i++) {
         Proc[i].flags = S_None;
         Proc[i].pm = this;
@@ -95,7 +95,7 @@ void Process::setStack(void* _stack, Uint32 _stacksize)
 
 void Process::initForKernelProc0()
 {
-    init(F_Kernel);
+    init(F_Kernel);      //初始化
     setFa(nullptr);
     stack = boot_stack;
     stacksize = PAGESIZE;
@@ -302,6 +302,7 @@ void Process::setFa(Process* fa)
         broNext->broPre = this;
     }
 }
+
 bool Process::start(void* func, void* funcData, PtrUint useraddr)
 {
 
@@ -342,6 +343,7 @@ void Process::switchStatus(ProcStatus tarStatus)
     timeBase = t;
     switch (status) {
 
+    //更新各时间值
     case S_Allocated:
     case S_Initing:
         if (tarStatus == S_Ready)
@@ -369,8 +371,8 @@ Process* ProcessManager::allocProc()
     for (int i = 0; i < MaxProcessCount; i++) {
         if (Proc[i].status == S_None) {
             procCount++;
-            Proc[i].switchStatus(S_Allocated);
-            return &Proc[i];
+            Proc[i].switchStatus(S_Allocated); //分配好所有进程状态
+            return &Proc[i];                   //返回最后一个空进程
         }
     }
     return nullptr;
@@ -504,6 +506,7 @@ bool Process::initFds()
     }
     return true;
 }
+
 bool Process::destroyFds()
 {
     // 释放一个进程的所有文件描述符表资源
@@ -520,6 +523,7 @@ bool Process::destroyFds()
     fom.free_all_flobj(fo_head);
     return true;
 }
+
 file_object* Process::getSpecFds(int fd_num)
 {
     // 充分体现了在进程和文件增加一层fo的管理和封装的绝妙之处
@@ -532,6 +536,7 @@ file_object* Process::getSpecFds(int fd_num)
     }
     return ret_fo;
 }
+
 bool Process::copyFds(Process* src)
 {
     // 对于进程间的文件描述符表的拷贝
@@ -602,4 +607,5 @@ void SwitchToUserStat()
 {
     pm.getCurProc()->switchStatus(S_UserRunning);
 }
+
 ProcessManager pm;
