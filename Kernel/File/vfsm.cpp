@@ -9,9 +9,9 @@ bool VFSM::init()
     a.size = 0;
     OpenedFile = new FAT32FILE(a, ".ROOT");
 
-    FAT32FILE * STDIN = new FAT32FILE(a, ".STDIN");
-    FAT32FILE *STDOUT = new FAT32FILE(a, ".STDOUT");
-    FAT32FILE *STDERR = new FAT32FILE(a, ".STDERR");
+    // FAT32FILE * STDIN = new FAT32FILE(a, ".STDIN");
+    // FAT32FILE *STDOUT = new FAT32FILE(a, ".STDOUT");
+    // FAT32FILE *STDERR = new FAT32FILE(a, ".STDERR");
 
     OpenedFile->fat = fat; // 挂载root
 
@@ -26,26 +26,26 @@ bool VFSM::init()
     OpenedFile->clus = fat->Dbr.root_clus;
 
 
-    STDIN->TYPE|=FAT32FILE::__SPECICAL;
-    STDERR->TYPE|=FAT32FILE::__SPECICAL;
-    STDOUT->TYPE|=FAT32FILE::__SPECICAL;
+    // STDIN->TYPE|=FAT32FILE::__SPECICAL;
+    // STDERR->TYPE|=FAT32FILE::__SPECICAL;
+    // STDOUT->TYPE|=FAT32FILE::__SPECICAL;
 
-    STDIN->ref++;
-    STDOUT->ref++;
-    STDERR->ref++;
+    // STDIN->ref++;
+    // STDOUT->ref++;
+    // STDERR->ref++;
 
 
     kout << "OpenedFile->clus" << (void*)OpenedFile->clus << endl;
     OpenedFile->next = nullptr;
     OpenedFile->pre = nullptr;
 
-    OpenedFile->next=STDIN;
-    STDIN->next=STDOUT;
-    STDOUT->next=STDERR;
-    STDERR->next=nullptr;
-    STDERR->pre=STDOUT;
-    STDOUT->pre=STDIN;
-    STDIN->pre=OpenedFile;
+    // OpenedFile->next=STDIN;
+    // STDIN->next=STDOUT;
+    // STDOUT->next=STDERR;
+    // STDERR->next=nullptr;
+    // STDERR->pre=STDOUT;
+    // STDOUT->pre=STDIN;
+    // STDIN->pre=OpenedFile;
 
 
     return true;
@@ -167,6 +167,9 @@ void VFSM::close(FAT32FILE* t)
     }
     t->ref--;
     kout << "Close :: ref" << t->ref << endl;
+    if (t->TYPE&FAT32FILE::__SPECICAL) {
+    
+    }
     // show_opened_file();
     kout << Red << "t pre:" << t->pre << " t next " << t->next << endl;
     if (t->ref == 0) {

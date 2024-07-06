@@ -1,5 +1,7 @@
 #include "Driver/VirtioDisk.hpp"
 #include "Library/KoutSingle.hpp"
+#include "Memory/vmm.hpp"
+#include "Synchronize/Synchronize.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
 
@@ -7,12 +9,15 @@
 
 FAT32FILE::FAT32FILE(FATtable ft, char* lName, Uint64 _clus, Uint64 pos, char* _path)
 {
+    kout << Yellow << "FAT32FILE" << endl;
     table = ft;
     clus = table.low_clus | (table.high_clus << 16);
 
     TYPE |= table.type & 0x10 ? 1 : 0;
-    name = new char[strlen(lName) + 1];
-    strcpy(name, lName);
+    if (lName) {
+        name = new char[strlen(lName) + 1];
+        strcpy(name, lName);
+    }
     table_clus_pos = _clus;
     table_clus_off = pos;
     next = nullptr;
@@ -516,6 +521,7 @@ bool FAT32::close(FAT32FILE* p)
 
 Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
 {
+    kout << "FAT32FILE::read" << endl;
     if (size == 0) {
         kout[Info] << "There is nothing" << endl;
         return 0;
@@ -542,6 +548,7 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
 
 Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
 {
+    kout << "FAT32FILE::read" << endl;
     if (size == 0 && pos + size > table.size) {
         kout[Info] << "There is nothing" << endl;
         return 0;
@@ -933,33 +940,67 @@ bool EXCEPTDOT(FATtable* t)
 PIPEFILE::PIPEFILE()
     : FAT32FILE(FATtable(), nullptr)
 {
-    TYPE=__SPECICAL;
-    clus=0xffffff8;
-    table_clus_off=0;
-    table_clus_pos=0;
-    fat=nullptr;
+    kout << "PIPEFILE init" << endl;
+    TYPE = __SPECICAL;
+    clus = 0xffffff8;
+    table_clus_off = 0;
+    table_clus_pos = 0;
+    fat = nullptr;
+    readRef=2;
+    writeRef=2;
+    file = new Semaphore(1);
+    full = new Semaphore(0);
+    empty = new Semaphore(FILESIZE-1);
 }
 PIPEFILE::~PIPEFILE()
 {
 }
 
-Sint64 read(unsigned char* buf, Uint64 size)
+Sint64 PIPEFILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
 {
-    kout[Info]<<"pipe read didn't solved"<<endl;
-    return  false;
+    
+    kout[Info] << "pipe read didn't solved" << endl;
+    full->wait();
+    if (full->getValue()<0) {
+        pm.immSchedule();
+    }
+
+    file->wait();
+    if (file->getValue()<0) {
+        pm.immSchedule();
+    }
+
+    VirtualMemorySpace::EnableAccessUser();
+    for (int i=0;i<size;i++) {
+        buf[i]=data[pos+i];
+        empty->signal();
+    }
+    VirtualMemorySpace::DisableAccessUser();
+
+    file->signal();
+
+    return true;
 }
-Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size)
+bool PIPEFILE::write(unsigned char* src, Uint64 size)
 {
-    kout[Info]<<"pipe read didn't solved"<<endl;
-    return  false;
-}
-bool write(unsigned char* src, Uint64 size)
-{
-    kout[Info]<<"pipe write didn't solved"<<endl;
-    return  false;
-}
-bool write(unsigned char* src, Uint64 pos, Uint64 size)
-{
-    kout[Info]<<"pipe write didn't solved"<<endl;
-    return  false;
+    
+    kout[Info] << "pipe write didn't solved" << endl;
+
+    empty->wait();
+    if (empty->getValue()<0) {
+        pm.immSchedule();
+    }
+    file->wait();
+    if (file->getValue()<0) {
+        pm.immSchedule();
+    }
+    VirtualMemorySpace::EnableAccessUser();
+    for (int i=0;i<size;i++) {
+        data[i]=src[i]; 
+        full->signal();
+    }
+    VirtualMemorySpace::DisableAccessUser();
+
+    file->signal();
+    return true;
 }

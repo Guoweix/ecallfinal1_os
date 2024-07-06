@@ -276,7 +276,7 @@ void final_test()
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "munmap") == 0) {
+        if (strcmp(file->name, "pipe") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {
@@ -356,9 +356,11 @@ int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
-    kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
-    kout.SetEnableEffect(false);
-    kout.SetEnabledType(0);
+
+    // kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
+    // kout.SetEnableEffect(false);
+    // kout.SetEnabledType(0);
+
     kout.SwitchTypeOnoff(NEWINFO,false);
 
     TrapInit();
@@ -398,8 +400,8 @@ int main()
 // for (char ch='A';ch<'Z'+1;ch++) {
 // VFSM_test1(ch);
 // }
-    // final_test();
-    test_final1();
+    final_test();
+    // test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 
