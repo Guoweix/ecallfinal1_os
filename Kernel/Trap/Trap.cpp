@@ -111,10 +111,10 @@ TrapFrame* Trap(TrapFrame* tf)
         switch (tf->cause) // 为异常
         {
         case ExceptionCode_BreakPoint:
-            switch (tf->reg.a7) {
-            default:
-                kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
-            }
+            // switch (tf->reg.a7) {
+            // default:
+                // kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
+            // }
         case ExceptionCode_UserEcall: {
             ClockTime trapStartTime=GetClockTime();
             // kout[Info] << "Ecall start" << (void*)tf->epc << endl;

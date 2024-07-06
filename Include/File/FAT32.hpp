@@ -2,6 +2,7 @@
 #define _FAT32_HPP__
 
 // #include <ramdisk_driver.hpp>
+#include "Synchronize/Synchronize.hpp"
 #include <Types.hpp>
 #include <Library/KoutSingle.hpp>
 #include <Library/Pathtool.hpp>
@@ -130,10 +131,17 @@ public:
     PIPEFILE();
     ~PIPEFILE();
 
-    Sint64 read(unsigned char* buf, Uint64 size);
+    enum:Uint32
+    {
+        FILESIZE=1<<12,
+    } ;
+
+    Uint32 readRef;
+    Uint32 writeRef;
+    Uint8 data[FILESIZE];
+    Semaphore *file,*full,*empty;
     Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size);
     bool write(unsigned char* src, Uint64 size);
-    bool write(unsigned char* src, Uint64 pos, Uint64 size);
 
 
     void show();
