@@ -1,5 +1,7 @@
 #include "Driver/VirtioDisk.hpp"
 #include "Library/KoutSingle.hpp"
+#include "Memory/vmm.hpp"
+#include "Synchronize/Synchronize.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
 
@@ -7,12 +9,16 @@
 
 FAT32FILE::FAT32FILE(FATtable ft, char* lName, Uint64 _clus, Uint64 pos, char* _path)
 {
+    kout << Yellow << "FAT32FILE" << endl;
     table = ft;
     clus = table.low_clus | (table.high_clus << 16);
 
+    TYPE = 0;
     TYPE |= table.type & 0x10 ? 1 : 0;
-    name = new char[strlen(lName) + 1];
-    strcpy(name, lName);
+    if (lName) {
+        name = new char[strlen(lName) + 1];
+        strcpy(name, lName);
+    }
     table_clus_pos = _clus;
     table_clus_off = pos;
     next = nullptr;
@@ -42,7 +48,7 @@ bool FAT32::unlink(FAT32FILE* file)
     Uint64 nxt;
 
     delete[] p;
-    return  true;
+    return true;
 }
 
 FAT32FILE::~FAT32FILE()
@@ -405,7 +411,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                 kout << Yellow << i << endl;
 
                 k++;
-                if(i>=Dbr.clus_size/32)
+                if (i >= Dbr.clus_size / 32)
                     break;
                 if (k == n + 1) {
 
@@ -416,7 +422,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     temp.type = type;
                     re = i;
                     ft[i] = temp;
-                    kout<<"SSSS "<<i<<'\t';
+                    kout << "SSSS " << i << '\t';
                     i--;
                     char* p = fileName;
                     for (int j = 0; j < n; j++) {
@@ -432,7 +438,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                         p = unicodecopy((char*)temp.lname1, p, 6);
                         p = unicodecopy((char*)temp.lname2, p, 2);
                         ft[i] = temp;
-                        kout<<"SSSS "<<i<<'\t';
+                        kout << "SSSS " << i << '\t';
                         i--;
                         // kout.memory(&temp, 32);
                     }
@@ -451,7 +457,6 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     return rfile;
                 }
                 i++;
-                
             }
         }
 
@@ -517,6 +522,7 @@ bool FAT32::close(FAT32FILE* p)
 
 Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
 {
+    kout << "FAT32FILE::read" << endl;
     if (size == 0) {
         kout[Info] << "There is nothing" << endl;
         return 0;
@@ -543,6 +549,7 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
 
 Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
 {
+    kout << "FAT32FILE::read" << endl;
     if (size == 0 && pos + size > table.size) {
         kout[Info] << "There is nothing" << endl;
         return 0;
@@ -859,7 +866,7 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
             }
             if (t == -1)
                 continue;
-            if (t == -2) {
+            if (t == -2) { // 说明文件夹开头是'.'
                 if (ft[i].name[1] == '.')
                     strcpy(lName, "..");
                 else
@@ -869,13 +876,16 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
             // if (strcmp("mnt",lName)==0)
             // kout[red]<<"find!!!";
             //     strcpy(lName, sName);
+            kout[Info] << "t is  " << t << endl;
 
             if (p(&ft[i])) {
                 // kout << Green << lName << endl;
                 re = new FAT32FILE(ft[i], lName, src_clus, i);
                 // kout<<lName<<' '<<Hex(clus_to_lba(src_clus)*512);
-                if (t == -2)
+                if (t == -2) {
                     re->TYPE |= FAT32FILE::__SPECICAL;
+                    kout[Info] << "find special file" << endl;
+                }
                 kout << re << endl;
                 delete[] sName;
                 delete[] clus;
@@ -908,7 +918,6 @@ bool FAT32::set_table(FAT32FILE* file)
     file->table.high_clus |= (file->clus >> 16) & 0xff;
     file->table.low_clus |= file->clus & 0xff;
 
-
     ft = (FATtable*)temp;
     memcpy(&ft[file->table_clus_off], (char*)&(file->table), 32);
     set_clus(file->table_clus_pos, temp);
@@ -930,4 +939,78 @@ bool VALID(FATtable* t)
 bool EXCEPTDOT(FATtable* t)
 {
     return t->attribute != 0x2e;
+}
+
+PIPEFILE::PIPEFILE()
+    : FAT32FILE(FATtable(), nullptr)
+{
+    kout << "PIPEFILE init" << endl;
+    TYPE = __PIPEFILE;
+    clus = 0xffffff8;
+    table_clus_off = 0;
+    table_clus_pos = 0;
+    fat = nullptr;
+    readRef = 2;
+    writeRef = 2;
+    in = 0, out = 0;
+    file = new Semaphore(1);
+    full = new Semaphore(0);
+    empty = new Semaphore(FILESIZE - 1);
+}
+PIPEFILE::~PIPEFILE()
+{
+}
+
+Sint64 PIPEFILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
+{
+
+    kout[Info] << "pipe read didn't solved" << endl;
+    for (int i = 0; i < size; i++) {
+        full->wait();
+        if (full->getValue() < 0) {
+            pm.immSchedule();
+        }
+        file->wait();
+        if (file->getValue() < 0) {
+            pm.immSchedule();
+        }
+
+        buf[i] = data[out];
+        kout[Info]<<(int)data[out]<<endl;
+        if (data[out]==4) {
+            file->signal();
+            empty->signal();
+            // kout[Fault]<<"EOF "<<endl;
+            return  false;
+        }
+        out=(out+1)%FILESIZE;
+
+        file->signal();
+        empty->signal();
+    }
+
+    return true;
+}
+bool PIPEFILE::write(unsigned char* src, Uint64 size)
+{
+
+    kout[Info] << "pipe write didn't solved" << endl;
+
+    for (int i = 0; i < size; i++) {
+        empty->wait();
+        if (empty->getValue() < 0) {
+            pm.immSchedule();
+        }
+        file->wait();
+        if (file->getValue() < 0) {
+            pm.immSchedule();
+        }
+        data[in] = src[i];
+        kout[Info]<<"IN"<<in<<endl;
+        in = (in + 1) % FILESIZE;
+
+        file->signal();
+        full->signal();
+    }
+    return true;
 }

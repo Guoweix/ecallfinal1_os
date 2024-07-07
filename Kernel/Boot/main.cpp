@@ -276,7 +276,7 @@ void final_test()
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "munmap") == 0) {
+        if (strcmp(file->name, "pipe") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {
@@ -323,19 +323,22 @@ void test_final1()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         kout << file->name << endl;
-        // kout.SetEnabledType(0);
+        
         kout.SwitchTypeOnoff(Fault, true);
 
+        file->show();
+        kout[Debug]<<"start errrorrrrrrrrrrrrrrrrr"<<endl;
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
+        kout[Debug]<<"errrorrrrrrrrrrrrrrrrr"<<endl;
         if (test != nullptr) {
             while (1) {
-                if (test->getStatus() == S_Terminated) {
+                if (test->getStatus() == S_None) {
                     kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
-                    pm.freeProc(test);
+                    // pm.freeProc(test);
                     // delay(1e8);
                     // pm.show();
-                    test = nullptr;
+                    // test = nullptr;
                     break;
                 } else {
                     pm.immSchedule();
@@ -356,9 +359,11 @@ int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
-    kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
-    kout.SetEnableEffect(false);
-    kout.SetEnabledType(0);
+
+    // kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
+    // kout.SetEnableEffect(false);
+     kout.SetEnabledType(0);
+
     kout.SwitchTypeOnoff(NEWINFO,false);
 
     TrapInit();

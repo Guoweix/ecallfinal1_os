@@ -25,6 +25,13 @@ void Syscall_Exit(TrapFrame* tf, int re)
     Process* cur = pm.getCurProc();
     // kout<<"SDAD"<<re<<endl;
     cur->exit(re);
+    Process * child=cur;
+    // while (cur) {
+        // kout[Fault]<<cur<<endl;
+        // cur->exit(re);
+        // pm.freeProc(cur);
+        // cur=child->broNext;
+    // }
     needSchedule = true;
     // kout[Fault] << "Syscall_Exit: Reached unreachable branch" << endl;
 }
@@ -160,7 +167,7 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
     }
     // pm.switchstat_proc(create_proc, Proc_ready);
     create_proc->switchStatus(S_Ready);
-    // pm.show(1);
+    pm.show(1);
     IntrRestore(intr_flag);
     return pid_ret;
 }
@@ -272,7 +279,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
                 VirtualMemorySpace::EnableAccessUser();
                 exit_value = child->getExitCode();
                 VirtualMemorySpace::DisableAccessUser();
-                kout<<cur_proc->getName() <<"execve free"<<child->getName()<<endl;
+                kout << cur_proc->getName() << "execve free" << child->getName() << endl;
                 pm.freeProc(child);
                 break;
             }
@@ -339,7 +346,7 @@ int Syscall_wait4(int pid, int* status, int options)
 
             // pm.getCurProc()->getVMS()->show();
             child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
-            kout<<Red<<cur_proc->getName() <<"wait4 freeProc "<<child->getName();
+            kout << Red << cur_proc->getName() << "wait4 freeProc " << child->getName();
             pm.freeProc(child);
             kout[Info] << "child DEAD   " << ret << endl;
             return ret;
@@ -386,7 +393,7 @@ int Syscall_fstat(int fd, kstat* kst)
     if (file == nullptr) {
         return -1;
     }
-    kout<<"fstat file "<<file->name<<"file:table_size "<<file->table.size <<endl;
+    kout << "fstat file " << file->name << "file:table_size " << file->table.size << endl;
     VirtualMemorySpace::EnableAccessUser();
     memset(kst, 0, sizeof(kstat));
     kst->st_size = file->table.size;
@@ -394,7 +401,7 @@ int Syscall_fstat(int fd, kstat* kst)
     kst->st_nlink = 1;
     // ... others to be added
     VirtualMemorySpace::DisableAccessUser();
-    kout<<Green<<"fstat Success"<<DataWithSizeUnited(kst,sizeof(kstat),12);
+    kout << Green << "fstat Success" << DataWithSizeUnited(kst, sizeof(kstat), 12);
     return 0;
 }
 
@@ -520,7 +527,7 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     // path是要删除的链接的名字
     // flags可设置为0或AT_REMOVEDIR
     // 成功返回0 失败返回-1
-    kout<<"Unlinkat dir fd "<<dirfd<<endl;
+    kout << "Unlinkat dir fd " << dirfd << endl;
 
     char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
@@ -531,21 +538,19 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, dirfd);
         if (fo != nullptr) {
             rela_wd = fo->file->path;
+        } else {
+            kout << "unlink can't find file" << endl;
+            return -1;
         }
-        else {
-        kout<<"unlink can't find file"<<endl;
-        return -1;
-        }
-
     }
 
-    if (path[0]=='.'&&path[1]!='.') {
-        path+=2;
+    if (path[0] == '.' && path[1] != '.') {
+        path += 2;
     }
     // vfsm.show_opened_file();
     VirtualMemorySpace::EnableAccessUser();
     if (!vfsm.unlink(path, rela_wd)) {
-        kout<<"unlink failed"<<endl;
+        kout << "unlink failed" << endl;
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
@@ -594,13 +599,13 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     }
 
     VirtualMemorySpace::EnableAccessUser();
-    //分配内核缓冲区
-    unsigned char * buf1=new unsigned char [count];
-    memcpy(buf1,(const char *) buf , count);
+    // 分配内核缓冲区
+    unsigned char* buf1 = new unsigned char[count];
+    memcpy(buf1, (const char*)buf, count);
     long long wr_size = 0;
 
     wr_size = fom.write_fo(fo, buf1, count);
-    delete [] buf1;
+    delete[] buf1;
 
     VirtualMemorySpace::DisableAccessUser();
 
@@ -608,7 +613,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
-    kout<<Green<<"wirte Success "<<wr_size<<endl;
+    kout << Green << "wirte Success " << wr_size << endl;
 
     // FAT32FILE * tst=vfsm.
     // kout[Fault]<<endl;
@@ -623,22 +628,31 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
+    // kout<<Yellow<<"read"<<endl;
     if (buf == nullptr) {
         return -1;
     }
 
+    // kout<<Yellow<<"read1"<<endl;
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
     if (fo == nullptr) {
         return -1;
     }
+    // kout<<Yellow<<"read2"<<endl;
     VirtualMemorySpace::EnableAccessUser();
     long long rd_size = 0;
-    unsigned char * buf1=new unsigned char [count];
+    unsigned char* buf1 = new unsigned char[count];
+    
+    // kout<<Yellow<<"read3"<<endl;
     rd_size = fom.read_fo(fo, buf1, count);
-    memcpy(buf,(const char *) buf1 , count);
-    delete [] buf1;
+    if (rd_size==0) {
+        return -1;
+    }
+    memcpy(buf, (const char*)buf1, count);
+    delete[] buf1;
     // kout<<DataWithSizeUnited(buf,27,16);;
+    // kout<<Yellow<<"read4"<<endl;
     VirtualMemorySpace::DisableAccessUser();
     if (rd_size < 0) {
         return -1;
@@ -660,16 +674,27 @@ inline int Syscall_close(int fd)
     if (fo == nullptr) {
         return -1;
     }
+    
+    if ((fo->file->TYPE & FAT32FILE::__PIPEFILE)&&(fo->flags&file_flags::O_WRONLY )) {
+        PIPEFILE * fp=(PIPEFILE*)fo->file;
+        fp->writeRef--;
+        if (fp->writeRef==0) {
+        char * t=new char;
+        *t=4;
+        // kout[Fault]<<"EOF "<<endl;
+        fom.write_fo(fo,t, 1);
+        }
+    }
     // vfsm.show_opened_file();
     // vfsm.close(fo->file);
     // vfsm.show_opened_file();
     if (!fom.close_fo(cur_proc, fo)) {
         // fom中的close_fo调用会关闭这个文件描述符
         // 主要是对相关文件的解引用并且从文件描述符表中删去这个节点
-        kout<<"close error"<<endl;
+        kout << "close error" << endl;
         return -1;
     }
-        kout<<"close success"<<endl;
+    kout << "close success" << endl;
     return 0;
 }
 
@@ -736,14 +761,12 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     return rd;
 }
 
-
-
 void VFSM_test();
 int Syscall_openat1(int fd, const char* filename, int flags, int mode)
 {
-    kout<<Red<<"_____________________________________________________________"<<endl;
+    kout << Red << "_____________________________________________________________" << endl;
     VFSM_test();
-    kout<<Red<<"_____________________________________________________________"<<endl;
+    kout << Red << "_____________________________________________________________" << endl;
 }
 int Syscall_openat(int fd, const char* filename, int flags, int mode)
 {
@@ -777,7 +800,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     }
 
     if (filename[0] == '.' && filename[1] != '.') {
-        filename+=2;
+        filename += 2;
     }
 
     if (flags & file_flags::O_CREAT) {
@@ -789,15 +812,12 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
         } else {
             kout << Red << "OpenedFile6 FILE" << endl;
-           if(! vfsm.create_file(rela_wd, cwd, (char*)filename))
-                kout[Fault]<<"create"<<endl;
+            if (!vfsm.create_file(rela_wd, cwd, (char*)filename))
+                kout[Fault] << "create" << endl;
         }
 
         // kout << Red << "OpenedFile7" << endl;
     }
-
-
-
 
     // char* path = vfsm.unified_path(filename, rela_wd);
     // kout << Red << "OpenedFile8" << endl;
@@ -810,7 +830,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // 暂时没有对于. 和 ..的路径名的处理
     // 特殊处理打开文件当前目录.的逻辑
     FAT32FILE* file = nullptr;
-    
+
     // if (filename[0] == '.' && filename[1] != '.') {
     //     int str_len = strlen(filename);
     //     char* str_spc = new char[str_len];
@@ -823,13 +843,11 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     //     file = vfsm.open(filename, rela_wd);
     // }
 
-
-
     file = vfsm.open(filename, rela_wd);
 
     if (file != nullptr) {
         kout << Red << "OpenedFile12" << endl;
-        if (!(file->TYPE & FAT32FILE::__DIR) &&(flags & O_DIRECTORY)) {
+        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
     } else {
@@ -849,10 +867,10 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
-    kout<<Green<<"Open Success"<<endl;
+    kout << Green << "Open Success" << endl;
     file->show();
 
-    kout<<fo->fd<<endl;
+    kout << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
     return fo->fd;
 }
@@ -866,135 +884,122 @@ int Syscall_umount2(const char* special, int flags)
     return 0;
 }
 
-int Syscall_munmap(void *start,Uint64 len)
+int Syscall_munmap(void* start, Uint64 len)
 {
-	VirtualMemorySpace *vms=pm.getCurProc()->getVMS();
-	VirtualMemoryRegion *vmr=vms->FindVMR((PtrSint)start);
-	if (vmr==nullptr)
-		return -1;
-	if (vmr->GetFlags()&VirtualMemoryRegion::VM_File)
-	{
-		MemapFileRegion *mfr=(MemapFileRegion*)vmr;
-		ErrorType err=mfr->Save();
-		if (err<0)
-			kout[Error]<<"Syscall_munmap: mfr failed to save! ErrorCode: "<<err<<endl;
-		delete mfr;
-	}
-	else vms->RemoveVMR(vmr,1);
-	return 0;
+    VirtualMemorySpace* vms = pm.getCurProc()->getVMS();
+    VirtualMemoryRegion* vmr = vms->FindVMR((PtrSint)start);
+    if (vmr == nullptr)
+        return -1;
+    if (vmr->GetFlags() & VirtualMemoryRegion::VM_File) {
+        MemapFileRegion* mfr = (MemapFileRegion*)vmr;
+        ErrorType err = mfr->Save();
+        if (err < 0)
+            kout[Error] << "Syscall_munmap: mfr failed to save! ErrorCode: " << err << endl;
+        delete mfr;
+    } else
+        vms->RemoveVMR(vmr, 1);
+    return 0;
 }
 
-
-PtrSint Syscall_mmap(void *start,Uint64 len,int prot,int flags,int fd,int off)//Currently flags will be ignored...
+PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int off) // Currently flags will be ignored...
 {
-	if (len==0)
-		return -1;
-	FAT32FILE *node=nullptr;
-	if (fd!=-1)
-	{
-		file_object *fh=fom.get_from_fd(pm.getCurProc()->getFoHead() , fd);
-		if (fh==nullptr)
-			return -1;
-	    node=fh->file;
-		if (node==nullptr)
-			return -1;
+    if (len == 0)
+        return -1;
+    FAT32FILE* node = nullptr;
+    if (fd != -1) {
+        file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
+        if (fh == nullptr)
+            return -1;
+        node = fh->file;
+        if (node == nullptr)
+            return -1;
         node->show();
-	}
-	else DoNothing;//Anonymous mmap
-	kout[Debug]<<"mmap "<<start<<" "<<(void*)len<<" "<<prot<<" "<<flags<<" "<<fd<<" "<<off<<" | "<<node<<endl;
-	
-	VirtualMemorySpace *vms=pm.getCurProc()->getVMS();
-	
-	constexpr Uint64 PROT_NONE=0,
-					 PROT_READ=1,
-					 PROT_WRITE=2,
-					 PROT_EXEC=4,
-					 PROT_GROWSDOWN=0X01000000,//Unsupported yet...
-					 PROT_GROWSUP=0X02000000;//Unsupported yet...
+    } else
+        DoNothing; // Anonymous mmap
+    kout[Debug] << "mmap " << start << " " << (void*)len << " " << prot << " " << flags << " " << fd << " " << off << " | " << node << endl;
 
-	Uint64 vmrProt= node!=nullptr?VirtualMemoryRegion::VM_File:0;
-	// if (prot&PROT_READ)
-		vmrProt|=VirtualMemoryRegion::VM_RWX;
-		// vmrProt|=VirtualMemoryRegion::VM_KERNEL;
-//	if (prot&PROT_WRITE)
-		// vmrProt|=VirtualMemoryRegion::VM_Write;
-//	if (prot&PROT_EXEC)
-		// vmrProt|=VirtualMemoryRegion::VM_Exec;
-		// vmrProt|=VirtualMemoryRegion::VM_Exec;
-	
-	kout[Debug]<<"mmap 1"<<endl;
-    kout<<vmrProt<<endl;
-    
-	constexpr Uint64 MAP_FIXED=0x10;
-	if (flags&MAP_FIXED)//Need improve...
-	{
-		VirtualMemoryRegion *vmr=vms->FindVMR((PtrSint)start);
-		if (vmr!=nullptr)
-        {
-			if (vmr->GetEnd()<=((PtrSint)start+len+PAGESIZE-1>>PageSizeBit<<PageSizeBit))
-            {
-				if (vmr->GetFlags()&VirtualMemoryRegion::VM_File)
-				{
-					MemapFileRegion *mfr=(decltype(mfr))vmr;
-					mfr->Resize((PtrSint)start-mfr->GetStartAddr());
-				}
-				else
-				{
-					// vmr->End=(PtrInt)start+PageSize-1>>PageSizeBit<<PageSizeBit;//??
-                    vmr->SetEnd((PtrUint)start+PAGESIZE-1>>PageSizeBit<<PageSizeBit);
-					//<<Free pages not in range...
-				}
-            }
-			else kout[Error]<<"Failed to discard mmap region inside vmr!"<<endl;
+    VirtualMemorySpace* vms = pm.getCurProc()->getVMS();
+
+    constexpr Uint64 PROT_NONE = 0,
+                     PROT_READ = 1,
+                     PROT_WRITE = 2,
+                     PROT_EXEC = 4,
+                     PROT_GROWSDOWN = 0X01000000, // Unsupported yet...
+        PROT_GROWSUP = 0X02000000; // Unsupported yet...
+
+    Uint64 vmrProt = node != nullptr ? VirtualMemoryRegion::VM_File : 0;
+    // if (prot&PROT_READ)
+    vmrProt |= VirtualMemoryRegion::VM_RWX;
+    // vmrProt|=VirtualMemoryRegion::VM_KERNEL;
+    //	if (prot&PROT_WRITE)
+    // vmrProt|=VirtualMemoryRegion::VM_Write;
+    //	if (prot&PROT_EXEC)
+    // vmrProt|=VirtualMemoryRegion::VM_Exec;
+    // vmrProt|=VirtualMemoryRegion::VM_Exec;
+
+    kout[Debug] << "mmap 1" << endl;
+    kout << vmrProt << endl;
+
+    constexpr Uint64 MAP_FIXED = 0x10;
+    if (flags & MAP_FIXED) // Need improve...
+    {
+        VirtualMemoryRegion* vmr = vms->FindVMR((PtrSint)start);
+        if (vmr != nullptr) {
+            if (vmr->GetEnd() <= ((PtrSint)start + len + PAGESIZE - 1 >> PageSizeBit << PageSizeBit)) {
+                if (vmr->GetFlags() & VirtualMemoryRegion::VM_File) {
+                    MemapFileRegion* mfr = (decltype(mfr))vmr;
+                    mfr->Resize((PtrSint)start - mfr->GetStartAddr());
+                } else {
+                    // vmr->End=(PtrInt)start+PageSize-1>>PageSizeBit<<PageSizeBit;//??
+                    vmr->SetEnd((PtrUint)start + PAGESIZE - 1 >> PageSizeBit << PageSizeBit);
+                    //<<Free pages not in range...
+                }
+            } else
+                kout[Error] << "Failed to discard mmap region inside vmr!" << endl;
         }
-	}
-	
-	kout[Debug]<<"mmap 2"<<endl;
-	PtrSint s=vms->GetUsableVMR(start==nullptr?0x60000000:(PtrSint)start,(PtrSint)0x70000000/*??*/,len);
-	if (s==0||start!=nullptr&&((PtrSint)start>>PageSizeBit<<PageSizeBit)!=s)
-		goto ErrorReturn;
-	s=start==nullptr?s:(PtrSint)start;
+    }
 
-	kout[Debug]<<"mmap 3"<<endl;
+    kout[Debug] << "mmap 2" << endl;
+    PtrSint s = vms->GetUsableVMR(start == nullptr ? 0x60000000 : (PtrSint)start, (PtrSint)0x70000000 /*??*/, len);
+    if (s == 0 || start != nullptr && ((PtrSint)start >> PageSizeBit << PageSizeBit) != s)
+        goto ErrorReturn;
+    s = start == nullptr ? s : (PtrSint)start;
 
-	if (node!=nullptr)
-	{
-		MemapFileRegion *mfr=new MemapFileRegion(node,(void*)s,len,off,vmrProt);
-		kout[Debug]<<"mfr "<<mfr<<endl;
+    kout[Debug] << "mmap 3" << endl;
 
+    if (node != nullptr) {
+        MemapFileRegion* mfr = new MemapFileRegion(node, (void*)s, len, off, vmrProt);
+        kout[Debug] << "mfr " << mfr << endl;
 
-		if (mfr==nullptr)
-			goto ErrorReturn;
+        if (mfr == nullptr)
+            goto ErrorReturn;
 
-        kout<<Yellow<<mfr->GetFlags()<<endl;
-		vms->InsertVMR(mfr);
+        kout << Yellow << mfr->GetFlags() << endl;
+        vms->InsertVMR(mfr);
         vms->show();
         // kout[Fault]<<endl;
 
-		ErrorType err=mfr->Load();
+        ErrorType err = mfr->Load();
 
-	    // kout[Debug]<<"mmap load"<<endl;
-		if (err<0)
-		{
-			kout[Error]<<"Syscall_mmap: mfr failed to load! ErrorCode: "<<err<<endl;
-			delete mfr;
-			goto ErrorReturn;
-		}
-	}
-	else
-	{
-		VirtualMemoryRegion *vmr=KmallocT<VirtualMemoryRegion>();
-		vmr->Init(s,s+len,vmrProt);
-		vms->InsertVMR(vmr);
-	}
-	// kout[Debug]<<"mmap 2"<<endl;
-	kout[Debug]<<"mmaped at "<<(void*)s<<endl;
-	return s;
+        // kout[Debug]<<"mmap load"<<endl;
+        if (err < 0) {
+            kout[Error] << "Syscall_mmap: mfr failed to load! ErrorCode: " << err << endl;
+            delete mfr;
+            goto ErrorReturn;
+        }
+    } else {
+        VirtualMemoryRegion* vmr = KmallocT<VirtualMemoryRegion>();
+        vmr->Init(s, s + len, vmrProt);
+        vms->InsertVMR(vmr);
+    }
+    // kout[Debug]<<"mmap 2"<<endl;
+    kout[Debug] << "mmaped at " << (void*)s << endl;
+    return s;
 ErrorReturn:
-	kout[Debug]<<"mmap error"<<endl;
-	if (node)
-		vfsm.close(node);
-	return -1;
+    kout[Debug] << "mmap error" << endl;
+    if (node)
+        vfsm.close(node);
+    return -1;
 }
 
 int Syscall_nanosleep(timespec* req, timespec* rem)
@@ -1026,6 +1031,45 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
         pm.immSchedule();
     }
 
+    return 0;
+}
+
+inline int Syscall_pipe2(int* fd, int flags)
+{
+    kout<<Yellow<<"pipe"<<endl;
+    Process* cur = pm.getCurProc();
+    kout<<Yellow<<"pipe1"<<endl;
+    PIPEFILE* pipe = new PIPEFILE();
+    if (pipe == nullptr)
+        return -1;
+    kout<<Yellow<<"pipe2"<<endl;
+
+    file_object* fo1 = (file_object*)kmalloc(sizeof(file_object));//创建两个fo,实际对应同一个pipe文件
+    fom.set_fo_file(fo1, pipe);
+    fom.set_fo_pos_k(fo1, 0);
+    fom.set_fo_flags(fo1, 0);
+
+    file_object* fo2 = (file_object*)kmalloc(sizeof(file_object));
+    fom.set_fo_file(fo2, pipe);
+    fom.set_fo_pos_k(fo2, 0);
+    fom.set_fo_flags(fo2, 1);
+
+    if (InThisSet(nullptr, fo1, fo2)) {
+        if (fo1 == nullptr && fo2 == nullptr)
+            delete pipe;
+        else if (fo1 == nullptr)
+            delete fo2;
+        else
+            delete fo1;
+        return -1;
+    }
+
+    fom.add_fo_tolist(cur->getFoHead(), fo1);
+    fom.add_fo_tolist(cur->getFoHead(), fo2);
+    VirtualMemorySpace::EnableAccessUser();
+    fd[0] = fo1->fd;
+    fd[1] = fo2->fd;
+    VirtualMemorySpace::DisableAccessUser();
     return 0;
 }
 
@@ -1202,23 +1246,25 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         // pm.getCurProc()->getVMS()->show();
         break;
 
-    case  SYS_mmap:
-        tf->reg.a0=Syscall_mmap((void *)tf->reg.a0, tf->reg.a1, tf->reg.a2,tf->reg.a3,tf->reg.a4,tf->reg.a5);
+    case SYS_mmap:
+        tf->reg.a0 = Syscall_mmap((void*)tf->reg.a0, tf->reg.a1, tf->reg.a2, tf->reg.a3, tf->reg.a4, tf->reg.a5);
         break;
-    case  SYS_munmap:
-        tf->reg.a0=Syscall_munmap((void *)tf->reg.a0, tf->reg.a1);
+    case SYS_munmap:
+        tf->reg.a0 = Syscall_munmap((void*)tf->reg.a0, tf->reg.a1);
         break;
-
 
     case SYS_nanosleep:
         tf->reg.a0 = Syscall_nanosleep((timespec*)tf->reg.a0, (timespec*)tf->reg.a1);
         break;
 
+    case SYS_pipe2:
+        tf->reg.a0 = Syscall_pipe2((int *)tf->reg.a0,tf->reg.a1 );
+        break;
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
     default:
-        // kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
+        kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
         tf->reg.a0 = -1;
     }
 

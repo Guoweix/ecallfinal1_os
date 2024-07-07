@@ -8,8 +8,12 @@ bool VFSM::init()
     FATtable a;
     a.size = 0;
     OpenedFile = new FAT32FILE(a, ".ROOT");
+
+    // FAT32FILE * STDIN = new FAT32FILE(a, ".STDIN");
+    // FAT32FILE *STDOUT = new FAT32FILE(a, ".STDOUT");
+    // FAT32FILE *STDERR = new FAT32FILE(a, ".STDERR");
+
     OpenedFile->fat = fat; // 挂载root
-    
 
     OpenedFile->TYPE = 0;
     OpenedFile->TYPE |= (FAT32FILE::__DIR | FAT32FILE::__VFS | FAT32FILE::__ROOT);
@@ -21,9 +25,29 @@ bool VFSM::init()
     a.low_clus = fat->Dbr.root_clus;
     OpenedFile->clus = fat->Dbr.root_clus;
 
-    kout<<"OpenedFile->clus"<<(void *)OpenedFile->clus<<endl;
+
+    // STDIN->TYPE|=FAT32FILE::__SPECICAL;
+    // STDERR->TYPE|=FAT32FILE::__SPECICAL;
+    // STDOUT->TYPE|=FAT32FILE::__SPECICAL;
+
+    // STDIN->ref++;
+    // STDOUT->ref++;
+    // STDERR->ref++;
+
+
+    kout << "OpenedFile->clus" << (void*)OpenedFile->clus << endl;
     OpenedFile->next = nullptr;
     OpenedFile->pre = nullptr;
+
+    // OpenedFile->next=STDIN;
+    // STDIN->next=STDOUT;
+    // STDOUT->next=STDERR;
+    // STDERR->next=nullptr;
+    // STDERR->pre=STDOUT;
+    // STDOUT->pre=STDIN;
+    // STDIN->pre=OpenedFile;
+
+
     return true;
 }
 
@@ -63,7 +87,7 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
 {
 
     if (path[0] == '/' && path[1] == 0) {
-        isOpened=true;
+        isOpened = true;
         return get_root();
     }
 
@@ -82,7 +106,7 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
                 return t->fat->find_file_by_path(cpath);
             }
         }
-        ASSERTEX(t!=t->next,"LinkTable loop found in "<<__FILE__<<" "<<__LINE__);
+        ASSERTEX(t != t->next, "LinkTable loop found in " << __FILE__ << " " << __LINE__);
         t = t->next;
     }
     // 当链表中均不存在该文件时，从根目录下开始搜索
@@ -99,13 +123,9 @@ FAT32FILE* VFSM::find_file_by_path(char* path, bool& isOpened)
         return t;
 }
 
-
 void VFSM::showRootDirFile()
 {
-
 }
-
-
 
 FAT32FILE* VFSM::open(const char* path, char* cwd)
 {
@@ -113,7 +133,7 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
     char* rpath = unified_path(path, cwd);
     // char* rpath = unified_path("", cwd);
 
-    kout<<Green<<rpath<<" "<<path<<" "<<cwd<<endl;
+    kout << Green << rpath << " " << path << " " << cwd << endl;
 
     FAT32FILE* t;
     // kout[yellow] << rpath << endl;
@@ -125,37 +145,39 @@ FAT32FILE* VFSM::open(const char* path, char* cwd)
     if (isOpened)
         return t;
 
-    if (t==nullptr) {
-        kout[Warning]<<"file can't find"<<endl;
+    if (t == nullptr) {
+        kout[Warning] << "file can't find" << endl;
         return nullptr;
     }
     t->next = OpenedFile->next;
-    t->pre=OpenedFile;
+    t->pre = OpenedFile;
     OpenedFile->next = t;
     if (t->next)
         t->next->pre = t;
-    kout<<"A5"<<endl;
+    kout << "A5" << endl;
 
     t->ref++;
-    kout<<"A5"<<endl;
+    kout << "A5" << endl;
     return t;
 }
 void VFSM::close(FAT32FILE* t)
 {
-    if (t==OpenedFile) {
+    if (t == OpenedFile) {
         return;
     }
     t->ref--;
-    kout<<"Close :: ref"<<t->ref<<endl;
+    kout << "Close :: ref" << t->ref << endl;
+    if (t->TYPE&FAT32FILE::__PIPEFILE) {
+    
+    }
     // show_opened_file();
-    kout<<Red<<"t pre:"<<t->pre<<" t next "<<t->next<<endl;
+    kout << Red << "t pre:" << t->pre << " t next " << t->next << endl;
     if (t->ref == 0) {
         if (t->pre) {
             // t->pre->show();
             t->pre->next = t->next;
         }
-        if (t->next)
-        {
+        if (t->next) {
             // t->next->show();
             t->next->pre = t->pre;
         }
@@ -180,7 +202,7 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
     Uint64 len = strlen(path);
     bool isOpened;
     char* rpath = unified_path(path, cwd);
-    kout <<"Create FILE  " <<rpath << endl;
+    kout << "Create FILE  " << rpath << endl;
 
     FAT32FILE *t, *re;
     t = find_file_by_path(rpath, isOpened);
@@ -189,7 +211,7 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint8 type)
         return false;
     }
     // t->show();
-    kout<<path<<' '<<cwd<<' '<<fileName<<endl;
+    kout << path << ' ' << cwd << ' ' << fileName << endl;
     re = t->fat->create_file(t, fileName, type);
     if (!re) {
         kout[Fault] << "failed create file" << endl;
@@ -273,18 +295,18 @@ FAT32FILE* VFSM::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtabl
 }
 FAT32FILE* VFSM::open(FAT32FILE* file)
 {
-    FAT32FILE * t=OpenedFile;
+    FAT32FILE* t = OpenedFile;
     file->ref++;
     while (t) {
-        if (t==file) {
-            return  t;
+        if (t == file) {
+            return t;
         }
-        t=t->next;
-    } 
-    
+        t = t->next;
+    }
+
     file->next = OpenedFile->next;
     OpenedFile->next = file;
-    file->pre=OpenedFile;
+    file->pre = OpenedFile;
     if (file->next)
         file->next->pre = file;
     return file;
@@ -347,5 +369,17 @@ bool VFSM::unlink(char* abs_path)
     return t->fat->unlink(t);
 }
 
+// ErrorType MemapFileRegion::Save() // Save memory to file
+// {
+//     VirtualMemorySpace* old = VirtualMemorySpace::Current();
+//     VMS->Enter();
+//     VMS->EnableAccessUser();
+//     // Uint64 re=0;
+//     kout << Red << "Save" << endl;
+//     Sint64 re = File->write((unsigned char*)StartAddr, Offset, Length);
+//     VMS->DisableAccessUser();
+//     old->Enter();
+//     return re >= 0 ? ERR_None : -re; //??
+// }
 
 VFSM vfsm;

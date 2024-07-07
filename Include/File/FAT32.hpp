@@ -2,6 +2,7 @@
 #define _FAT32_HPP__
 
 // #include <ramdisk_driver.hpp>
+#include "Synchronize/Synchronize.hpp"
 #include <Types.hpp>
 #include <Library/KoutSingle.hpp>
 #include <Library/Pathtool.hpp>
@@ -69,6 +70,10 @@ union FATtable
     };
 
     Sint32 get_name(char* REname); // 返回值为-1时说明无效，0为短名称，大于1的序列为长名称(长名称无法完成拷贝),-2为点目录
+    FATtable()
+    {
+
+    }
 };
 
 bool ALLTURE(FATtable* t);
@@ -76,6 +81,9 @@ bool VALID(FATtable* t);
 bool EXCEPTDOT(FATtable* t);
 class FAT32;
 class VFSM;
+
+
+
 
 class FAT32FILE
 {
@@ -89,6 +97,7 @@ public:
         __TEMP = 1ull << 4,
         __LINK = 1ull << 5,
         __SPECICAL = 1ull << 6,
+        __PIPEFILE = 1ull << 7,
     };
     
     char* name = nullptr;
@@ -118,6 +127,32 @@ public:
 
     void show();
 };
+
+
+class PIPEFILE: public FAT32FILE
+{
+public:
+
+    PIPEFILE();
+    ~PIPEFILE();
+
+    enum:Uint32
+    {
+        FILESIZE=1<<12,
+    } ;
+
+    Uint32 readRef;
+    Uint32 writeRef;
+    Uint32 in,out;
+    Uint8 data[FILESIZE];
+    Semaphore *file,*full,*empty;
+    Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size);
+    bool write(unsigned char* src, Uint64 size);
+
+
+    void show();
+};
+
 
 class FAT32
 {
