@@ -628,28 +628,31 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
-    kout<<Yellow<<"read"<<endl;
+    // kout<<Yellow<<"read"<<endl;
     if (buf == nullptr) {
         return -1;
     }
 
-    kout<<Yellow<<"read1"<<endl;
+    // kout<<Yellow<<"read1"<<endl;
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
     if (fo == nullptr) {
         return -1;
     }
-    kout<<Yellow<<"read2"<<endl;
+    // kout<<Yellow<<"read2"<<endl;
     VirtualMemorySpace::EnableAccessUser();
     long long rd_size = 0;
     unsigned char* buf1 = new unsigned char[count];
     
-    kout<<Yellow<<"read3"<<endl;
+    // kout<<Yellow<<"read3"<<endl;
     rd_size = fom.read_fo(fo, buf1, count);
+    if (rd_size==0) {
+        return -1;
+    }
     memcpy(buf, (const char*)buf1, count);
     delete[] buf1;
     // kout<<DataWithSizeUnited(buf,27,16);;
-    kout<<Yellow<<"read4"<<endl;
+    // kout<<Yellow<<"read4"<<endl;
     VirtualMemorySpace::DisableAccessUser();
     if (rd_size < 0) {
         return -1;
@@ -670,6 +673,17 @@ inline int Syscall_close(int fd)
 
     if (fo == nullptr) {
         return -1;
+    }
+    
+    if ((fo->file->TYPE & FAT32FILE::__PIPEFILE)&&(fo->flags&file_flags::O_WRONLY )) {
+        PIPEFILE * fp=(PIPEFILE*)fo->file;
+        fp->writeRef--;
+        if (fp->writeRef==0) {
+        char * t=new char;
+        *t=4;
+        // kout[Fault]<<"EOF "<<endl;
+        fom.write_fo(fo,t, 1);
+        }
     }
     // vfsm.show_opened_file();
     // vfsm.close(fo->file);
@@ -1038,7 +1052,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     file_object* fo2 = (file_object*)kmalloc(sizeof(file_object));
     fom.set_fo_file(fo2, pipe);
     fom.set_fo_pos_k(fo2, 0);
-    fom.set_fo_flags(fo2, 0);
+    fom.set_fo_flags(fo2, 1);
 
     if (InThisSet(nullptr, fo1, fo2)) {
         if (fo1 == nullptr && fo2 == nullptr)

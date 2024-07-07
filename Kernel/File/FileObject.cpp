@@ -332,7 +332,7 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
     }
     // kout << "read_fo3" << endl;
     Sint64 rd_size;
-    if (file->TYPE & FAT32FILE::__SPECICAL) {
+    if (file->TYPE & FAT32FILE::__PIPEFILE) {
         PIPEFILE* pfile = (PIPEFILE*)fo->file;
         rd_size = pfile->read((unsigned char*)dst, fo->pos_k, size);
         fo->pos_k++;
@@ -362,7 +362,7 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
 
 
      Sint64 wr_size;
-    if (file->TYPE & FAT32FILE::__SPECICAL) {
+    if (file->TYPE & FAT32FILE::__PIPEFILE) {
         PIPEFILE* pfile = (PIPEFILE*)fo->file;
         wr_size = pfile->write((unsigned char*)src,  size);
     } else {

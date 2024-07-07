@@ -421,13 +421,17 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 
     kout[Debug] << "Schedule NOW  "<< curProc->getName() << endl;
     curProc->context = preContext;//记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
-    // kout<<Blue<<procCount<<endl;
+    kout<<Blue<<procCount<<endl;
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
         ClockTime minWaitingTarget = -1;
     RetrySchedule:
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
             tar = &Proc[(i + p) % MaxProcessCount];
+            if (tar->getStatus()==S_Terminated) {
+                pm.freeProc(tar);
+            
+            }
             // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {//Sleep的休眠时间管理，目前还未实现
             //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)

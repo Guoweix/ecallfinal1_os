@@ -167,7 +167,7 @@ void VFSM::close(FAT32FILE* t)
     }
     t->ref--;
     kout << "Close :: ref" << t->ref << endl;
-    if (t->TYPE&FAT32FILE::__SPECICAL) {
+    if (t->TYPE&FAT32FILE::__PIPEFILE) {
     
     }
     // show_opened_file();

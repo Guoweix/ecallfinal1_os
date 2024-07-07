@@ -13,6 +13,7 @@ FAT32FILE::FAT32FILE(FATtable ft, char* lName, Uint64 _clus, Uint64 pos, char* _
     table = ft;
     clus = table.low_clus | (table.high_clus << 16);
 
+    TYPE = 0;
     TYPE |= table.type & 0x10 ? 1 : 0;
     if (lName) {
         name = new char[strlen(lName) + 1];
@@ -865,7 +866,7 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
             }
             if (t == -1)
                 continue;
-            if (t == -2) {
+            if (t == -2) { // 说明文件夹开头是'.'
                 if (ft[i].name[1] == '.')
                     strcpy(lName, "..");
                 else
@@ -875,13 +876,16 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
             // if (strcmp("mnt",lName)==0)
             // kout[red]<<"find!!!";
             //     strcpy(lName, sName);
+            kout[Info] << "t is  " << t << endl;
 
             if (p(&ft[i])) {
                 // kout << Green << lName << endl;
                 re = new FAT32FILE(ft[i], lName, src_clus, i);
                 // kout<<lName<<' '<<Hex(clus_to_lba(src_clus)*512);
-                if (t == -2)
+                if (t == -2) {
                     re->TYPE |= FAT32FILE::__SPECICAL;
+                    kout[Info] << "find special file" << endl;
+                }
                 kout << re << endl;
                 delete[] sName;
                 delete[] clus;
@@ -941,16 +945,17 @@ PIPEFILE::PIPEFILE()
     : FAT32FILE(FATtable(), nullptr)
 {
     kout << "PIPEFILE init" << endl;
-    TYPE = __SPECICAL;
+    TYPE = __PIPEFILE;
     clus = 0xffffff8;
     table_clus_off = 0;
     table_clus_pos = 0;
     fat = nullptr;
-    readRef=2;
-    writeRef=2;
+    readRef = 2;
+    writeRef = 2;
+    in = 0, out = 0;
     file = new Semaphore(1);
     full = new Semaphore(0);
-    empty = new Semaphore(FILESIZE-1);
+    empty = new Semaphore(FILESIZE - 1);
 }
 PIPEFILE::~PIPEFILE()
 {
@@ -958,49 +963,54 @@ PIPEFILE::~PIPEFILE()
 
 Sint64 PIPEFILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
 {
-    
+
     kout[Info] << "pipe read didn't solved" << endl;
-    full->wait();
-    if (full->getValue()<0) {
-        pm.immSchedule();
-    }
+    for (int i = 0; i < size; i++) {
+        full->wait();
+        if (full->getValue() < 0) {
+            pm.immSchedule();
+        }
+        file->wait();
+        if (file->getValue() < 0) {
+            pm.immSchedule();
+        }
 
-    file->wait();
-    if (file->getValue()<0) {
-        pm.immSchedule();
-    }
+        buf[i] = data[out];
+        kout[Info]<<(int)data[out]<<endl;
+        if (data[out]==4) {
+            file->signal();
+            empty->signal();
+            // kout[Fault]<<"EOF "<<endl;
+            return  false;
+        }
+        out=(out+1)%FILESIZE;
 
-    VirtualMemorySpace::EnableAccessUser();
-    for (int i=0;i<size;i++) {
-        buf[i]=data[pos+i];
+        file->signal();
         empty->signal();
     }
-    VirtualMemorySpace::DisableAccessUser();
-
-    file->signal();
 
     return true;
 }
 bool PIPEFILE::write(unsigned char* src, Uint64 size)
 {
-    
+
     kout[Info] << "pipe write didn't solved" << endl;
 
-    empty->wait();
-    if (empty->getValue()<0) {
-        pm.immSchedule();
-    }
-    file->wait();
-    if (file->getValue()<0) {
-        pm.immSchedule();
-    }
-    VirtualMemorySpace::EnableAccessUser();
-    for (int i=0;i<size;i++) {
-        data[i]=src[i]; 
+    for (int i = 0; i < size; i++) {
+        empty->wait();
+        if (empty->getValue() < 0) {
+            pm.immSchedule();
+        }
+        file->wait();
+        if (file->getValue() < 0) {
+            pm.immSchedule();
+        }
+        data[in] = src[i];
+        kout[Info]<<"IN"<<in<<endl;
+        in = (in + 1) % FILESIZE;
+
+        file->signal();
         full->signal();
     }
-    VirtualMemorySpace::DisableAccessUser();
-
-    file->signal();
     return true;
 }

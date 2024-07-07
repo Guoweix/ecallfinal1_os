@@ -94,6 +94,7 @@ public:
         __TEMP = 1ull << 4,
         __LINK = 1ull << 5,
         __SPECICAL = 1ull << 6,
+        __PIPEFILE = 1ull << 7,
     };
     char* name = nullptr;
     Uint32 TYPE;
@@ -138,6 +139,7 @@ public:
 
     Uint32 readRef;
     Uint32 writeRef;
+    Uint32 in,out;
     Uint8 data[FILESIZE];
     Semaphore *file,*full,*empty;
     Sint64 read(unsigned char* buf, Uint64 pos, Uint64 size);

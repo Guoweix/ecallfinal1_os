@@ -323,19 +323,22 @@ void test_final1()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         kout << file->name << endl;
-        // kout.SetEnabledType(0);
+        
         kout.SwitchTypeOnoff(Fault, true);
 
+        file->show();
+        kout[Debug]<<"start errrorrrrrrrrrrrrrrrrr"<<endl;
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
+        kout[Debug]<<"errrorrrrrrrrrrrrrrrrr"<<endl;
         if (test != nullptr) {
             while (1) {
-                if (test->getStatus() == S_Terminated) {
+                if (test->getStatus() == S_None) {
                     kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
-                    pm.freeProc(test);
+                    // pm.freeProc(test);
                     // delay(1e8);
                     // pm.show();
-                    test = nullptr;
+                    // test = nullptr;
                     break;
                 } else {
                     pm.immSchedule();
@@ -359,7 +362,7 @@ int main()
 
     // kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    // kout.SetEnabledType(0);
+     kout.SetEnabledType(0);
 
     kout.SwitchTypeOnoff(NEWINFO,false);
 
@@ -400,8 +403,8 @@ int main()
 // for (char ch='A';ch<'Z'+1;ch++) {
 // VFSM_test1(ch);
 // }
-    final_test();
-    // test_final1();
+    // final_test();
+    test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 
