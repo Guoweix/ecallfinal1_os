@@ -25,12 +25,12 @@ void Syscall_Exit(TrapFrame* tf, int re)
     Process* cur = pm.getCurProc();
     // kout<<"SDAD"<<re<<endl;
     cur->exit(re);
-    Process * child=cur;
+    Process* child = cur;
     // while (cur) {
-        // kout[Fault]<<cur<<endl;
-        // cur->exit(re);
-        // pm.freeProc(cur);
-        // cur=child->broNext;
+    // kout[Fault]<<cur<<endl;
+    // cur->exit(re);
+    // pm.freeProc(cur);
+    // cur=child->broNext;
     // }
     needSchedule = true;
     // kout[Fault] << "Syscall_Exit: Reached unreachable branch" << endl;
@@ -246,8 +246,17 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     fom.set_fo_file(fo, file_open);
     fom.set_fo_pos_k(fo, 0);
     fom.set_fo_flags(fo, 0);
+    
+    int argc=0;
+    while (argv[argc++]!=nullptr);
+    char ** argv1=new char * [argc];
+    for (int i=0; i<argc; i++) {
+    argv1[i]=strdump(argv[i]);
+    }
 
-    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD());
+     
+
+    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(),argc,argv1);
     kfree(fo);
 
     int exit_value = 0;
@@ -643,10 +652,10 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     VirtualMemorySpace::EnableAccessUser();
     long long rd_size = 0;
     unsigned char* buf1 = new unsigned char[count];
-    
+
     // kout<<Yellow<<"read3"<<endl;
     rd_size = fom.read_fo(fo, buf1, count);
-    if (rd_size==0) {
+    if (rd_size == 0) {
         return -1;
     }
     memcpy(buf, (const char*)buf1, count);
@@ -674,15 +683,15 @@ inline int Syscall_close(int fd)
     if (fo == nullptr) {
         return -1;
     }
-    
-    if ((fo->file->TYPE & FAT32FILE::__PIPEFILE)&&(fo->flags&file_flags::O_WRONLY )) {
-        PIPEFILE * fp=(PIPEFILE*)fo->file;
+
+    if ((fo->file->TYPE & FAT32FILE::__PIPEFILE) && (fo->flags & file_flags::O_WRONLY)) {
+        PIPEFILE* fp = (PIPEFILE*)fo->file;
         fp->writeRef--;
-        if (fp->writeRef==0) {
-        char * t=new char;
-        *t=4;
-        // kout[Fault]<<"EOF "<<endl;
-        fom.write_fo(fo,t, 1);
+        if (fp->writeRef == 0) {
+            char* t = new char;
+            *t = 4;
+            // kout[Fault]<<"EOF "<<endl;
+            fom.write_fo(fo, t, 1);
         }
     }
     // vfsm.show_opened_file();
@@ -1036,15 +1045,15 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
 
 inline int Syscall_pipe2(int* fd, int flags)
 {
-    kout<<Yellow<<"pipe"<<endl;
+    kout << Yellow << "pipe" << endl;
     Process* cur = pm.getCurProc();
-    kout<<Yellow<<"pipe1"<<endl;
+    kout << Yellow << "pipe1" << endl;
     PIPEFILE* pipe = new PIPEFILE();
     if (pipe == nullptr)
         return -1;
-    kout<<Yellow<<"pipe2"<<endl;
+    kout << Yellow << "pipe2" << endl;
 
-    file_object* fo1 = (file_object*)kmalloc(sizeof(file_object));//创建两个fo,实际对应同一个pipe文件
+    file_object* fo1 = (file_object*)kmalloc(sizeof(file_object)); // 创建两个fo,实际对应同一个pipe文件
     fom.set_fo_file(fo1, pipe);
     fom.set_fo_pos_k(fo1, 0);
     fom.set_fo_flags(fo1, 0);
@@ -1258,11 +1267,47 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
 
     case SYS_pipe2:
-        tf->reg.a0 = Syscall_pipe2((int *)tf->reg.a0,tf->reg.a1 );
+        tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
         break;
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
+
+    case SYS_fcntl:
+
+    case SYS_sigprocmask:
+    case SYS_sigtimedwait:
+    case SYS_sigaction:
+
+    case SYS_gettid:
+    case SYS_set_tid_address:
+    case SYS_exit_group:
+
+        //		case SYS_futex:
+
+    case SYS_ioctl:
+
+    case SYS_get_robust_list:
+
+    case SYS_geteuid:
+    case SYS_getegid:
+
+    case SYS_utimensat:
+
+    case SYS_membarrier:
+
+    case SYS_socket:
+    case SYS_bind:
+    case SYS_getsockname:
+    case SYS_setsockopt:
+    case SYS_sendto:
+    case SYS_recvfrom:
+    case SYS_listen:
+    case SYS_connect:
+    case SYS_accept:
+        kout[Warning] << "Skipped syscall " << tf->reg.a7 << " " << SyscallName((long long)tf->reg.a7) << endl;
+        break;
+
     default:
         kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
         tf->reg.a0 = -1;

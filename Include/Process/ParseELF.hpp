@@ -93,6 +93,9 @@ enum P_type
     PT_PHDR = 6,                            // 自身所在的程序头表在文件或内存中的位置和大小
     PT_LOPROC = 0x70000000,                 // 为特定处理器保留使用的区间
     PT_HIPROC = 0x7fffffff,
+    PT_GNU_STACK=1685382481,
+    PT_GNU_RELRO=1685382482,
+    PT_TLS=7,
 };
 
 // 段属性或者段权限的枚举表示
@@ -112,6 +115,8 @@ struct procdata_fromELF
     VirtualMemorySpace* vms;
     Elf_Ehdr e_header;
     Semaphore sem;                          // 信号量保证启动函数能够完整执行完再释放相关空间
+    char ** argv;                                        
+    int  argc;                                        
 };
 
 // 从ELF文件启动进程函数
@@ -121,6 +126,6 @@ int start_process_formELF(procdata_fromELF * userdata);
 Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
 // Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
 Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
-Process * CreateProcessFromELF(file_object* fo, const char* wk_dir, ProcFlag proc_flags = F_User);
+Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_User);
 
 #endif

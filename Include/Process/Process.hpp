@@ -112,7 +112,7 @@ private:
 public:
     void show(int level = 0);
     bool start(TrapFrame* tf, bool isNew);
-    bool start(void* func, void* funcData, PtrUint useraddr = 0);
+    bool start(void* func, void* funcData, PtrUint useraddr = 0,int argc=0,char ** argv=nullptr);
     bool run();
     bool exit(int re);
     bool setName(const char* _name);

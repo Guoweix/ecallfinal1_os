@@ -303,7 +303,9 @@ void Process::setFa(Process* fa)
     }
 }
 
-bool Process::start(void* func, void* funcData, PtrUint useraddr)
+
+
+bool Process::start(void* func, void* funcData, PtrUint useraddr,int argc,char ** argv)
 {
 
     if (VMS == nullptr) {
@@ -324,9 +326,12 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr)
         context->status = (read_csr(sstatus) | SPP | SPIE) & (~SIE); // 详见手册
         context->reg.sp = (Uint64)((char*)stack + stacksize);
     } else {
+
         context->epc = (Uint64)useraddr; // Exception PC
         context->status = (read_csr(sstatus) | SPIE) & (~SPP) & (~SIE); // 详见手册
         context->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
+        
+
     }
     kout[Info] << "creaet Porcess" << name << (void*)context->epc << endl;
 

@@ -276,7 +276,7 @@ void final_test()
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "pipe") == 0) {
+        if (strcmp(file->name, "busybox") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {
@@ -328,10 +328,10 @@ void test_final1()
 
         file->show();
         kout[Debug]<<"start errrorrrrrrrrrrrrrrrrr"<<endl;
-        test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
+        // test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
         kout[Debug]<<"errrorrrrrrrrrrrrrrrrr"<<endl;
-        if (test != nullptr) {
+       /*  if (test != nullptr) {
             while (1) {
                 if (test->getStatus() == S_None) {
                     kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
@@ -343,8 +343,8 @@ void test_final1()
                 } else {
                     pm.immSchedule();
                 }
-            }
-        }
+            } */
+        // }
         // kout.SetEnabledType(-1);
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
@@ -360,11 +360,12 @@ int main()
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
 
-    // kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
+    kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-     kout.SetEnabledType(0);
+    //  kout.SetEnabledType(0);
+     kout.SwitchTypeOnoff(Fault, true);
 
-    kout.SwitchTypeOnoff(NEWINFO,false);
+    // kout.SwitchTypeOnoff(NEWINFO,false);
 
     TrapInit();
     ClockInit();
@@ -403,8 +404,8 @@ int main()
 // for (char ch='A';ch<'Z'+1;ch++) {
 // VFSM_test1(ch);
 // }
-    // final_test();
-    test_final1();
+    final_test();
+    // test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 
