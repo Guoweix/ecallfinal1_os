@@ -235,30 +235,40 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
 
     VirtualMemorySpace::EnableAccessUser();
     Process* cur_proc = pm.getCurProc();
+    kout[Info]<<"execve"<<endl;
     FAT32FILE* file_open = vfsm.open(path, "/");
+    kout[Info]<<"execve open finish"<<endl;
 
     if (file_open == nullptr) {
         kout[Fault] << "SYS_execve open File Fail!" << endl;
         return -1;
     }
 
+    kout[Info]<<"execve 1 "<<endl;
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     fom.set_fo_file(fo, file_open);
     fom.set_fo_pos_k(fo, 0);
     fom.set_fo_flags(fo, 0);
     
+    kout[Info]<<"execve 2 "<<endl;
+
     int argc=0;
-    while (argv[argc++]!=nullptr);
+    while (argv[argc]!=nullptr)argc++;
+    kout<<"argc"<<argc<<endl;
     char ** argv1=new char * [argc];
     for (int i=0; i<argc; i++) {
+    kout<<"argv["<<i<<"]"<<argv[i]<<endl;
     argv1[i]=strdump(argv[i]);
+    
     }
 
+    kout[Info]<<"execve 3 "<<endl;
      
 
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(),argc,argv1);
     kfree(fo);
 
+    kout[Info]<<"execve 4 "<<endl;
     int exit_value = 0;
     if (new_proc == nullptr) {
         kout[Fault] << "SYS_execve CreateProcessFromELF Fail!" << endl;

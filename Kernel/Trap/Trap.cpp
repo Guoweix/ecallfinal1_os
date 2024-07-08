@@ -64,7 +64,7 @@ bool needSchedule;
 extern "C" {
 TrapFrame* Trap(TrapFrame* tf)
 {
-    kout[NEWINFO]<<"entry "<<endl;
+    // kout[NEWINFO]<<"entry "<<endl;
     int t = needSchedule;
     needSchedule = 0;
     if ((long long)tf->cause < 0)
@@ -149,7 +149,7 @@ TrapFrame* Trap(TrapFrame* tf)
             TrapFailedInfo(tf);
         }
     }
-    kout[NEWINFO]<<"leave "<<endl;
+    // kout[NEWINFO]<<"leave "<<endl;
     if (needSchedule) {
         needSchedule = t;
         // if(t)

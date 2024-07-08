@@ -95,6 +95,7 @@ enum P_type
     PT_HIPROC = 0x7fffffff,
     PT_GNU_STACK=1685382481,
     PT_GNU_RELRO=1685382482,
+    DT_AARCH64_PAC_PLT=0x70000003,
     PT_TLS=7,
 };
 

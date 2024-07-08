@@ -10,7 +10,8 @@ CC := riscv64-unknown-elf-g++
 FLAGS := -nostdlib -I"Include" -fno-exceptions -fno-rtti -mcmodel=medany -std=c++17 
 LD := riscv64-unknown-elf-ld
 OBJCOPY := riscv64-unknown-elf-objcopy
-DRIVE := -drive file=Img/fat32_image.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
+# DRIVE := -drive file=Img/fat32_image.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
+DRIVE := -drive file=SBI_BIN/a.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
 BIOS :=  -bios SBI_BIN/opensbi-qemu.elf
 USERIMG := -initrd Img/User.img
 
@@ -25,7 +26,7 @@ Build/Kernel.elf:$(BUILD_ELF_FILES)
 
 
 run:Build/Kernel.elf
-	# cp Test/a.img SBI_BIN/a.img
+	cp Test/a.img SBI_BIN/a.img
 	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG)
 
 

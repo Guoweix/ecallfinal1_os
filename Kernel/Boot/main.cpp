@@ -232,33 +232,31 @@ void VFSM_test()
 
 bool VFSM_test1(char i)
 {
-    char  fn[20];
-    char t[20]={i,0};
-    strcpy(fn,"fuck_fuck_you");
-    strcat(fn,t);
-    kout<<"____________________CREATE____________________"<<endl;
-    
+    char fn[20];
+    char t[20] = { i, 0 };
+    strcpy(fn, "fuck_fuck_you");
+    strcat(fn, t);
+    kout << "____________________CREATE____________________" << endl;
+
     vfsm.create_file("/", "/", fn);
-    kout<<"____________________Find________________"<<endl;
+    kout << "____________________Find________________" << endl;
     FAT32FILE* f = vfsm.open(fn, "/");
-     if (f) {
+    if (f) {
         kout << "test_unlink find:" << f->name << endl;
     } else {
         kout[Fault] << "can't open" << endl;
     }
-    
 }
 
 void final_test()
 {
 
-
-// VFSM_test();
+    // VFSM_test();
     FAT32FILE* file;
     file = vfsm.get_next_file(vfsm.get_root());
     file_object* fo = new file_object();
     // kout << file;
-    char ch='A';
+    char ch = 'A';
     while (file) {
         kout << file->name << endl;
         if (file->table.size == 0) {
@@ -272,11 +270,11 @@ void final_test()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
-        
+
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "busybox") == 0) {
+        if (strcmp(file->name, "execve") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {
@@ -293,7 +291,7 @@ void final_test()
 FinalTestEnd:
     kout << "finish test" << endl;
 
-// VFSM_test();
+    // VFSM_test();
 
     while (1) {
         delay(1e7);
@@ -323,15 +321,15 @@ void test_final1()
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         kout << file->name << endl;
-        
+
         kout.SwitchTypeOnoff(Fault, true);
 
         file->show();
-        kout[Debug]<<"start errrorrrrrrrrrrrrrrrrr"<<endl;
-        // test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
+        kout[Debug] << "start errrorrrrrrrrrrrrrrrrr" << endl;
+        test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
-        kout[Debug]<<"errrorrrrrrrrrrrrrrrrr"<<endl;
-       /*  if (test != nullptr) {
+        kout[Debug] << "errrorrrrrrrrrrrrrrrrr" << endl;
+        if (test != nullptr) {
             while (1) {
                 if (test->getStatus() == S_None) {
                     kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
@@ -343,8 +341,8 @@ void test_final1()
                 } else {
                     pm.immSchedule();
                 }
-            } */
-        // }
+            }
+        }
         // kout.SetEnabledType(-1);
 
         file = vfsm.get_next_file(vfsm.get_root(), file);
@@ -362,8 +360,8 @@ int main()
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    //  kout.SetEnabledType(0);
-     kout.SwitchTypeOnoff(Fault, true);
+    kout.SetEnabledType(0);
+    kout.SwitchTypeOnoff(Fault, true);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
 
@@ -401,11 +399,11 @@ int main()
     //     kout << "can't open" << endl;
     // }
 
-// for (char ch='A';ch<'Z'+1;ch++) {
-// VFSM_test1(ch);
-// }
-    final_test();
-    // test_final1();
+    // for (char ch='A';ch<'Z'+1;ch++) {
+    // VFSM_test1(ch);
+    // }
+    // final_test();
+    test_final1();
     // pm_test();
     SBI_SHUTDOWN();
 
