@@ -73,15 +73,20 @@ int Syscall_mkdirat(int dirfd, const char* path, int mode)
     } else {
         file_object* fo = fom.get_from_fd(cur_proc->getFoHead(), dirfd);
         if (fo != nullptr) {
-            rela_wd = fo->file->path;
+
+            rela_wd = new char[200];
+            vfsm.get_file_path(fo->file, rela_wd);
         }
     }
-    char* dir_path = vfsm.unified_path(rela_wd, rela_wd);
+    char* dir_path = new char[200];
+    unified_path(rela_wd, rela_wd, dir_path);
+
     if (dir_path == nullptr) {
         return -1;
     }
     bool rt = vfsm.create_dir(dir_path, cwd, (char*)path);
-    kfree(dir_path);
+    delete[] dir_path;
+    delete[] rela_wd;
     if (!rt) {
         return -1;
     }
@@ -235,40 +240,39 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
 
     VirtualMemorySpace::EnableAccessUser();
     Process* cur_proc = pm.getCurProc();
-    kout[Info]<<"execve"<<endl;
-    FAT32FILE* file_open = vfsm.open(path, "/");
-    kout[Info]<<"execve open finish"<<endl;
+    kout[Info] << "execve" << endl;
+    FileNode* file_open = vfsm.open(path, "/");
+    kout[Info] << "execve open finish" << endl;
 
     if (file_open == nullptr) {
         kout[Fault] << "SYS_execve open File Fail!" << endl;
         return -1;
     }
 
-    kout[Info]<<"execve 1 "<<endl;
+    kout[Info] << "execve 1 " << endl;
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     fom.set_fo_file(fo, file_open);
     fom.set_fo_pos_k(fo, 0);
     fom.set_fo_flags(fo, 0);
-    
-    kout[Info]<<"execve 2 "<<endl;
 
-    int argc=0;
-    while (argv[argc]!=nullptr)argc++;
-    kout<<"argc"<<argc<<endl;
-    char ** argv1=new char * [argc];
-    for (int i=0; i<argc; i++) {
-    kout<<"argv["<<i<<"]"<<argv[i]<<endl;
-    argv1[i]=strdump(argv[i]);
-    
+    kout[Info] << "execve 2 " << endl;
+
+    int argc = 0;
+    while (argv[argc] != nullptr)
+        argc++;
+    kout << "argc" << argc << endl;
+    char** argv1 = new char*[argc];
+    for (int i = 0; i < argc; i++) {
+        kout << "argv[" << i << "]" << argv[i] << endl;
+        argv1[i] = strdump(argv[i]);
     }
 
-    kout[Info]<<"execve 3 "<<endl;
-     
+    kout[Info] << "execve 3 " << endl;
 
-    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(),argc,argv1);
+    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
     kfree(fo);
 
-    kout[Info]<<"execve 4 "<<endl;
+    kout[Info] << "execve 4 " << endl;
     int exit_value = 0;
     if (new_proc == nullptr) {
         kout[Fault] << "SYS_execve CreateProcessFromELF Fail!" << endl;
@@ -408,14 +412,14 @@ int Syscall_fstat(int fd, kstat* kst)
     if (fo == nullptr) {
         return -1;
     }
-    FAT32FILE* file = fo->file;
+    FileNode* file = fo->file;
     if (file == nullptr) {
         return -1;
     }
-    kout << "fstat file " << file->name << "file:table_size " << file->table.size << endl;
+    kout << "fstat file " << file->name << "file:table_size " << file->fileSize << endl;
     VirtualMemorySpace::EnableAccessUser();
     memset(kst, 0, sizeof(kstat));
-    kst->st_size = file->table.size;
+    kst->st_size = file->fileSize;
     kst->st_mode = fo->mode;
     kst->st_nlink = 1;
     // ... others to be added
@@ -556,7 +560,8 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     } else {
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, dirfd);
         if (fo != nullptr) {
-            rela_wd = fo->file->path;
+            rela_wd = new char[200];
+            vfsm.get_file_path(fo->file, rela_wd);
         } else {
             kout << "unlink can't find file" << endl;
             return -1;
@@ -570,10 +575,12 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     VirtualMemorySpace::EnableAccessUser();
     if (!vfsm.unlink(path, rela_wd)) {
         kout << "unlink failed" << endl;
+        delete[] rela_wd;
         return -1;
     }
     VirtualMemorySpace::DisableAccessUser();
     kout << Green << "Unlinkat 6" << endl;
+    delete[] rela_wd;
     return 0;
 }
 
@@ -694,7 +701,7 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    if ((fo->file->TYPE & FAT32FILE::__PIPEFILE) && (fo->flags & file_flags::O_WRONLY)) {
+    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->flags & file_flags::O_WRONLY)) {
         PIPEFILE* fp = (PIPEFILE*)fo->file;
         fp->writeRef--;
         if (fp->writeRef == 0) {
@@ -814,7 +821,9 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
         // kout << Red << "OpenedFile5" << endl;
         if (fo != nullptr) {
-            rela_wd = fo->file->path;
+            rela_wd = new char[200];
+            // rela_wd = fo->file->path;
+            vfsm.get_file_path(fo->file, rela_wd);
         }
     }
 
@@ -834,7 +843,6 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
             if (!vfsm.create_file(rela_wd, cwd, (char*)filename))
                 kout[Fault] << "create" << endl;
         }
-
         // kout << Red << "OpenedFile7" << endl;
     }
 
@@ -848,7 +856,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // trick
     // 暂时没有对于. 和 ..的路径名的处理
     // 特殊处理打开文件当前目录.的逻辑
-    FAT32FILE* file = nullptr;
+    FileNode* file = nullptr;
 
     // if (filename[0] == '.' && filename[1] != '.') {
     //     int str_len = strlen(filename);
@@ -866,16 +874,18 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
 
     if (file != nullptr) {
         kout << Red << "OpenedFile12" << endl;
-        if (!(file->TYPE & FAT32FILE::__DIR) && (flags & O_DIRECTORY)) {
+        if (!(file->TYPE & FileType::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
     } else {
+        delete[] rela_wd;
         return -1;
     }
 
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
     kout << Red << "OpenedFile13" << endl;
     if (fo == nullptr || fo->fd < 0) {
+        delete[] rela_wd;
         return -1;
     }
     kout << Red << "OpenedFile14" << endl;
@@ -891,6 +901,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
 
     kout << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
+    delete[] rela_wd;
     return fo->fd;
 }
 
@@ -924,7 +935,7 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
 {
     if (len == 0)
         return -1;
-    FAT32FILE* node = nullptr;
+    FileNode* node = nullptr;
     if (fd != -1) {
         file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
         if (fh == nullptr)
@@ -1109,7 +1120,8 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
         return -1;
     }
 
-    FAT32FILE* file = vfsm.get_next_file(dir->file, nullptr);
+    FAT32 * t=(FAT32 *)vfsm.get_root()->vfs;
+    FileNode* file = t->get_next_file((FAT32FILE *)dir->file, nullptr);
 
     VirtualMemorySpace::EnableAccessUser();
     if (file == nullptr) {
@@ -1143,7 +1155,8 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 
             dirent->d_reclen = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
         }
-        file = vfsm.get_next_file(dir->file, file);
+
+        file = t->get_next_file((FAT32FILE *)dir->file, (FAT32FILE *)file);
     }
     // FileNode* *nodes  = new FileNode* [bufSize];
     // int cnt=VFSM.GetAllFileIn(dir,nodes,bufSize,0);

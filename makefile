@@ -22,7 +22,7 @@ all:Build/Kernel.elf
 	cp Build/Kernel.elf ./kernel-qemu
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
-	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
+	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld  $(BUILD_ELF_FILES)
 
 
 run:Build/Kernel.elf
@@ -35,6 +35,8 @@ $(TARGET_DIR)/%.elf: %.cpp
 
 $(TARGET_DIR)/%.elf: %.S
 	$(CC) $(FLAGS) -c $<  -o $@
+	
+
 
 Img/User.o:User/User.cpp
 	$(CC) $(FLAGS) -c $<  -o $@

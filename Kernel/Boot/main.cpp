@@ -201,15 +201,16 @@ void VFSM_test()
 
     vfsm.create_file("/", "/", "test_unlink");
 
-    file = vfsm.get_next_file(vfsm.get_root());
+    FAT32* t = (FAT32*)vfsm.get_root()->vfs;
+    file = t->get_next_file((FAT32FILE*)vfsm.get_root(), nullptr);
     file_object* fo = new file_object();
     while (file) {
         // if (file->table.size == 0) {
         // file = vfsm.get_next_file(vfsm.get_root(), file);
         // continue;
         // }
-        if (file->TYPE == FAT32FILE::__DIR) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
+        if (file->TYPE == FileType::__DIR) {
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
             continue;
         }
         fom.set_fo_file(fo, file);
@@ -219,10 +220,10 @@ void VFSM_test()
         // kout << "file name" << file << " " << file->name << endl;
         // ;
 
-        file = vfsm.get_next_file(vfsm.get_root(), file);
+        file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
         // kout << file;
     }
-    FAT32FILE* f = vfsm.open("test_unlink", "/");
+    FAT32FILE* f = (FAT32FILE*)vfsm.open("test_unlink", "/");
     if (f) {
         kout << "test_unlink find:" << f->name << endl;
     } else {
@@ -240,7 +241,7 @@ bool VFSM_test1(char i)
 
     vfsm.create_file("/", "/", fn);
     kout << "____________________Find________________" << endl;
-    FAT32FILE* f = vfsm.open(fn, "/");
+    FAT32FILE* f = (FAT32FILE*)vfsm.open(fn, "/");
     if (f) {
         kout << "test_unlink find:" << f->name << endl;
     } else {
@@ -253,18 +254,20 @@ void final_test()
 
     // VFSM_test();
     FAT32FILE* file;
-    file = vfsm.get_next_file(vfsm.get_root());
+    FAT32* f;
+    f = (FAT32*)file->vfs;
+    file = f->get_next_file((FAT32FILE*)vfsm.get_root());
     file_object* fo = new file_object();
     // kout << file;
     char ch = 'A';
     while (file) {
         kout << file->name << endl;
         if (file->table.size == 0) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
+            file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
             continue;
         }
-        if (file->TYPE == FAT32FILE::__DIR) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
+        if (file->TYPE == FileType::__DIR) {
+            file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
             continue;
         }
         fom.set_fo_file(fo, file);
@@ -284,7 +287,7 @@ void final_test()
             }
             kout << "END" << endl;
         }
-        file = vfsm.get_next_file(vfsm.get_root(), file);
+        file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
         // kout << file;
     }
 
@@ -301,20 +304,27 @@ FinalTestEnd:
 
 void test_final1()
 {
+    kout[Info]<<"test_final1()"<<endl;
+
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
-    FAT32FILE* file;
+    FileNode* file;
     Process* test;
     int test_cnt = 0;
-
-    file = vfsm.get_next_file(vfsm.get_root());
+    FAT32* t = (FAT32*)vfsm.get_root()->vfs;
+    file = t->get_next_file((FAT32FILE*)vfsm.get_root());
+    if (file==nullptr) {
+        kout[Fault]<<"can't find file"<<endl;
+    }
     while (file) {
-        // file->show();
-        if (file->table.size == 0) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
+        file->show();
+        if (file->fileSize == 0) {
+            kout[Error]<<"fileSize is 0"<<endl;
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
-        if (file->TYPE == FAT32FILE::__DIR) {
-            file = vfsm.get_next_file(vfsm.get_root(), file);
+        if (file->TYPE == FileType::__DIR) {
+            kout[Error]<<"fileType dir"<<endl;
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
 
@@ -345,7 +355,7 @@ void test_final1()
         }
         // kout.SetEnabledType(-1);
 
-        file = vfsm.get_next_file(vfsm.get_root(), file);
+        file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
     }
     // kout.SetEnabledType(-1);
     kout << "test finish" << endl;
@@ -360,7 +370,7 @@ int main()
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    kout.SetEnabledType(0);
+    // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);

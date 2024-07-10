@@ -101,7 +101,6 @@ void Process::initForKernelProc0()
     stacksize = PAGESIZE;
     setProcCWD("/");
     VMS = VirtualMemorySpace::Boot();
-
     setName("idle_0");
     switchStatus(S_Running);
 }

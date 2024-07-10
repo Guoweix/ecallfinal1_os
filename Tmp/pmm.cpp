@@ -178,4 +178,8 @@ void PMM::free(void* freeaddress)
     return;
 }
 
+
 PMM pmm;
+
+
+riscv64-unknown-elf-ld -o Build/Kernel.elf -T Linker/Kernel.ld Build/Kernel/File/vfsm.elf  Build/Kernel/Synchronize/Synchronize.elf Build/Kernel/Process/Process.elf Build/Kernel/Process/parseELF.elf Build/Kernel/File/FAT32.elf Build/Kernel/File/FileObject.elf Build/Kernel/File/pathtool.elf Build/Kernel/Library/Kstring.elf Build/Kernel/Library/libcpp.elf Build/Kernel/Driver/Plic.elf Build/Kernel/Driver/VirtioDisk.elf Build/Kernel/Trap/Trap.elf Build/Kernel/Trap/Syscall/Syscall.elf Build/Kernel/Memory/pmm.elf Build/Kernel/Memory/vmm.elf Build/Kernel/Memory/slab.elf Build/Kernel/Boot/main.elf Build/Kernel/Process/ProcessEntry.elf Build/Kernel/Trap/TrapEntry.elf Build/Kernel/Boot/Start.elf

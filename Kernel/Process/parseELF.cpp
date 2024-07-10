@@ -7,6 +7,7 @@
 #include <File/FileObject.hpp>
 #include <File/vfsm.hpp>
 #include <Process/ParseELF.hpp>
+#include <Library/Pathtool.hpp>
 
 Process* CreateKernelThread(int (*func)(void*), char* name, void* arg, ProcFlag _flags)
 {
@@ -91,7 +92,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     Uint16 phnum = proc_data->e_header.e_phnum; // 可执行文件中的需要解析的段数量
     Uint64 phoff = proc_data->e_header.e_phoff; // 段表在文件中的偏移量 需要通过段表访问到每个段
     Uint16 phentsize = proc_data->e_header.e_phentsize; // 段表中每个段表项的大小
-    kout << phnum << ' ' << phoff << ' ' << phentsize << endl;
+    kout[Info] << phnum << ' ' << phoff << ' ' << phentsize << endl;
     for (int i = 0; i < phnum; i++) {
         // 解析每一个程序头 即段
         Elf_Phdr pgm_hdr { 0 };
@@ -100,7 +101,9 @@ int start_process_formELF(procdata_fromELF* proc_data)
         Sint64 offset = phoff + i * phentsize;
         fom.seek_fo(fo, offset, file_ptr::Seek_beg);
         Sint64 rd_size = 0;
+
         rd_size = fom.read_fo(fo, &pgm_hdr, sizeof(pgm_hdr));
+        
         if (rd_size != sizeof(pgm_hdr)) {
             // 没有成功读到指定大小的文件
             // 输出提示信息并且终止函数执行
@@ -322,6 +325,9 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     Sint64 rd_size = 0;
     kout<<"read_fo start"<<endl;
     rd_size = fom.read_fo(fo, &proc_data->e_header, sizeof(proc_data->e_header));
+
+    // kout<<DataWithSize((void *)&proc_data->e_header,sizeof(proc_data->e_header))<<endl;
+
     kout<<"read_fo finish"<<endl;
 
     if (rd_size != sizeof(proc_data->e_header) || !proc_data->e_header.is_ELF()) {
@@ -342,7 +348,8 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc->setVMS(vms);
     proc->setFa(pm.getCurProc());
 
-    char* abs_cwd = vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
+    char* abs_cwd = new  char[200];
+    unified_path((char *)wk_dir, pm.getCurProc()->getCWD(),abs_cwd);
     proc->setProcCWD(abs_cwd);
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);

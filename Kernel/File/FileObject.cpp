@@ -5,7 +5,7 @@
 #include <File/vfsm.hpp>
 #include <Process/Process.hpp>
 
-FAT32FILE* STDIO = nullptr;
+FileNode* STDIO = nullptr;
 
 void FileObjectManager::init_proc_fo_head(Process* proc)
 {
@@ -262,7 +262,7 @@ bool FileObjectManager::set_fo_fd(file_object* fo, int fd)
     return true;
 }
 
-bool FileObjectManager::set_fo_file(file_object* fo, FAT32FILE* file)
+bool FileObjectManager::set_fo_file(file_object* fo, FileNode* file)
 {
     if (fo == nullptr) {
         kout[Fault] << "The fo is Empty cannot be set!" << endl;
@@ -313,7 +313,6 @@ bool FileObjectManager::set_fo_mode(file_object* fo, Uint64 mode)
 
 Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
 {
-    kout << "read_fo" << endl;
     if (fo == nullptr) {
         kout[Fault] << "Read fo the fo is NULL!" << endl;
         return -1;
@@ -323,23 +322,16 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
         return -1;
     }
 
-    // kout << "read_fo1" << endl;
-    FAT32FILE* file = fo->file;
-    // kout << "read_fo2" << endl;
+    FileNode* file = fo->file;
     if (file == nullptr) {
         kout[Fault] << "Read fo the file pointer is NULL!" << endl;
         return -1;
     }
-    // kout << "read_fo3" << endl;
+    kout<<(void *)fo->file->vfs<<endl;
+
     Sint64 rd_size;
-    if (file->TYPE & FAT32FILE::__PIPEFILE) {
-        PIPEFILE* pfile = (PIPEFILE*)fo->file;
-        rd_size = pfile->read((unsigned char*)dst, fo->pos_k, size);
-        fo->pos_k++;
-    } else {
-        rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
-    }
-    // kout << "read_fo4" << endl;
+    rd_size = file->read((unsigned char*)dst, size);
+
     return rd_size;
 }
 
@@ -354,20 +346,19 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
         return -1;
     }
 
-    FAT32FILE* file = fo->file;
+    FileNode* file = fo->file;
     if (file == nullptr) {
         kout[Fault] << "Write fo the file pointer is NULL!" << endl;
         return -1;
     }
 
-
-     Sint64 wr_size;
-    if (file->TYPE & FAT32FILE::__PIPEFILE) {
-        PIPEFILE* pfile = (PIPEFILE*)fo->file;
-        wr_size = pfile->write((unsigned char*)src,  size);
-    } else {
-        wr_size = file->write((unsigned char*)src, size);
-    }
+    Sint64 wr_size;
+    /*    if (file->TYPE & FAT32FILE::__PIPEFILE) {
+           PIPEFILE* pfile = (PIPEFILE*)fo->file;
+           wr_size = pfile->write((unsigned char*)src,  size);
+       } else { */
+    wr_size = file->write((unsigned char*)src, fo->pos_k, size);
+    // }
     return wr_size;
 }
 
@@ -378,7 +369,7 @@ void FileObjectManager::seek_fo(file_object* fo, Sint64 bias, Sint32 base)
     } else if (base == Seek_cur) {
         fo->pos_k += bias;
     } else if (base == Seek_end) {
-        fo->pos_k = fo->file->table.size;
+        fo->pos_k = fo->file->fileSize;
     }
 }
 
@@ -398,7 +389,7 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 这里的close接口会自动处理引用计数相关文件
     // 进程完全不需要进行对文件的任何操作
     // 这就是这一层封装和隔离的妙处所在
-    FAT32FILE* file = fo->file;
+    FileNode* file = fo->file;
     // kout<<"close_fo"<<fo->file<<fo->file->name<<endl;
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点

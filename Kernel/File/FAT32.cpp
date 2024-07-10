@@ -1,18 +1,34 @@
 #include "Driver/VirtioDisk.hpp"
+#include "File/vfsm.hpp"
 #include "Library/KoutSingle.hpp"
-#include "Memory/vmm.hpp"
 #include "Synchronize/Synchronize.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
 
 // char cache[512];
 
-FAT32FILE::FAT32FILE(FATtable ft, char* lName, Uint64 _clus, Uint64 pos, char* _path)
+FileNode** FAT32::get_all_file_in_dir(FileNode* dir, bool (*p)(FileType type))
 {
+    // FileNode ** re=new FileNode* [100];
+
+    return nullptr;
+}
+
+FAT32FILE* FAT32::get_node(const char* path)
+{
+    kout[Error] << "FAT32::get_node" << endl;
+    return nullptr;
+}
+
+FAT32FILE::FAT32FILE(FATtable ft, char* lName, FAT32* fat_, Uint64 _clus, Uint64 pos, char* _path)
+{
+
     kout << Yellow << "FAT32FILE" << endl;
     table = ft;
     clus = table.low_clus | (table.high_clus << 16);
 
+    vfs = fat_;
+    fileSize = table.size;
     TYPE = 0;
     TYPE |= table.type & 0x10 ? 1 : 0;
     if (lName) {
@@ -21,15 +37,6 @@ FAT32FILE::FAT32FILE(FATtable ft, char* lName, Uint64 _clus, Uint64 pos, char* _
     }
     table_clus_pos = _clus;
     table_clus_off = pos;
-    next = nullptr;
-    pre = nullptr;
-    fat = nullptr;
-    ref = 0;
-
-    if (_path) {
-        path = new char[100];
-        strcpy(path, _path);
-    }
 }
 bool FAT32::unlink(FAT32FILE* file)
 {
@@ -53,16 +60,14 @@ bool FAT32::unlink(FAT32FILE* file)
 
 FAT32FILE::~FAT32FILE()
 {
-    delete[] name;
-    delete[] path;
 }
-
+/*
 bool FAT32FILE::set_path(char* _path)
 {
     path = new char[100];
     strcpy(path, _path);
     return true;
-}
+} */
 
 Sint32 FATtable::get_name(char* REname)
 {
@@ -116,7 +121,7 @@ Sint32 FATtable::get_name(char* REname)
 
 bool FAT32::init()
 {
-    // disk.init();
+    kout << Yellow << "FAT32::init" << endl;
 
     Disk.DiskInit();
 
@@ -194,7 +199,7 @@ FAT32::FAT32()
 
 bool FAT32::get_clus(Uint64 clus, unsigned char* buf)
 {
-    // kout << Red << "Get Clus" << clus << endl;
+    kout << Red << "Get Clus" << clus << endl;
 
     if (clus >= 0xffffff7) {
         kout[Fault] << "can't find clus __" << (void*)clus << endl;
@@ -202,12 +207,15 @@ bool FAT32::get_clus(Uint64 clus, unsigned char* buf)
     }
 
     int lba = clus_to_lba(clus);
-    // kout<<Yellow<<lba<<endl;
+
+    kout << Yellow << lba << endl;
     // for (int i = 0; i < Dbr.clus_sector_num; i++)
     // {
     //     Disk.readSector(lba + i, (Sector*)buf + i * Dbr.sector_size);
     // }
+
     Disk.readSector(lba, (Sector*)buf, Dbr.clus_sector_num);
+
     // kout<<Blue<<buf<<endl;
     // kout<<Blue<<DataWithSizeUnited(buf,512,16);
 
@@ -291,7 +299,7 @@ FAT32FILE* FAT32::get_child_form_clus(char* child_name, Uint64 src_clus)
             // kout[green] << lName << endl;
 
             if (strcmp(lName, child_name) == 0 && ft[i].attribute != 0xe5) {
-                re = new FAT32FILE(ft[i], lName, src_clus, i);
+                re = new FAT32FILE(ft[i], lName, this, src_clus, i);
                 delete[] sName;
                 delete[] clus;
                 return re;
@@ -316,9 +324,10 @@ Uint64 FAT32::lba_to_clus(Uint64 lba)
 
 Uint64 FAT32::clus_to_lba(Uint64 clus)
 {
+    // kout<<Blue<< Dbr.clus_sector_num<< DATAlba<<endl;
     return (clus - 2) * Dbr.clus_sector_num + DATAlba;
 }
-
+/*
 FAT32FILE* FAT32::find_file_by_path(char* path)
 {
     char* sigleName = new char[50];
@@ -357,7 +366,7 @@ FAT32FILE* FAT32::find_file_by_path(char* path)
     // kout[blue]<<cpath<<endl;
     return tb;
 }
-
+ */
 bool FAT32::show_empty_clus(Uint64 clus)
 {
 
@@ -379,9 +388,27 @@ bool FAT32::show_empty_clus(Uint64 clus)
     kout << endl;
 }
 
-FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
+Uint8 FAT32::TypeConvert(FileType type)
+{
+    Uint8 re = 0;
+    if (type & FileType::__DEVICE) {
+        re |= FATtable::device;
+    }
+
+    if (type & FileType::__DIR) {
+        re |= FATtable::subdirenctory;
+    }
+
+    if (type == 0) {
+        re |= FATtable::file;
+    }
+    return re;
+}
+
+FAT32FILE* FAT32::create_file(FileNode* dir_, char* fileName, FileType type)
 {
     FATtable temp;
+    FAT32FILE* dir = (FAT32FILE*)dir_;
     memset((unsigned char*)&temp, 0, 32);
     if (dir == nullptr) {
         kout[Fault] << "dir isn't a nullptr" << endl;
@@ -419,7 +446,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     // 设置时间
                     temp.high_clus = 0;
                     temp.low_clus = 0;
-                    temp.type = type;
+                    temp.type = TypeConvert(type);
                     re = i;
                     ft[i] = temp;
                     kout << "SSSS " << i << '\t';
@@ -444,7 +471,7 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
                     }
                     set_clus(rclus, buf);
                     delete[] buf;
-                    FAT32FILE* rfile = new FAT32FILE(ft[re], fileName, rclus, re);
+                    FAT32FILE* rfile = new FAT32FILE(ft[re], fileName, this, rclus, re);
                     rfile->TYPE = 0;
 
                     unsigned char* clus = new unsigned char[512];
@@ -478,10 +505,11 @@ FAT32FILE* FAT32::create_file(FAT32FILE* dir, char* fileName, Uint8 type)
     return nullptr;
 }
 
-FAT32FILE* FAT32::create_dir(FAT32FILE* dir, char* fileName)
+FAT32FILE* FAT32::create_dir(FileNode* dir_, char* fileName)
 {
+    FAT32FILE* dir = (FAT32FILE*)dir_;
     FAT32FILE* re;
-    re = create_file(dir, fileName, FATtable::SUBDIRENCTORY);
+    re = create_file(dir, fileName, FileType::__DIR);
     Uint64 rclus = find_empty_clus();
 
     re->clus = rclus;
@@ -510,19 +538,61 @@ FAT32FILE* FAT32::create_dir(FAT32FILE* dir, char* fileName)
     return re;
 }
 
-FAT32FILE* FAT32::open(char* path)
+FAT32FILE* FAT32::open(char* path, FileNode* _parent)
 {
-    return find_file_by_path(path);
+
+    char* sigleName = new char[50];
+    unsigned char* clus = new unsigned char[Dbr.clus_size];
+    Uint64 clus_n = Dbr.root_clus;
+    FAT32FILE* tb = (FAT32FILE*)_parent;
+    FAT32FILE* pre;
+
+    FATtable* ft;
+    while ((path = split_path_name(path, sigleName))) {
+        // kout[green] << sigleName << endl;
+        pre = tb;
+        tb = get_child_form_clus(sigleName, clus_n);
+        if (tb == nullptr) {
+            // kout[red] << "can't find file:" << sigleName << endl;
+            delete[] sigleName;
+            return nullptr;
+        }
+        // if (sigleName[0]) {
+        // kout[yellow] << tb->name << endl;
+        // if (tb->table.type & 0x10) // 目录
+        // {
+        if (pre->child) {
+            pre->child->pre = tb;
+            tb->next = pre->child;
+        }
+        pre->child = tb;
+        tb->parent = pre;
+        tb->vfs = this;
+        clus_n = tb->table.low_clus | (Uint64)tb->table.high_clus << 16;
+        tb->RefCount++;
+        tb->fileSize = tb->table.size;
+        // } else {
+        // kout[Fault] << "path fail " << sigleName << " is not't a director" << endl;
+        //
+        // }
+    }
+    delete[] sigleName;
+    // kout[blue]<<cpath<<endl;
+    return pre;
 }
 
-bool FAT32::close(FAT32FILE* p)
+bool FAT32::close(FileNode* p)
 {
     return 0;
 }
 
-Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
+Sint64 FAT32FILE::read(void* buf_, Uint64 size)
 {
+
     kout << "FAT32FILE::read" << endl;
+    ASSERTEX(buf_, __FILE__ << __LINE__ << " buf is nullptr");
+    unsigned char* buf = (unsigned char*)buf_;
+
     if (size == 0) {
         kout[Info] << "There is nothing" << endl;
         return 0;
@@ -530,10 +600,14 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
     if (size > table.size) {
         size = table.size;
     }
+    FAT32* fat = (FAT32*)vfs;
+    ASSERTEX(fat, __FILE__ << __LINE__ << " fat is nullptr");
 
     int n = size / fat->Dbr.clus_size + ((size % fat->Dbr.clus_size) ? 1 : 0);
     // kout << n << endl;
     unsigned char* p = new unsigned char[fat->Dbr.sector_size];
+    ASSERTEX(p, __FILE__ << __LINE__ << " p is nullptr");
+
     Uint64 rclus = clus;
     for (int i = 0; i < n; i++) {
         if (rclus < 2 || rclus >= 0xffffff7)
@@ -547,8 +621,9 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 size)
     return size;
 }
 
-Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
+Sint64 FAT32FILE::read(void* buf_, Uint64 pos, Uint64 size)
 {
+    unsigned char* buf = (unsigned char*)buf_;
     kout << "FAT32FILE::read" << endl;
     if (size == 0 && pos + size > table.size) {
         kout[Info] << "There is nothing" << endl;
@@ -558,6 +633,7 @@ Sint64 FAT32FILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
         // kout[Fault]<<"error"<<endl;
         size = table.size - pos;
     }
+    FAT32* fat = (FAT32*)vfs;
     // kout<<fat<<endl;
     // kout<<fat->Dbr<<endl;
     Uint64 start = pos / fat->Dbr.clus_size;
@@ -621,18 +697,19 @@ Uint64 FAT32::find_empty_clus()
     return 0xfffffff;
 }
 
-bool FAT32::del_file(FAT32FILE* file)
+bool FAT32::del(FileNode* file_)
 {
+    FAT32FILE* file = (FAT32FILE*)file_;
     kout << Red << "del_file  " << endl;
     FATtable* p = (FATtable*)new unsigned char[Dbr.clus_size];
     get_clus(file->table_clus_pos, (unsigned char*)p);
 
-    if ((file->TYPE & FAT32FILE::__DIR) && !(file->TYPE & FAT32FILE::__SPECICAL)) {
+    if ((file->TYPE & FileType::__DIR) && !(file->TYPE & FileType::__SPECICAL)) {
         FAT32FILE* t;
         t = get_next_file(file);
         // t->show();
         while (t) {
-            del_file(t);
+            del(t);
             t = get_next_file(file, t, EXCEPTDOT);
         }
     }
@@ -659,10 +736,13 @@ bool FAT32::del_file(FAT32FILE* file)
     set_next_clus(rclus, 0);
 
     delete[] p;
+    return true;
 }
 
-bool FAT32FILE::write(unsigned char* src, Uint64 size)
+Sint64 FAT32FILE::write(void* src_, Uint64 pos, Uint64 size)
 {
+
+    unsigned char* src = (unsigned char*)src_;
 
     kout << Red << "write  " << endl;
     if (table.type & 0x1) {
@@ -670,6 +750,7 @@ bool FAT32FILE::write(unsigned char* src, Uint64 size)
         return false;
     }
 
+    FAT32* fat = (FAT32*)vfs;
     Uint64 rclus;
 
     if (clus >= 2 && clus < 0xffffff8) {
@@ -706,7 +787,56 @@ bool FAT32FILE::write(unsigned char* src, Uint64 size)
     // 设置时间
     fat->set_table(this);
 
-    return true;
+    return size;
+}
+Sint64 FAT32FILE::write(void* src_, Uint64 size)
+{
+
+    kout << Red << "write  " << endl;
+    if (table.type & 0x1) {
+        kout[Fault] << "this is a director" << endl;
+        return false;
+    }
+
+    unsigned char* src = (unsigned char*)src_;
+    FAT32* fat = (FAT32*)vfs;
+    Uint64 rclus;
+
+    if (clus >= 2 && clus < 0xffffff8) {
+        rclus = fat->get_next_clus(clus);
+    } else {
+        clus = fat->find_empty_clus();
+        rclus = 0xffffff8;
+    }
+    // kout[green] << clus << endl;
+
+    Uint64 nxt;
+
+    while (rclus < 0xffffff8 && rclus >= 2) {
+        nxt = fat->get_next_clus(rclus);
+        fat->set_next_clus(rclus, 0);
+        rclus = nxt;
+    }
+
+    fat->set_clus(clus, src);
+
+    rclus = clus;
+
+    if (size > fat->Dbr.clus_size) {
+        for (int i = 1; i < size / fat->Dbr.clus_size + (size % fat->Dbr.clus_size ? 1 : 0); i++) {
+            nxt = fat->find_empty_clus();
+            fat->set_next_clus(rclus, nxt);
+            rclus = nxt;
+            fat->set_clus(rclus, &src[fat->Dbr.clus_size * i]);
+        }
+    }
+    fat->set_next_clus(rclus, 0xfffffff);
+
+    table.size = size;
+    // 设置时间
+    fat->set_table(this);
+
+    return size;
 }
 
 // Uint64 FAT32::clus_off_in_fat(Uint64 clus)
@@ -723,13 +853,13 @@ void FAT32FILE::show()
 
     kout << "name " << name << endl
          << "TYPE " << TYPE << endl;
-    if (path)
-        kout << "PATH " << path << endl;
+    // if (path)
+    // kout << "PATH " << path << endl;
     kout << "SIZE " << table.size << endl
          << "CLUS " << clus << endl
          << "POS  " << table_clus_pos << endl
          << "OFF  " << table_clus_off << endl
-         << "ref  " << ref << endl
+         << "ref  " << RefCount << endl
          << endl;
     // <<"Creation Time"<<1980+(table.S_date[1]&0xfe)<<'/'
 }
@@ -818,19 +948,33 @@ FAT32::~FAT32()
 
 FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtable* temp))
 {
+    kout[Info] << "FAT32::get_next_file" << endl;
+
+    kout[Info] << __FILE__ << __LINE__ << endl;
+    // kout[Info]<<Dbr.clus_size<<endl;
+
     ASSERTEX(dir != nullptr, "dir is nullptr");
-    if (!(dir->TYPE & FAT32FILE::__DIR)) {
+    if (!(dir->TYPE & FileType::__DIR)) {
         kout[Fault] << dir->name << "isn't a dir" << endl;
         return nullptr;
     }
+    kout[Info] << __FILE__ << __LINE__ << endl;
+
+    // kout[Info]<<Dbr.clus_size<<endl;
     unsigned char* clus = new unsigned char[Dbr.clus_size];
+
     Uint64 src_clus;
+    kout[Info] << __FILE__ << __LINE__ << endl;
     if (cur)
         src_clus = cur->table_clus_pos;
     else
         src_clus = dir->clus;
+    kout[Info] << __FILE__ << __LINE__ << endl;
     get_clus(src_clus, clus);
 
+    kout << DataWithSize(clus, 512) << endl;
+
+    kout[Info] << __FILE__ << __LINE__ << endl;
     FATtable* ft = (FATtable*)clus;
     FAT32FILE* re = nullptr;
     Sint32 t;
@@ -840,17 +984,20 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
     sName[27] = 0;
     char* lName = new char[100];
     Uint64 pos; //= cur ? (cur->table_clus_off + 1 ): 0; // 当没传入cur时从文件初开始遍历；
+    kout[Info] << __FILE__ << __LINE__ << endl;
     if (cur)
         pos = cur->table_clus_off + 1;
     else
         pos = 0;
 
+    kout[Info] << __FILE__ << __LINE__ << endl;
     // Uint64 test_clus = 2;
     // while (test_clus < 0xffffff8) {
-    //     kout << Green << test_clus << endl;
+    // kout << Green << src_clus << endl;
     //     test_clus = get_next_clus(test_clus);
     // }
 
+    kout[Info] << __FILE__ << __LINE__ << endl;
     while (src_clus < 0xffffff8) {
         for (int i = pos; i < Dbr.clus_size / 32; i++) {
             while ((t = ft[i].get_name(sName)) > 0) {
@@ -880,16 +1027,18 @@ FAT32FILE* FAT32::get_next_file(FAT32FILE* dir, FAT32FILE* cur, bool (*p)(FATtab
 
             if (p(&ft[i])) {
                 // kout << Green << lName << endl;
-                re = new FAT32FILE(ft[i], lName, src_clus, i);
+                re = new FAT32FILE(ft[i], lName, this,src_clus, i);
                 // kout<<lName<<' '<<Hex(clus_to_lba(src_clus)*512);
+
                 if (t == -2) {
-                    re->TYPE |= FAT32FILE::__SPECICAL;
+                    re->TYPE |= FileType::__SPECICAL;
                     kout[Info] << "find special file" << endl;
                 }
                 kout << re << endl;
                 delete[] sName;
                 delete[] clus;
                 delete[] lName;
+
                 return re;
             }
         }
@@ -942,14 +1091,10 @@ bool EXCEPTDOT(FATtable* t)
 }
 
 PIPEFILE::PIPEFILE()
-    : FAT32FILE(FATtable(), nullptr)
+    : FileNode()
 {
     kout << "PIPEFILE init" << endl;
     TYPE = __PIPEFILE;
-    clus = 0xffffff8;
-    table_clus_off = 0;
-    table_clus_pos = 0;
-    fat = nullptr;
     readRef = 2;
     writeRef = 2;
     in = 0, out = 0;
@@ -961,8 +1106,9 @@ PIPEFILE::~PIPEFILE()
 {
 }
 
-Sint64 PIPEFILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
+Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 {
+    unsigned char* buf = (unsigned char*)buf_;
 
     kout[Info] << "pipe read didn't solved" << endl;
     for (int i = 0; i < size; i++) {
@@ -976,24 +1122,25 @@ Sint64 PIPEFILE::read(unsigned char* buf, Uint64 pos, Uint64 size)
         }
 
         buf[i] = data[out];
-        kout[Info]<<(int)data[out]<<endl;
-        if (data[out]==4) {
+        kout[Info] << (int)data[out] << endl;
+        if (data[out] == 4) {
             file->signal();
             empty->signal();
             // kout[Fault]<<"EOF "<<endl;
-            return  false;
+            return false;
         }
-        out=(out+1)%FILESIZE;
+        out = (out + 1) % FILESIZE;
 
         file->signal();
         empty->signal();
     }
 
-    return true;
+    return size;
 }
-bool PIPEFILE::write(unsigned char* src, Uint64 size)
+Sint64 PIPEFILE::write(void* src_, Uint64 size)
 {
 
+    unsigned char* src = (unsigned char*)src_;
     kout[Info] << "pipe write didn't solved" << endl;
 
     for (int i = 0; i < size; i++) {
@@ -1006,11 +1153,11 @@ bool PIPEFILE::write(unsigned char* src, Uint64 size)
             pm.immSchedule();
         }
         data[in] = src[i];
-        kout[Info]<<"IN"<<in<<endl;
+        kout[Info] << "IN" << in << endl;
         in = (in + 1) % FILESIZE;
 
         file->signal();
         full->signal();
     }
-    return true;
+    return size;
 }

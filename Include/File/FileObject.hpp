@@ -1,8 +1,9 @@
 #ifndef __FILEOBJECT_HPP__
 #define __FILEOBJECT_HPP__
 
+#include <File/vfsm.hpp>
 #include <Process/Process.hpp>
-#include <File/FAT32.hpp>
+// #include <File/FAT32.hpp>
 
 // 文件和进程之间的接口其实是通过文件描述符去对接的
 // 因此在进程结构体中需要维护打开的文件描述符表这样的结构
@@ -77,7 +78,7 @@ struct file_object
 {
     int fd;                     // 小的非负整数表示文件描述符fd 这里使用int 考虑-1的可用性
     int tk_fd;
-    FAT32FILE* file;            // 对应的具体的打开的文件的结构指针
+    FileNode* file;            // 对应的具体的打开的文件的结构指针
     Uint64 pos_k;               // 进程对于每个打开的文件维护文件指针的当前位置信息 用于实现seek等操作
     Uint64 flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
     Uint64 mode;                // 表示进程对打开的文件具有的权限信息位
@@ -105,7 +106,7 @@ public:
     
     // 设置属性相关
     bool set_fo_fd(file_object* fo, int fd);                    // 设置进程fo的fd 修改用 使用几率不大
-    bool set_fo_file(file_object* fo, FAT32FILE* file);         // 设置fo的file指针
+    bool set_fo_file(file_object* fo, FileNode* file);         // 设置fo的file指针
     bool set_fo_pos_k(file_object* fo, Uint64 pos_k);           // 设置fo的当前文件指针的位置
     bool set_fo_flags(file_object* fo, Uint64 flags);           // 设置fo的flags标志位信息
     bool set_fo_mode(file_object* fo, Uint64 mode);             // 设置fo的mode权限位信息
@@ -124,5 +125,5 @@ extern FileObjectManager fom;
 // 标准输出对应的文件实例对象
 // 暂时设为空 后续找到再设置
 // 应该为串口文件格式 目前先如此保留
-extern FAT32FILE* STDIO;
+extern FileNode* STDIO;
 #endif
