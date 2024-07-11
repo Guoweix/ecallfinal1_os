@@ -179,7 +179,7 @@ void Driver_test()
     int t;
     Sector* sec = (Sector*)pmm.malloc(51200, t);
     Disk.readSector(0, sec, 100);
-    kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
+    // kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
     // memset(sec,0,512);
     // kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
     // Disk.writeSector(0, sec);
@@ -202,6 +202,7 @@ void VFSM_test()
     vfsm.create_file("/", "/", "test_unlink");
 
     FAT32* t = (FAT32*)vfsm.get_root()->vfs;
+    ASSERTEX(t, "vfs is nullptr");
     file = t->get_next_file((FAT32FILE*)vfsm.get_root(), nullptr);
     file_object* fo = new file_object();
     while (file) {
@@ -209,7 +210,7 @@ void VFSM_test()
         // file = vfsm.get_next_file(vfsm.get_root(), file);
         // continue;
         // }
-        if (file->TYPE == FileType::__DIR) {
+        if (file->TYPE &= FileType::__DIR) {
             file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
             continue;
         }
@@ -222,6 +223,9 @@ void VFSM_test()
 
         file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
         // kout << file;
+        kout[Error] << ' ';
+        file->show();
+        kout[Error] << endl;
     }
     FAT32FILE* f = (FAT32FILE*)vfsm.open("test_unlink", "/");
     if (f) {
@@ -252,22 +256,22 @@ bool VFSM_test1(char i)
 void final_test()
 {
 
-    // VFSM_test();
-    FAT32FILE* file;
-    FAT32* f;
-    f = (FAT32*)file->vfs;
-    file = f->get_next_file((FAT32FILE*)vfsm.get_root());
-    file_object* fo = new file_object();
+    file_object* fo = (file_object*)kmalloc(sizeof(file_object));
+    FileNode* file;
+    Process* test;
+    int test_cnt = 0;
+    FAT32* t = (FAT32*)vfsm.get_root()->vfs;
+    file = t->get_next_file((FAT32FILE*)vfsm.get_root());
+
     // kout << file;
-    char ch = 'A';
     while (file) {
         kout << file->name << endl;
-        if (file->table.size == 0) {
-            file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
+        if (file->fileSize == 0) {
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE *)file);
             continue;
         }
         if (file->TYPE == FileType::__DIR) {
-            file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE *)file);
             continue;
         }
         fom.set_fo_file(fo, file);
@@ -277,7 +281,7 @@ void final_test()
         // VFSM_test1(ch++);
 
         Process* task;
-        if (strcmp(file->name, "execve") == 0) {
+        if (strcmp(file->name, "mmap") == 0) {
 
             task = CreateProcessFromELF(fo, "/");
             while (1) {
@@ -287,7 +291,7 @@ void final_test()
             }
             kout << "END" << endl;
         }
-        file = f->get_next_file((FAT32FILE*)vfsm.get_root(), file);
+        file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE  *)file);
         // kout << file;
     }
 
@@ -304,7 +308,7 @@ FinalTestEnd:
 
 void test_final1()
 {
-    kout[Info]<<"test_final1()"<<endl;
+    kout[Info] << "test_final1()" << endl;
 
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     FileNode* file;
@@ -312,51 +316,43 @@ void test_final1()
     int test_cnt = 0;
     FAT32* t = (FAT32*)vfsm.get_root()->vfs;
     file = t->get_next_file((FAT32FILE*)vfsm.get_root());
-    if (file==nullptr) {
-        kout[Fault]<<"can't find file"<<endl;
-    }
-    while (file) {
-        file->show();
+
+    // file->show();
+
+    while (file != nullptr) {
+        kout[Error] << file->name << endl;
         if (file->fileSize == 0) {
-            kout[Error]<<"fileSize is 0"<<endl;
+            kout[Error] << "fileSize is 0" << endl;
             file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
-        if (file->TYPE == FileType::__DIR) {
-            kout[Error]<<"fileType dir"<<endl;
+        if (file->TYPE & FileType::__DIR) {
+            kout[Error] << "fileType dir" << endl;
             file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
 
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        kout << file->name << endl;
+        kout[Error] << file->name << endl;
 
-        kout.SwitchTypeOnoff(Fault, true);
-
-        file->show();
-        kout[Debug] << "start errrorrrrrrrrrrrrrrrrr" << endl;
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
         kout[Debug] << "errrorrrrrrrrrrrrrrrrr" << endl;
         if (test != nullptr) {
             while (1) {
-                if (test->getStatus() == S_None) {
+                if (test->getStatus() == S_Terminated) {
                     kout << pm.getCurProc()->getName() << " main free Proc" << test->getName();
-                    // pm.freeProc(test);
-                    // delay(1e8);
-                    // pm.show();
-                    // test = nullptr;
                     break;
                 } else {
                     pm.immSchedule();
                 }
             }
         }
-        // kout.SetEnabledType(-1);
-
+        kout[Error] << file->name << endl;
         file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
     }
+    // vfsm.show_all_opened_child(vfsm.get_root(), 1);
     // kout.SetEnabledType(-1);
     kout << "test finish" << endl;
 }
@@ -372,6 +368,7 @@ int main()
     // kout.SetEnableEffect(false);
     // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
+    // kout.SwitchTypeOnoff(Error, true);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
 
@@ -414,6 +411,7 @@ int main()
     // }
     // final_test();
     test_final1();
+    // VFSM_test();
     // pm_test();
     SBI_SHUTDOWN();
 

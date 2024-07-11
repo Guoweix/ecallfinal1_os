@@ -1,4 +1,5 @@
 #include "Library/KoutSingle.hpp"
+#include "Library/Pathtool.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
 #include <File/vfsm.hpp>
@@ -26,7 +27,7 @@ Sint64 FileNode::read(void* dst, Uint64 pos, Uint64 size)
     return false;
 }
 
-Sint64 FileNode::read(void* dst,Uint64 size)
+Sint64 FileNode::read(void* dst, Uint64 size)
 {
 
     kout[Error] << "FileNode::read " << endl;
@@ -104,14 +105,15 @@ bool VFSM::init()
     FATtable a;
     a.size = 0;
     FAT32FILE* t;
-    t = new FAT32FILE(a, ".ROOT",fat);
-    kout[Info]<<"FAT32 "<<(void *)fat<<endl;
+    t = new FAT32FILE(a, ".ROOT", fat);
+    kout[Info] << "FAT32 " << (void*)fat << endl;
     // t->vfs=fat;
-    fat->root=t;
-    t->TYPE|=FileType::__DIR;
-    t->TYPE|=FileType::__VFS;
-    t->TYPE|=FileType::__ROOT;
+    fat->root = t;
+    t->TYPE |= FileType::__DIR;
+    t->TYPE |= FileType::__VFS;
+    t->TYPE |= FileType::__ROOT;
 
+    t->RefCount += 100;
 
     // FAT32FILE * STDIN = new FAT32FILE(a, ".STDIN");
     // FAT32FILE *STDOUT = new FAT32FILE(a, ".STDOUT");
@@ -190,6 +192,7 @@ void VFSM::get_file_path(FileNode* file, char* ret)
         return;
 
     get_file_path(file->parent, ret);
+
     strcat(ret, "/");
     strcat(ret, file->get_name());
 
@@ -279,9 +282,14 @@ void VFSM::showRootDirFile()
 
 } */
 
+void FileNode::show()
+{
+    kout[Info] << "name " << name << endl
+               << "size " << fileSize << endl;
+}
 FileNode* VFSM::open(const char* path, char* cwd)
 {
-
+    kout[Info] << "VFSM::open " << path << " " << cwd << endl;
     if (path[0] == '/' && path[1] == 0) {
         root->RefCount++;
         return get_root();
@@ -290,7 +298,12 @@ FileNode* VFSM::open(const char* path, char* cwd)
     char* pathsrc = new char[512];
     strcpy(pathsrc, path);
     char* path1 = new char[512];
-    unified_file_path(pathsrc, path1);
+    path1[0]=0;
+    kout[Info] << "VFSM " << pathsrc << " " << cwd << endl;
+    unified_path(pathsrc, cwd, path1);
+    // unified_file_path(pathsrc, path1);
+    kout[Info] << "VFSM::open " << path1<<endl;
+    
     char* sigleName = new char[100];
     FileNode* re;
     FileNode* t = get_root();
@@ -309,12 +322,15 @@ FileNode* VFSM::open(const char* path, char* cwd)
 
         if (isFind) {
             t = child;
-        } else if (t->TYPE == FileType::__VFS) {
+        } else if (t->TYPE & FileType::__VFS) {
+            kout[Info] << "find VFS" << endl;
             re = t->vfs->open(path1, t);
             delete[] sigleName;
             delete[] path1;
+            kout[Info] << (void*)re << endl;
             return re;
         } else {
+            kout[Info] << "can't find VFS" << endl;
             delete[] sigleName;
             delete[] path1;
             delete[] pathsrc;
@@ -326,6 +342,7 @@ FileNode* VFSM::open(const char* path, char* cwd)
     delete[] path1;
     FileNode* r = t; // 如果能成功打开，则路径上的文件的引用计数都要+1
     while (r != get_root()) {
+        kout[Info] << "open " << r->name << endl;
         r->RefCount++;
         r = r->parent;
     }
@@ -334,6 +351,9 @@ FileNode* VFSM::open(const char* path, char* cwd)
 }
 void VFSM::close(FileNode* t)
 {
+    if (t->TYPE==FileType::__PIPEFILE) {
+        return; 
+    }
 
     FileNode* r = t; // 将路径上的所有文件节点引用计数--，如果为零则关闭删除节点
     FileNode* tmp = nullptr;
@@ -350,20 +370,20 @@ void VFSM::close(FileNode* t)
             } else { // tmp有pre的情况
                 if (tmp->pre == nullptr) {
                     kout[Error] << "VFSM::Close pre is nullptr " << endl;
-                } else {
+                }  else {
                     tmp->pre->next = tmp->next;
                 }
             }
-
+            if (tmp->next) {
+                tmp->next->pre=tmp->pre;
+            }
+            kout[Info] << "close " << tmp->name << endl;
             delete tmp;
         }
     }
     root->RefCount--;
 }
 
-void VFSM::show_opened_file()
-{
-}
 
 /*     Uint64 len = strlen(path);
     bool isOpened;
@@ -482,6 +502,22 @@ FileNode* VFSM::open(FileNode* file)
     }
     root->RefCount++;
     return file;
+}
+
+void VFSM::show_all_opened_child(FileNode* tar, bool r)
+{
+    FileNode * t;
+    kout[Info]<<"show all opened child"<<endl;
+    ASSERTEX(tar, "VFSM::show_all_opened_child t is a nullptr");
+    t=tar->child;
+    while (t) {
+        ASSERTEX(t, "VFSM::show_all_opened_child t is a nullptr");
+        t->show();
+        if (r) {
+            show_all_opened_child(t, 1);
+        }
+        t=t->next;
+    }    
 }
 /*
     int k = strlen(ref_path);

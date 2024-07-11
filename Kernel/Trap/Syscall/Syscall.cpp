@@ -711,6 +711,7 @@ inline int Syscall_close(int fd)
             fom.write_fo(fo, t, 1);
         }
     }
+    // kout[Info]<<"close"<<endl;
     // vfsm.show_opened_file();
     // vfsm.close(fo->file);
     // vfsm.show_opened_file();
@@ -787,13 +788,6 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     return rd;
 }
 
-void VFSM_test();
-int Syscall_openat1(int fd, const char* filename, int flags, int mode)
-{
-    kout << Red << "_____________________________________________________________" << endl;
-    VFSM_test();
-    kout << Red << "_____________________________________________________________" << endl;
-}
 int Syscall_openat(int fd, const char* filename, int flags, int mode)
 {
     // 打开或创建一个文件的系统调用
@@ -814,18 +808,21 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     char* cwd = cur_proc->getCWD();
     // kout << Red << "OpenedFile2" << endl;
     if (fd == AT_FDCWD) {
-        // kout << Red << "OpenedFile3" << endl;
+        kout << Red << "OpenedFile3" << endl;
         rela_wd = cur_proc->getCWD();
     } else {
-        // kout << Red << "OpenedFile4" << endl;
+        kout << Red << "OpenedFile4" << endl;
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
         // kout << Red << "OpenedFile5" << endl;
         if (fo != nullptr) {
             rela_wd = new char[200];
-            // rela_wd = fo->file->path;
+            rela_wd[0] = 0;
+            kout[Info] << "find path " << fo->file->parent->name << endl;
             vfsm.get_file_path(fo->file, rela_wd);
         }
     }
+
+    kout << Red << rela_wd << endl;
 
     if (filename[0] == '.' && filename[1] != '.') {
         filename += 2;
@@ -840,12 +837,13 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
         } else {
             kout << Red << "OpenedFile6 FILE" << endl;
+            kout[Info] << "creaet_file " << rela_wd << " " << cwd << " " << filename << endl;
             if (!vfsm.create_file(rela_wd, cwd, (char*)filename))
                 kout[Fault] << "create" << endl;
         }
-        // kout << Red << "OpenedFile7" << endl;
     }
 
+    kout << Red << "OpenedFile7" << endl;
     // char* path = vfsm.unified_path(filename, rela_wd);
     // kout << Red << "OpenedFile8" << endl;
     // if (path == nullptr) {
@@ -870,7 +868,10 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     //     file = vfsm.open(filename, rela_wd);
     // }
 
+    kout[Info] << filename << ' ' << rela_wd << endl;
     file = vfsm.open(filename, rela_wd);
+
+    file->show();
 
     if (file != nullptr) {
         kout << Red << "OpenedFile12" << endl;
@@ -896,8 +897,10 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
-    kout << Green << "Open Success" << endl;
+    kout << Green << "Open Success" << file << endl;
+
     file->show();
+    kout << Green << "Open Success1" << endl;
 
     kout << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
@@ -933,8 +936,10 @@ int Syscall_munmap(void* start, Uint64 len)
 
 PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int off) // Currently flags will be ignored...
 {
-    if (len == 0)
+    if (len == 0) {
+        kout[Error]<<"syscall mmap len is 0"<<endl;
         return -1;
+    }
     FileNode* node = nullptr;
     if (fd != -1) {
         file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
@@ -1120,8 +1125,8 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
         return -1;
     }
 
-    FAT32 * t=(FAT32 *)vfsm.get_root()->vfs;
-    FileNode* file = t->get_next_file((FAT32FILE *)dir->file, nullptr);
+    FAT32* t = (FAT32*)vfsm.get_root()->vfs;
+    FileNode* file = t->get_next_file((FAT32FILE*)dir->file, nullptr);
 
     VirtualMemorySpace::EnableAccessUser();
     if (file == nullptr) {
@@ -1156,7 +1161,7 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
             dirent->d_reclen = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
         }
 
-        file = t->get_next_file((FAT32FILE *)dir->file, (FAT32FILE *)file);
+        file = t->get_next_file((FAT32FILE*)dir->file, (FAT32FILE*)file);
     }
     // FileNode* *nodes  = new FileNode* [bufSize];
     // int cnt=VFSM.GetAllFileIn(dir,nodes,bufSize,0);

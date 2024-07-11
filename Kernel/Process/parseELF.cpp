@@ -56,10 +56,10 @@ Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
     {
         proc->getVMS()->Enter();
         proc->getVMS()->EnableAccessUser();
-        kout[Info] << DataWithSize((void*)start, loadsize) << endl;
+        // kout[Info] << DataWithSize((void*)start, loadsize) << endl;
         memcpy((char*)InnerUserProcessLoadAddr, (const char*)start, loadsize);
         // while (1) ;
-        kout[Info] << DataWithSize((void*)InnerUserProcessLoadAddr, loadsize) << endl;
+        // kout[Info] << DataWithSize((void*)InnerUserProcessLoadAddr, loadsize) << endl;
         VirtualMemorySpace::Current()->show();
         // kout<<a[0]<<endl;
         proc->getVMS()->DisableAccessUser();
@@ -110,9 +110,13 @@ int start_process_formELF(procdata_fromELF* proc_data)
             kout[Fault] << "Read ELF program header Fail!" << endl;
             return -1;
         }
-
+        
         bool is_continue = 0;
         Uint32 type = pgm_hdr.p_type;
+
+        // kout[Error]<<(void*)type<<endl;
+        // kout[Error]<<DataWithSize(&pgm_hdr,512)<<endl;
+
         switch (type) {
         case P_type::PT_LOAD:
             // 读到可装载的段了可以直接退出
@@ -204,7 +208,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
             return -1;
         }
     }
-    kout << "++++++++++stack++++++++++++=" << endl;
+    // kout << "++++++++++stack++++++++++++=" << endl;
 
     // 上面的循环已经读取了所有的段信息
     // 接下来更新进程需要的相关信息即可
@@ -218,7 +222,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vms->InsertVMR(vmr_user_stack);
 
     memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
-    kout << "++++++++++hmr++++++++++++=" << endl;
+    // kout << "++++++++++hmr++++++++++++=" << endl;
     // kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
     HeapMemoryRegion* hmr = (HeapMemoryRegion*)kmalloc(sizeof(HeapMemoryRegion));
@@ -235,7 +239,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
 
     
-    kout << "++++++++++argv++++++++++++=" << endl;
+    // kout << "++++++++++argv++++++++++++=" << endl;
     PtrSint p = vms->GetUsableVMR(0x60000000, 0x70000000, PAGESIZE);
     kout<<(void *)p<<endl;
     VirtualMemoryRegion* vmr_str = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
@@ -248,8 +252,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     vms->show();
     vms->Enter();
-    kout << sp << endl;
-    kout << "11111" << endl;
+    // kout << sp << endl;
     char* s = (char*)p;
 
     auto PushInfo32 = [&sp](Uint32 info) {
@@ -267,21 +270,17 @@ int start_process_formELF(procdata_fromELF* proc_data)
         return s_bak;
     };
 
-    kout << "11112" << endl;
     PushInfo32(proc_data->argc);
-    kout << "1111211" << endl;
     if (proc_data->argc)
         for (int i = 0; i < proc_data->argc; ++i)
             PushInfo64((Uint64)PushString(proc_data->argv[i]));
-    kout << "1111212" << endl;
     PushInfo64(0); // End of argv
     PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/VFS/FAT32"));
     PushInfo64(0); // End of envs
                 
-    kout << "11113" << endl;
     vms->Leave();
     vms->DisableAccessUser();
-    kout << "++++++++++++++++++++++=" << endl;
+    // kout << "++++++++++++++++++++++=" << endl;
 /* //AUX的添加，暂时先不处理
     
     if (ProgramHeaderAddress != 0) {
@@ -300,11 +299,10 @@ int start_process_formELF(procdata_fromELF* proc_data)
     AddAUX(ELF_AT::ENTRY, proc_data->e_header.entry);
     PushInfo64(0); // End of auxv
                     */
-    kout << "++++++++++++start++++++++++=" << endl;
+    // kout << "++++++++++++start++++++++++=" << endl;
 
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry, proc_data->argc, proc_data->argv);
     proc->setName(fo->file->name);
-    kout << "AAAA2" << endl;
     pm.show();
 
     // 正确完整地执行了这个流程
@@ -349,8 +347,10 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc->setFa(pm.getCurProc());
 
     char* abs_cwd = new  char[200];
+    kout<<Blue<<"abs_cwd "<<wk_dir<<' '<< pm.getCurProc()->getCWD()<<endl;
     unified_path((char *)wk_dir, pm.getCurProc()->getCWD(),abs_cwd);
     proc->setProcCWD(abs_cwd);
+    kout<<Blue<<"abs_cwd "<<abs_cwd<<endl;
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);
     // pm.set_proc_vms(proc, vms);

@@ -67,7 +67,7 @@ void ProcessQueue::destroy()
 
 Process* ProcessQueue::getFront()
 {
-    kout<<Yellow<<"getFront"<<endl;
+    // kout<<Yellow<<"getFront"<<endl;
     if (isEmpty()) {
         kout[Fault] << "process queue is empty" << endl;
     }
@@ -143,14 +143,14 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-    kout[Info] << "signal " << endl;
+    // kout[Info] << "signal " << endl;
     if (value < 0) {
         kout<<(void *)&queue<<endl; 
         // queue.printAllQueue();
         Process* proc = queue.getFront();
         queue.dequeue();
         proc->SemRef--;
-        kout[Info] << "signal " << proc <<' '<<proc->name<< endl;
+        // kout[Info] << "signal " << proc <<' '<<proc->name<< endl;
         if (proc->SemRef == 0) {
             proc->switchStatus(S_Ready);
         }

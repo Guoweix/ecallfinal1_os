@@ -16,6 +16,11 @@ char* split_path_name(char* path, char* buf)
     }
 
     buf[i] = 0;
+    // return (*t)?nullptr:t + 1;
+    if(*t==0) 
+    {
+        *(t+1)=0;
+    }
     return t + 1;
 }
 
@@ -111,7 +116,10 @@ bool unified_file_path(char* src, char* ret)
     char* siglename = new char[50];
     // char* re = new char[200];
     ret[0] = 0;
-    while ((src = split_path_name(src, siglename)) != 0) {
+    int i=0;
+    while ((src = split_path_name(src, siglename)) != nullptr) {
+        // kout<<Yellow<<siglename<< endl;
+        // kout<<Green<<i++<<endl;
         switch (siglename[0]) {
         case '.':
             if (siglename[1] == '.') {
@@ -144,18 +152,24 @@ bool unified_file_path(char* src, char* ret)
 char* unified_path(char* path, char* cwd, char* ret)
 {
     char* path1 = new char[400];
+    memset(path1,0,400);
     ret[0] = 0;
+    // kout<<Yellow<<path<<" " <<path1<<endl;
+    
     if(!unified_file_path(path, path1))
     {
         return nullptr;//如果返回nullptr则说明路径错误
     }
-    if (path[0]!='/') {
+    kout<<Yellow<<path<<" " <<path1<<endl;
+    if (path[0]=='/') {//如果发现path为绝对路径，则直接返回
         strcpy(ret, path1);
+        // kout[Info]<<"path"<<ret<<endl;
         delete[] path1;
         return ret;
     }
 
     char* cwd1 = new char[400];
+    memset(cwd1,0,400);
     unified_file_path(cwd, cwd1);
 
     strcpy(ret, cwd1);

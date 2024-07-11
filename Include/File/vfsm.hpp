@@ -65,7 +65,7 @@ public:
     virtual bool IsDir();
     virtual bool del();
 
-    virtual void show() {};
+    virtual void show();
     // FileNode(VFS* _VFS, Uint64 _flags);
     FileNode() { name=new char[100];};
     virtual ~FileNode();
@@ -102,6 +102,7 @@ public:
     FileNode* open(const char* path, char* cwd);
     FileNode* open(FileNode* file);
     void close(FileNode* t);
+    
 
     void showRootDirFile();
     bool create_file(const char* path, char* cwd, char* fileName, Uint64 type = FileType::__FILE);
@@ -113,7 +114,9 @@ public:
     // FileNode* get_next_file(FileNode* dir, FileNode* cur = nullptr, bool (*p)(void* temp) = IsFile); // 获取到的dir下cur的下一个满足p条件的文件，如果没有则返回空
 
     void get_file_path(FileNode* file, char* ret);
-    void show_opened_file();
+    // void show_opened_file();
+    void show_all_opened_child(FileNode * tar,bool r);//r为1表示递归显示，为0表示只显示一层
+    // void show_all_opened_child(FileNode* tar, bool r)
     bool init();
     bool destory();
     FileNode* get_root();

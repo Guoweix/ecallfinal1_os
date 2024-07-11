@@ -17,7 +17,8 @@ char* split_path_name(char* path, char* buf)
     }
 
     buf[i] = 0;
-    return t + 1;
+    return t+1;
+    // return ((*t)==0)?nullptr:(t+1);
 }
 
 
@@ -29,7 +30,10 @@ bool unified_file_path(char* src, char* ret)
     char* siglename = new char[50];
     // char* re = new char[200];
     ret[0] = 0;
+    int i=0;
     while ((src = split_path_name(src, siglename)) != 0) {
+        cout<<siglename<<endl;
+        cout<<i++<<endl;
         switch (siglename[0]) {
         case '.':
             if (siglename[1] == '.') {
@@ -68,10 +72,12 @@ char* unified_path(char* path, char* cwd, char* ret)
         return nullptr;//如果返回nullptr则说明路径错误
     }
     if (path[0]=='/') {
+
         strcpy(ret, path1);
         delete[] path1;
         return ret;
     }
+
 
     char* cwd1 = new char[400];
     unified_file_path(cwd, cwd1);
@@ -94,15 +100,17 @@ int main()
     path = new char[200];
     cwd = new char[200];
     ret = new char[200];
-    strcpy(path, "../xx/./c12/d/");
-    strcpy(cwd, "./a12/b12/./c12/d");
+    strcpy(path, "test_openat.txt");
+    strcpy(cwd, "/mnt");
     
-    // unified_path(path, cwd, ret);
-    while (path=split_path_name(path, ret )) {
+    unified_path(path, cwd, ret);
+    cout<<ret<<endl;
+    //
+    /* while (path=split_path_name(path, ret )) {
         cout<<ret<<endl;
         cout<<(ret[0]==0)<<endl;
 
-    }
+    } */
         
 
 
