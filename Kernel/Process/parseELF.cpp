@@ -6,8 +6,8 @@
 #include "Types.hpp"
 #include <File/FileObject.hpp>
 #include <File/vfsm.hpp>
-#include <Process/ParseELF.hpp>
 #include <Library/Pathtool.hpp>
+#include <Process/ParseELF.hpp>
 
 Process* CreateKernelThread(int (*func)(void*), char* name, void* arg, ProcFlag _flags)
 {
@@ -88,7 +88,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vms->EnableAccessUser();
 
     Uint64 breakpoint = 0; // 用来定义用户数据段
-    Uint64 ProgramHeaderAddress=0;
+    Uint64 ProgramHeaderAddress = 0;
     Uint16 phnum = proc_data->e_header.e_phnum; // 可执行文件中的需要解析的段数量
     Uint64 phoff = proc_data->e_header.e_phoff; // 段表在文件中的偏移量 需要通过段表访问到每个段
     Uint16 phentsize = proc_data->e_header.e_phentsize; // 段表中每个段表项的大小
@@ -103,14 +103,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
         Sint64 rd_size = 0;
 
         rd_size = fom.read_fo(fo, &pgm_hdr, sizeof(pgm_hdr));
-        
+
         if (rd_size != sizeof(pgm_hdr)) {
             // 没有成功读到指定大小的文件
             // 输出提示信息并且终止函数执行
             kout[Fault] << "Read ELF program header Fail!" << endl;
             return -1;
         }
-        
+
         bool is_continue = 0;
         Uint32 type = pgm_hdr.p_type;
 
@@ -192,13 +192,13 @@ int start_process_formELF(procdata_fromELF* proc_data)
             kout[Fault] << "PT_INTERP" << type << endl;
             break;
         case P_type::PT_PHDR:
-				ProgramHeaderAddress=pgm_hdr.p_vaddr;
+            ProgramHeaderAddress = pgm_hdr.p_vaddr;
         case P_type::PT_LOPROC:
         case P_type::PT_HIPROC:
         case P_type::PT_GNU_RELRO:
         case P_type::PT_GNU_STACK:
         case P_type::PT_TLS:
-        case P_type::DT_AARCH64_PAC_PLT :
+        case P_type::DT_AARCH64_PAC_PLT:
             kout[Warning] << "Unsolvable ELF Segment whose Type is " << type << endl;
             break;
 
@@ -237,11 +237,9 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // pHMSm.set_proc_heap(proc, hmr);
     proc->setHeap(hmr);
 
-
-    
     // kout << "++++++++++argv++++++++++++=" << endl;
     PtrSint p = vms->GetUsableVMR(0x60000000, 0x70000000, PAGESIZE);
-    kout<<(void *)p<<endl;
+    kout[Info]<<"start_process_formELF:: p " << (void*)p << endl;
     VirtualMemoryRegion* vmr_str = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
 
     TrapFrame* tf = (TrapFrame*)((char*)proc->stack + proc->stacksize) - 1;
@@ -255,6 +253,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // kout << sp << endl;
     char* s = (char*)p;
 
+    // kout << ()p << endl;
     auto PushInfo32 = [&sp](Uint32 info) {
         *(Uint32*)sp = info;
         sp += sizeof(long); //!! Need improve...
@@ -266,41 +265,58 @@ int start_process_formELF(procdata_fromELF* proc_data)
     auto PushString = [&s](const char* str) -> const char* {
         const char* s_bak = s;
         s = strcpyre(s, str);
+        kout[Info]<<"start_process_formELF :: *s"<<(void *)s<<" "<<s<<endl;
         *s++ = 0;
         return s_bak;
     };
 
+    auto AddAUX = [&PushInfo64](ELF_AT at, Uint64 value) {
+        PushInfo64((Uint64)at);
+        PushInfo64(value);
+    };
+    kout[Info]<<"argc"<<proc_data->argc<<endl
+                <<"argv[0]"<<proc_data->argv[0]<<endl
+                <<"argv[1]"<<proc_data->argv[1]<<endl
+                <<"argv[2]"<<proc_data->argv[2]<<endl;
+
     PushInfo32(proc_data->argc);
     if (proc_data->argc)
         for (int i = 0; i < proc_data->argc; ++i)
+        {
             PushInfo64((Uint64)PushString(proc_data->argv[i]));
+    kout[Info]<<"x"<<endl;
+        }
     PushInfo64(0); // End of argv
+    kout[Info]<<"A"<<endl;
     PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/VFS/FAT32"));
+    kout[Info]<<"B"<<endl;
     PushInfo64(0); // End of envs
-                
-    vms->Leave();
-    vms->DisableAccessUser();
-    // kout << "++++++++++++++++++++++=" << endl;
-/* //AUX的添加，暂时先不处理
-    
+    kout[Info]<<"C"<<endl;
+   // kout << "++++++++++++++++++++++=" << endl;
+    // AUX的添加，暂时先不处理
+
     if (ProgramHeaderAddress != 0) {
         AddAUX(ELF_AT::PHDR, ProgramHeaderAddress);
-        AddAUX(ELF_AT::PHENT, proc_data->e_header.phentsize);
-        AddAUX(ELF_AT::PHNUM, proc_data->e_header.phnum);
+        AddAUX(ELF_AT::PHENT, proc_data->e_header.e_phentsize);
+        AddAUX(ELF_AT::PHNUM, proc_data->e_header.e_phnum);
 
+        
         AddAUX(ELF_AT::UID, 10);
         AddAUX(ELF_AT::EUID, 10);
         AddAUX(ELF_AT::GID, 10);
         AddAUX(ELF_AT::EGID, 10);
     }
     AddAUX(ELF_AT::PAGESZ, PAGESIZE);
-    if (ProgramInterpreterBase != 0)
-        AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
-    AddAUX(ELF_AT::ENTRY, proc_data->e_header.entry);
+    // if (ProgramInterpreterBase != 0)
+        // AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
+    AddAUX(ELF_AT::ENTRY, proc_data->e_header.e_entry);
     PushInfo64(0); // End of auxv
-                    */
     // kout << "++++++++++++start++++++++++=" << endl;
 
+
+    vms->Leave();
+    vms->DisableAccessUser();
+ 
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry, proc_data->argc, proc_data->argv);
     proc->setName(fo->file->name);
     pm.show();
@@ -321,12 +337,12 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     // 信号量初始化
 
     Sint64 rd_size = 0;
-    kout<<"read_fo start"<<endl;
+    kout << "read_fo start" << endl;
     rd_size = fom.read_fo(fo, &proc_data->e_header, sizeof(proc_data->e_header));
 
     // kout<<DataWithSize((void *)&proc_data->e_header,sizeof(proc_data->e_header))<<endl;
 
-    kout<<"read_fo finish"<<endl;
+    kout << "read_fo finish" << endl;
 
     if (rd_size != sizeof(proc_data->e_header) || !proc_data->e_header.is_ELF()) {
         // kout[red] << "Create Process from ELF Error!" << endl;
@@ -346,11 +362,11 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc->setVMS(vms);
     proc->setFa(pm.getCurProc());
 
-    char* abs_cwd = new  char[200];
-    kout<<Blue<<"abs_cwd "<<wk_dir<<' '<< pm.getCurProc()->getCWD()<<endl;
-    unified_path((char *)wk_dir, pm.getCurProc()->getCWD(),abs_cwd);
+    char* abs_cwd = new char[200];
+    kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
+    unified_path((char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
     proc->setProcCWD(abs_cwd);
-    kout<<Blue<<"abs_cwd "<<abs_cwd<<endl;
+    kout << Blue << "abs_cwd " << abs_cwd << endl;
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);
     // pm.set_proc_vms(proc, vms);
@@ -367,6 +383,8 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc_data->proc = proc;
     proc_data->argv = argv;
     proc_data->argc = argc;
+    kout[Info]<<"argc "<<argc<<endl;
+
     Uint64 user_start_addr = proc_data->e_header.e_entry;
     start_process_formELF(proc_data);
     // pm.start_user_proc(proc, start_process_formELF, proc_data, user_start_addr);

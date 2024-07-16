@@ -120,6 +120,32 @@ struct procdata_fromELF
     int  argc;                                        
 };
 
+
+
+enum class ELF_AT
+{
+	NULL	=0,
+	IGNORE	=1,
+	EXECFD	=2,
+	PHDR	=3,
+	PHENT	=4,
+	PHNUM	=5,
+	PAGESZ	=6,
+	BASE	=7,
+	FLAGS	=8,
+	ENTRY	=9,
+	NOTELF	=10,
+	UID		=11,
+	EUID	=12,
+	GID		=13,
+	EGID	=14,
+	HWCAP	=16,
+	CLKTCK	=17,
+	SECURE	=23,
+	EXECFN	=31
+};
+
+
 // 从ELF文件启动进程函数
 int start_process_formELF(procdata_fromELF * userdata);
 

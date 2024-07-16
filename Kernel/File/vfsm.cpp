@@ -1,3 +1,4 @@
+#include "File/FileEx.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Library/Pathtool.hpp"
 #include "Types.hpp"
@@ -142,6 +143,10 @@ bool VFSM::init()
     // STDERR->pre=STDOUT;
     // STDOUT->pre=STDIN;
     // STDIN->pre=OpenedFile;
+    
+
+    STDIO =new UartFile();
+
 
     return true;
 }
@@ -327,7 +332,12 @@ FileNode* VFSM::open(const char* path, char* cwd)
             re = t->vfs->open(path1, t);
             delete[] sigleName;
             delete[] path1;
-            kout[Info] << (void*)re << endl;
+            kout[Info] <<(void*)re << endl;
+            if(re==nullptr)
+            {
+                kout[Warning]<<"can't open "<<path<<endl;
+            }
+
             return re;
         } else {
             kout[Info] << "can't find VFS" << endl;
@@ -347,6 +357,7 @@ FileNode* VFSM::open(const char* path, char* cwd)
         r = r->parent;
     }
     root->RefCount++;
+    kout[Info]<<"VFMS::open "<<t->name<< " success"<<endl;
     return t;
 }
 void VFSM::close(FileNode* t)

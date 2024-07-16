@@ -1,6 +1,7 @@
 #ifndef __FILEOBJECT_HPP__
 #define __FILEOBJECT_HPP__
 
+#include "File/FileEx.hpp"
 #include <File/vfsm.hpp>
 #include <Process/Process.hpp>
 // #include <File/FAT32.hpp>
@@ -125,5 +126,5 @@ extern FileObjectManager fom;
 // 标准输出对应的文件实例对象
 // 暂时设为空 后续找到再设置
 // 应该为串口文件格式 目前先如此保留
-extern FileNode* STDIO;
+extern UartFile * STDIO;
 #endif

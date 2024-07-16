@@ -1,17 +1,19 @@
 SRC_DIR := Kernel
 TARGET_DIR := Build
 CPP_FILES := $(shell find $(SRC_DIR) -name "*.cpp")
+C_FILES := $(shell find $(SRC_DIR) -name "*.c")
 ASM_FILES := $(shell find $(SRC_DIR) -name "*.S")
 
-ELF_FILES := $(patsubst %.cpp,%.elf,$(CPP_FILES)) $(patsubst %.S,%.elf,$(ASM_FILES))
-BUILD_ELF_FILES := $(patsubst %.cpp,$(TARGET_DIR)/%.elf,$(CPP_FILES)) $(patsubst %.S,$(TARGET_DIR)/%.elf,$(ASM_FILES))
+ELF_FILES := $(patsubst %.cpp,%.elf,$(CPP_FILES)) $(patsubst %.S,%.elf,$(ASM_FILES)) $(patsubst %.c,%.elf,$(C_FILES))
+BUILD_ELF_FILES := $(patsubst %.cpp,$(TARGET_DIR)/%.elf,$(CPP_FILES)) $(patsubst %.S,$(TARGET_DIR)/%.elf,$(ASM_FILES)) $(patsubst %.c,$(TARGET_DIR)/%.elf,$(C_FILES))
 
+GCC := riscv64-unknown-elf-gcc
 CC := riscv64-unknown-elf-g++
-FLAGS := -nostdlib -I"Include" -fno-exceptions -fno-rtti -mcmodel=medany -std=c++17 
+FLAGS := -nostdlib -I"Include" -I"Include/File/lwext4_include" -fno-exceptions -fno-rtti -mcmodel=medany -std=c++17 
+C_FLAGS := -nostdlib -I"Include" -I"Include/File/lwext4_include" -fno-exceptions -mcmodel=medany 
 LD := riscv64-unknown-elf-ld
 OBJCOPY := riscv64-unknown-elf-objcopy
-# DRIVE := -drive file=Img/fat32_image.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
-DRIVE := -drive file=SBI_BIN/a.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
+DRIVE := -drive file=Img/sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
 BIOS :=  -bios SBI_BIN/opensbi-qemu.elf
 USERIMG := -initrd Img/User.img
 
@@ -22,21 +24,21 @@ all:Build/Kernel.elf
 	cp Build/Kernel.elf ./kernel-qemu
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
-	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld  $(BUILD_ELF_FILES)
+	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
 
 
 run:Build/Kernel.elf
 	cp Test/a.img SBI_BIN/a.img
 	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG)
 
+$(TARGET_DIR)/%.elf: %.c
+	$(GCC) $(C_FLAGS) -c $<  -o $@
 
 $(TARGET_DIR)/%.elf: %.cpp
 	$(CC) $(FLAGS) -c $<  -o $@
 
 $(TARGET_DIR)/%.elf: %.S
 	$(CC) $(FLAGS) -c $<  -o $@
-	
-
 
 Img/User.o:User/User.cpp
 	$(CC) $(FLAGS) -c $<  -o $@

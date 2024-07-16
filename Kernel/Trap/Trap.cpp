@@ -70,6 +70,7 @@ TrapFrame* Trap(TrapFrame* tf)
     if ((long long)tf->cause < 0)
         switch (tf->cause << 1 >> 1) // 为中断
         {
+          
         case InterruptCode_SupervisorTimerInterrupt:
             static Uint64 ClockTick = 0;
             ++ClockTick;

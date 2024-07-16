@@ -23,4 +23,5 @@ using PageTableEntryType=Uint64;
 
 
 using PID=Sint32;
+using UID=Sint32;
 #endif

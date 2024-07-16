@@ -96,7 +96,7 @@ class VFSM {
 private:
     FileNode* root;
 
-    FileNode* find_file_by_path(char* path, bool& isOpened);
+    FileNode* find_file_by_path(char* path, bool& isOpened);//返回一个孤立的FileNode,
 
 public:
     FileNode* open(const char* path, char* cwd);
@@ -123,77 +123,6 @@ public:
 };
 
 extern VFSM vfsm;
-
-class MemapFileRegion : public VirtualMemoryRegion {
-protected:
-    FileNode* File = nullptr;
-    Uint64 StartAddr = 0,
-           Length = 0,
-           Offset = 0;
-
-public:
-    ErrorType Save() // Save memory to file
-    {
-        VirtualMemorySpace* old = VirtualMemorySpace::Current();
-        VMS->Enter();
-        VMS->EnableAccessUser();
-        Uint64 re = 0;
-        kout << Red << "Save" << endl;
-        // Sint64 re=File->write((unsigned char *)StartAddr,Offset,Length);
-        VMS->DisableAccessUser();
-        old->Enter();
-        return re >= 0 ? ERR_None : -re; //??
-    }
-
-    ErrorType Load() // Load memory from file
-    {
-        VirtualMemorySpace* old = VirtualMemorySpace::Current();
-        VMS->Enter();
-        VMS->EnableAccessUser();
-        Sint64 re = File->read((unsigned char*)StartAddr, Offset, Length);
-        VMS->DisableAccessUser();
-        old->Enter();
-        return re >= 0 ? ERR_None : -re;
-    }
-
-    ErrorType Resize(Uint64 len)
-    {
-        if (len == Length)
-            return ERR_None;
-        if (len > Length)
-            if (nxt != nullptr && (StartAddr + len > nxt->GetStart() || StartAddr + len > 0x70000000))
-                return ERR_InvalidRangeOfVMR;
-        Length = len;
-        EndAddress = StartAddr + Length + PAGESIZE - 1 >> PageSizeBit << PageSizeBit;
-        //<<Free pages not in range...
-        return ERR_None;
-    }
-
-    inline Uint64 GetStartAddr() const
-    {
-        return StartAddr;
-    }
-
-    ~MemapFileRegion() // Virtual??
-    {
-        // File->Unref(nullptr);
-        vfsm.close(File);
-        if (VMS != nullptr)
-            VMS->RemoveVMR(this, 0);
-    }
-
-    MemapFileRegion(FileNode* node, void* start, Uint64 len, Uint64 offset, Uint32 prot)
-        : VirtualMemoryRegion((PtrUint)start, (PtrUint)start + len, prot)
-        , File(node)
-        , StartAddr((PtrSint)start)
-        , Length(len)
-        , Offset(offset)
-    {
-        ASSERTEX(VirtualMemoryRegion::Init((PtrSint)start, (PtrSint)start + len, prot) == ERR_None, "MemapFileRegion " << this << " failed to init VMR!");
-        vfsm.open(File);
-    }
-};
-
 // class VFSM
 // {
 // private:

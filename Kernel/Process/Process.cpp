@@ -484,6 +484,7 @@ bool Process::initFds()
         // 那么就先释放掉所有的再新建头节点
         fom.init_proc_fo_head(this);
     }
+    kout[Info]<<"initFds"<<endl;
 
     // 初始化一个进程时需要初始化它的文件描述符表
     // 即一个进程创建时会默认打开三个文件描述符 标准输入 输出 错误
@@ -500,7 +501,8 @@ bool Process::initFds()
         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
         fom.set_fo_file(tmp_fo, STDIO);
         fom.set_fo_flags(tmp_fo, O_WRONLY);
-    } else {
+    } 
+   /*  else {
         // 暂时如下trick
         tmp_fo = fom.create_flobj(cur_fo_head, STDIN_FILENO); // 标准输入
         // fom.set_fo_file(tmp_fo, STDIO);
@@ -511,7 +513,7 @@ bool Process::initFds()
         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
         // fom.set_fo_file(tmp_fo, STDIO);
         fom.set_fo_flags(tmp_fo, O_WRONLY);
-    }
+    } */
     return true;
 }
 

@@ -16,6 +16,8 @@
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
 
+
+
 extern "C" {
 void Putchar(char ch)
 {
@@ -199,37 +201,39 @@ void VFSM_test()
 {
     FAT32FILE* file;
 
-    vfsm.create_file("/", "/", "test_unlink");
+    // vfsm.create_file("/", "/", "test_unlink");
 
     FAT32* t = (FAT32*)vfsm.get_root()->vfs;
     ASSERTEX(t, "vfs is nullptr");
     file = t->get_next_file((FAT32FILE*)vfsm.get_root(), nullptr);
     file_object* fo = new file_object();
+    int i = 0;
     while (file) {
         // if (file->table.size == 0) {
         // file = vfsm.get_next_file(vfsm.get_root(), file);
         // continue;
         // }
-        if (file->TYPE &= FileType::__DIR) {
+        if (file->TYPE & FileType::__DIR) {
             file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
             continue;
         }
-        fom.set_fo_file(fo, file);
-        fom.set_fo_pos_k(fo, 0);
+        // fom.set_fo_file(fo, file);
+        // fom.set_fo_pos_k(fo, 0);
         // kout[Info] << "____________________1___________________--" << endl;
 
         // kout << "file name" << file << " " << file->name << endl;
         // ;
 
+        kout << i++ << " " << file->name << endl;
         file = t->get_next_file((FAT32FILE*)vfsm.get_root(), file);
-        // kout << file;
-        kout[Error] << ' ';
-        file->show();
-        kout[Error] << endl;
+        // kout[Error] << ' ';
+        // file->show();
+        // kout[Error] << endl;
     }
-    FAT32FILE* f = (FAT32FILE*)vfsm.open("test_unlink", "/");
+    FAT32FILE* f = (FAT32FILE*)vfsm.open("busybox", "/");
+
     if (f) {
-        kout << "test_unlink find:" << f->name << endl;
+        kout << f->name << " find:" << endl;
     } else {
         kout[Fault] << "can't open" << endl;
     }
@@ -237,20 +241,45 @@ void VFSM_test()
 
 bool VFSM_test1(char i)
 {
+
     char fn[20];
     char t[20] = { i, 0 };
     strcpy(fn, "fuck_fuck_you");
-    strcat(fn, t);
+    // strcat(fn, t);
     kout << "____________________CREATE____________________" << endl;
 
     vfsm.create_file("/", "/", fn);
     kout << "____________________Find________________" << endl;
-    FAT32FILE* f = (FAT32FILE*)vfsm.open(fn, "/");
+    FAT32FILE* f = (FAT32FILE*)vfsm.open("/fuck_fuck_you", "/");
     if (f) {
         kout << "test_unlink find:" << f->name << endl;
     } else {
         kout[Fault] << "can't open" << endl;
     }
+    char* src = new char[8292];
+    char* src1 = new char[8292];
+    for (int i = 0; i < 8192; i++) {
+        src[i] = (i % 256);
+    }
+
+    // kout<<DataWithSizeUnited(src,8192,32);
+    f->write(src, 8292);
+    f->show();
+    f->read(src1, 8292);
+    kout << DataWithSizeUnited(src1, 8292, 32);
+
+    f->write(src, 11, 8292);
+    f->show();
+    f->read(src1, 8292);
+    kout << DataWithSizeUnited(src1, 8292, 32);
+}
+
+bool VFSM_test2()
+{
+    FAT32* f = (FAT32*)vfsm.get_root()->vfs;
+
+    FAT32FILE* file = (FAT32FILE*)vfsm.open("/bin", "/");
+    f->show_all_file_in_dir(file);
 }
 
 void final_test()
@@ -267,11 +296,11 @@ void final_test()
     while (file) {
         kout << file->name << endl;
         if (file->fileSize == 0) {
-            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE *)file);
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
         if (file->TYPE == FileType::__DIR) {
-            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE *)file);
+            file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             continue;
         }
         fom.set_fo_file(fo, file);
@@ -279,11 +308,19 @@ void final_test()
         // kout[Info] << "____________________1___________________--" << endl;
 
         // VFSM_test1(ch++);
+        int argc = 3;
+        char** argv = new char*[3];
+        for (int i = 0; i < 3; i++) {
+            argv[i] = new char[10];
+        }
+        strcpy(argv[0], "busybox");
+        strcpy(argv[1], "sh");
+        strcpy(argv[2], "./test_all.sh");
 
         Process* task;
-        if (strcmp(file->name, "mmap") == 0) {
+        if (strcmp(file->name, "busybox") == 0) {
 
-            task = CreateProcessFromELF(fo, "/");
+            task = CreateProcessFromELF(fo, "/", argc, argv);
             while (1) {
                 if (task->getStatus() == S_Terminated) {
                     goto FinalTestEnd;
@@ -291,7 +328,7 @@ void final_test()
             }
             kout << "END" << endl;
         }
-        file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE  *)file);
+        file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
         // kout << file;
     }
 
@@ -359,16 +396,22 @@ void test_final1()
 
 unsigned VMMINFO;
 unsigned NEWINFO;
+unsigned EXT4;
+ 
+extern int test_ext4();
+
 int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
+    EXT4 = kout.RegisterType("EXT4", KoutEX::Blue);
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
-    // kout.SwitchTypeOnoff(Error, true);
+    kout.SwitchTypeOnoff(Error, true);
+    kout.SwitchTypeOnoff(EXT4, false);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
 
@@ -382,12 +425,18 @@ int main()
     // pmm_test();
     VirtualMemorySpace::InitStatic();
 
-    pm.init();
-
     Disk.DiskInit();
+    
+    // A();
+
     kout[Info] << "Diskinit finish" << endl;
+    test_ext4();
+
+    // SBI_SHUTDOWN();
+    // kout[Fault]<<"test_ext4 end"<<endl;
     vfsm.init();
     kout[Info] << "vfsm finish" << endl;
+    pm.init();
 
     // Driver_test();
     InterruptEnable();
@@ -407,11 +456,12 @@ int main()
     // }
 
     // for (char ch='A';ch<'Z'+1;ch++) {
-    // VFSM_test1(ch);
+    // VFSM_test1('a');
     // }
+
     // final_test();
-    test_final1();
-    // VFSM_test();
+    // test_final1();
+    // VFSM_test2();
     // pm_test();
     SBI_SHUTDOWN();
 

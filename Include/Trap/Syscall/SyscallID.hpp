@@ -73,6 +73,7 @@ enum SyscallID
 	SYS_clone			=220,//
 	SYS_execve			=221,
 	SYS_mprotect		=226,
+    SYS_madvise			=233,
 	SYS_wait4			=260,
 	SYS_prlimit64		=261,
 	SYS_membarrier		=283,
@@ -152,6 +153,7 @@ inline const char *SyscallName(int sys)
 		case SYS_clone:				return "SYS_clone";
 		case SYS_execve:			return "SYS_execve";
 		case SYS_mprotect:			return "SYS_mprotect";
+    	case SYS_madvise:			return "SYS_madvise";
 		case SYS_wait4:				return "SYS_wait4";
 		case SYS_prlimit64:			return "SYS_prlimit64";
 		case SYS_membarrier:		return "SYS_membarrier";

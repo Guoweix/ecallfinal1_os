@@ -59,6 +59,7 @@ enum // 使用enum枚举异常类型，避免直接编写异常号，便于维�
 
 enum {
     InterruptCode_SupervisorSoftwareInterrupt = 1,
+    InterruptCode_UserSoftwareInterrupt = 2,
     InterruptCode_MachineSoftwareInterrupt = 3,
     InterruptCode_SupervisorTimerInterrupt = 5,
     InterruptCode_MachineTimerInterrupt = 7,

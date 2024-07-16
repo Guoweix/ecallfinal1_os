@@ -402,7 +402,7 @@ int Syscall_fstat(int fd, kstat* kst)
     // 输入fd为文件句柄 kst为接收保存文件状态的指针
     // 目前只需要填充几个值
     // 成功返回0 失败返回-1
-
+    kout[Info] << "SYScall :: fstat" << endl;
     if (kst == nullptr) {
         return -1;
     }
@@ -614,16 +614,16 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
 
     // trick实现文件信息的打印
     // 向标准输出写
-    if (fo->tk_fd == STDOUT_FILENO) {
-        // putchar('s');
-        VirtualMemorySpace::EnableAccessUser();
-        for (int i = 0; i < count; i++) {
-            putchar(*((char*)buf + i));
+    /*     if (fo->tk_fd == STDOUT_FILENO) {
+            // putchar('s');
+            VirtualMemorySpace::EnableAccessUser();
+            for (int i = 0; i < count; i++) {
+                putchar(*((char*)buf + i));
+            }
+            VirtualMemorySpace::DisableAccessUser();
+            return count;
         }
-        VirtualMemorySpace::DisableAccessUser();
-        return count;
-    }
-
+     */
     VirtualMemorySpace::EnableAccessUser();
     // 分配内核缓冲区
     unsigned char* buf1 = new unsigned char[count];
@@ -684,6 +684,13 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
         return -1;
     }
     return rd_size;
+}
+
+int Syscall_sigaction(int signum, const struct sigaction* act, struct sigaction* oldact)
+{
+    kout[Warning] << "sys " << signum << endl;
+
+    return -1;
 }
 
 inline int Syscall_close(int fd)
@@ -937,7 +944,7 @@ int Syscall_munmap(void* start, Uint64 len)
 PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int off) // Currently flags will be ignored...
 {
     if (len == 0) {
-        kout[Error]<<"syscall mmap len is 0"<<endl;
+        kout[Error] << "syscall mmap len is 0" << endl;
         return -1;
     }
     FileNode* node = nullptr;
@@ -1069,6 +1076,47 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
     return 0;
 }
 
+template <ModeRW rw>
+inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint64 off = -1)
+{
+    kout[Info] << "Syscall_ReadWriteVector fd is " << fd << "iovcnt " << iovcnt << endl;
+    file_object* fo = pm.getCurProc()->getFoHead();
+    file_object* fh = fom.get_from_fd(fo, fd);
+    if (fh == nullptr)
+        return -1;
+    VirtualMemorySpace::EnableAccessUser();
+    Sint64 re = 0, r;
+    for (int i = 0; i < iovcnt; ++i) {
+        kout[Info] << "iov " << iov[i].base << endl;
+        if (iov[i].base == nullptr) {
+            break;
+        }
+        if constexpr (rw == ModeRW::W) {
+            // r=fh->Write(iov[i].base,iov[i].len,off==-1?-1:off+re);
+            if (off != -1) {
+                fom.set_fo_pos_k(fh, off);
+            }
+            r = fom.write_fo(fh, iov[i].base, iov[i].len);
+
+        } else {
+
+            if (off != -1) {
+                fom.set_fo_pos_k(fh, off);
+            }
+            r = fom.read_fo(fh, iov[i].base, iov[i].len);
+            // r = fh->Read(iov[i].base, iov[i].len, off == -1 ? -1 : off + re);
+        }
+
+        if (r < 0)
+            break;
+        re += r;
+        if (r != iov[i].len)
+            break;
+    }
+    VirtualMemorySpace::DisableAccessUser();
+    return re;
+}
+
 inline int Syscall_pipe2(int* fd, int flags)
 {
     kout << Yellow << "pipe" << endl;
@@ -1191,9 +1239,75 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
     return n_read;
 }
 
+int Syscall_clock_gettime(RegisterData clkid, RegisterData tp)
+{
+    struct timespec {
+        int tv_sec;
+        int tv_nsec;
+    }* tv = (timespec*)tp;
+    VirtualMemorySpace::EnableAccessUser();
+    ClockTime t = GetClockTime();
+    tv->tv_sec = t / Timer_1s;
+    tv->tv_nsec = t % Timer_1s; //??
+    VirtualMemorySpace::DisableAccessUser();
+    return 0;
+}
+
+int Syscall_newfstatat(int dirfd, const char* pathname, kstat* statbuf, int flags)
+{
+    if (flags) {
+        kout[Warning] << "Syscall::SYS_newfstatat : flags is unsolove" << endl;
+    }
+    kout[Info] << "SYS_newfstatat " << endl;
+
+    file_object* dir;
+    char* buf = nullptr;
+    dir = fom.get_from_fd(pm.getCurProc()->getFoHead(), dirfd);
+    if (dir == nullptr) {
+        kout[Warning] << "dir is nullptr" << endl;
+    } else {
+        new char[200];
+        vfsm.get_file_path(dir->file, buf);
+    }
+
+    FileNode* file = vfsm.open(pathname, buf);
+    // delete[] buf;
+    if (file == nullptr) {
+        kout[Warning] << "file can't open" << endl;
+        return -1;
+    }
+
+    file_object* fd = fom.create_flobj(pm.getCurProc()->getFoHead());
+    fd->file = file;
+
+    int re = Syscall_fstat(fd->fd, statbuf);
+    fom.delete_flobj(pm.getCurProc()->getFoHead(), fd);
+    vfsm.close(file);
+    if (buf != nullptr) {
+        delete[] buf;
+    }
+    return re;
+}
+
+Sint64 Syscall_get_unsolve_id()
+{
+    kout[Warning] << "SYSCALL:: the get id is unsolove" << endl;
+    return 0;
+}
+
+/* Sint32 Syscall_madvise(void* addr, Uint64 length, int advice)
+{
+    
+    VirtualMemorySpace * vms= pm.getCurProc()->getVMS();
+    VirtualMemoryRegion *vmr_bin = new VirtualMemoryRegion(addr, addr + length, VirtualMemoryRegion::VM_RWX);
+    vms->InsertVMR();
+
+    return 0;
+}
+ */
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout << endline << "Syscall:" << tf->reg.a7 << endl;
+    kout[Info] << endline << "Syscall:" <<  SyscallName(tf->reg.a7) << endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -1225,12 +1339,23 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_sched_yeild:
         Syscall_sched_yeild();
         break;
+
+    case SYS_gettid:
     case SYS_getpid:
         tf->reg.a0 = Syscall_getpid();
         break;
     case SYS_getppid:
         tf->reg.a0 = Syscall_getppid();
         break;
+
+    case SYS_geteuid:
+    case SYS_getegid:
+        tf->reg.a0 = Syscall_get_unsolve_id();
+        break;
+    // case SYS_madvise:
+        // tf->reg.a0 = Syscall_madvise(void* addr, size_t length, int advice);
+        // int madvise();
+        // break;
     case SYS_gettimeofday:
         tf->reg.a0 = Syscall_gettimeofday((timeval*)tf->reg.a0, 0);
         break;
@@ -1261,6 +1386,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_getdents64:
         tf->reg.a0 = Syscall_getdents64(tf->reg.a0, tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_newfstatat:
+        tf->reg.a0 = Syscall_newfstatat(tf->reg.a0, (const char*)tf->reg.a1, (kstat*)tf->reg.a2, tf->reg.a3);
         break;
     case SYS_fstat:
         tf->reg.a0 = Syscall_fstat(tf->reg.a0, (kstat*)tf->reg.a1);
@@ -1301,24 +1429,31 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
 
+    case SYS_clock_gettime:
+        tf->reg.a0 = Syscall_clock_gettime(tf->reg.a0, tf->reg.a1); // Currently, clkid will be ignored...
+        break;
+    case SYS_readv:
+        tf->reg.a0 = Syscall_ReadWriteVector<ModeRW::Read>(tf->reg.a0, (iovec*)tf->reg.a1, tf->reg.a2);
+        break;
+    case SYS_writev:
+        tf->reg.a0 = Syscall_ReadWriteVector<ModeRW::Write>(tf->reg.a0, (iovec*)tf->reg.a1, tf->reg.a2);
+        break;
+
+    case SYS_sigaction:
+        tf->reg.a0 = Syscall_sigaction(tf->reg.a0, (const struct sigaction*)tf->reg.a1, (struct sigaction*)tf->reg.a2);
+        break;
     case SYS_fcntl:
 
     case SYS_sigprocmask:
     case SYS_sigtimedwait:
-    case SYS_sigaction:
-
-    case SYS_gettid:
     case SYS_set_tid_address:
     case SYS_exit_group:
 
+    case SYS_madvise:
         //		case SYS_futex:
-
     case SYS_ioctl:
 
     case SYS_get_robust_list:
-
-    case SYS_geteuid:
-    case SYS_getegid:
 
     case SYS_utimensat:
 
@@ -1334,6 +1469,14 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_connect:
     case SYS_accept:
         kout[Warning] << "Skipped syscall " << tf->reg.a7 << " " << SyscallName((long long)tf->reg.a7) << endl;
+
+        break;
+
+    case 174:
+    // case 175:
+    case 176:
+
+        tf->reg.a0 = 0;
         break;
 
     default:

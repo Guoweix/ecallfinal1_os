@@ -145,7 +145,7 @@ void Semaphore::signal()
     lockProcess();
     // kout[Info] << "signal " << endl;
     if (value < 0) {
-        kout<<(void *)&queue<<endl; 
+        kout[Info]<<(void *)&queue<<endl; 
         // queue.printAllQueue();
         Process* proc = queue.getFront();
         queue.dequeue();

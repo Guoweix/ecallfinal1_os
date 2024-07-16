@@ -97,25 +97,6 @@ public:
 
     void show();
 };
-
-class PIPEFILE : public FileNode {
-public:
-    PIPEFILE();
-    ~PIPEFILE();
-
-    enum : Uint32 {
-        FILESIZE = 1 << 12,
-    };
-
-    Uint32 readRef;
-    Uint32 writeRef;
-    Uint32 in, out;
-    Uint8 data[FILESIZE];
-    Semaphore *file, *full, *empty;
-    Sint64 read(void * buf, Uint64 pos, Uint64 size);
-    Sint64 write(void * src, Uint64 size);
-};
-
 class FAT32 : public VFS {
     friend class FAT32FILE;
     friend class VFSM;
@@ -136,6 +117,7 @@ public:
     bool get_clus(Uint64 clus, unsigned char* buf); // 获取簇中的数据
     bool get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
     bool set_clus(Uint64 clus, unsigned char* buf); // 设置簇
+    bool cover_clus(Uint64 clus, unsigned char* buf,Uint64 off,Uint64 size); // 设置簇
     bool set_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end);
     bool clear_clus(Uint64 clus);
     bool show_empty_clus(Uint64 clus); // Debug用，测试簇中空虚的FATTABLE
@@ -152,6 +134,7 @@ public:
     FAT32();
     ~FAT32();
 
+    void show_all_file_in_dir(FAT32FILE * dir,Uint32 level=0);
     FileNode** get_all_file_in_dir(FileNode* dir, bool (*p)(FileType type)) override;
     FAT32FILE* open(char* path, FileNode* parent) override;
     FAT32FILE* get_node(const char* path) override;

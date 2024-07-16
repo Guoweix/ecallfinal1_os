@@ -5,7 +5,7 @@
 #include <File/vfsm.hpp>
 #include <Process/Process.hpp>
 
-FileNode* STDIO = nullptr;
+// FileNode* STDIO = nullptr;
 
 void FileObjectManager::init_proc_fo_head(Process* proc)
 {
@@ -121,6 +121,7 @@ file_object* FileObjectManager::create_flobj(file_object* fo_head, int fd)
         fo_ptr = fo_ptr->next;
     }
     fo_ptr->next = new_fo;
+    kout[Info]<<"FileObjectManager::create_flobj  fd is "<<new_fd<<endl;
     return new_fo; // 返回这个创建的新的节点用来设置相关属性
 }
 
@@ -357,7 +358,7 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
            PIPEFILE* pfile = (PIPEFILE*)fo->file;
            wr_size = pfile->write((unsigned char*)src,  size);
        } else { */
-    wr_size = file->write((unsigned char*)src, size);
+    wr_size = file->write((unsigned char*)src, fo->pos_k,size);
     file->fileSize=size;
     // }
     return wr_size;
