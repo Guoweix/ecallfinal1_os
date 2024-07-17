@@ -1,5 +1,7 @@
 #include <Library/KoutSingle.hpp>
 #include <Library/Kstring.hpp>
+#include<Memory/pmm.hpp>
+#include <Memory/vmm.hpp>
 
 char* split_path_name(char* path, char* buf)
 {
@@ -178,4 +180,122 @@ char* unified_path(char* path, char* cwd, char* ret)
     delete[] cwd1;
 
     return ret;
+}
+
+char* get_k_path(int k,char*path){
+    int count = 0;
+    char* result;
+    char* p = path;
+
+    while (*p != '\0') {
+        if (*p == '/') {
+            count++;
+            if (count == k) {
+                break;
+            }
+        }
+        p++;
+    }
+
+    if (count < k) {
+        return nullptr;
+    }
+
+    int len = p - path;
+    result = (char*)kmalloc(len + 1); 
+    if (!result) {
+        return nullptr; 
+    }
+
+    for (int i = 0; i < len; i++) {
+        result[i] = path[i];
+    }
+    result[len] = '\0'; 
+
+    return result;
+}
+
+int count_slashes(char* path) {
+    int count = 0;
+    char* p = path;
+
+    // Iterate through the path to count '/'
+    while (*p != '\0') {
+        if (*p == '/') {
+            count++;
+        }
+        p++;
+    }
+
+    return count;
+}
+
+char* get_k_to_k1_path(int k, char* path) {
+    int count = 0;
+    char* start = nullptr;
+    char* end = nullptr;
+    char* p = path;
+
+    while (*p != '\0') {
+        if (*p == '/') {
+            count++;
+            if (count == k) {
+                start = p + 1; 
+                } else if (count == k + 1) {
+                end = p; 
+                break;
+            }
+        }
+        p++;
+    }
+
+    if (count == k && end == nullptr) {
+        end = p;
+    }
+
+    if (count < k) {
+        return nullptr;
+    }
+
+    int len = end - start;
+    char* result = (char*)kmalloc(len + 1); 
+    if (!result) {
+        return nullptr;
+    }
+
+    for (int i = 0; i < len; i++) {
+        result[i] = start[i];
+    }
+    result[len] = '\0'; 
+
+    return result;
+}
+
+char* get_last_path_segment(char* path) {
+    char* lastSlash = nullptr;
+    char* p = path;
+
+    while (*p != '\0') {
+        if (*p == '/') {
+            lastSlash = p;
+        }
+        p++;
+    }
+
+    if (lastSlash == nullptr) {
+        return path;
+    }
+
+    int len = p - (lastSlash + 1);
+    char* result = (char*)kmalloc(len + 1); 
+    if (!result) {
+        return nullptr; 
+    }
+
+    for (int i = 0; i < len; i++) {
+        result[i] = lastSlash[i + 1];
+    }
+    result[len] = '\0'; 
+
+    return result;
 }

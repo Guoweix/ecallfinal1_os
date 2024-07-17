@@ -13,6 +13,14 @@ struct DBCharPtr {
 // 将路径处理为标准格式,去除. ..相对路径处理成为dir/dir/ 返回值为路径是否合法
 bool unified_file_path(char* src, char* ret);
 
+char* get_k_path(int k,char*path);
+
+char* get_k_to_k1_path(int k, char* path);
+
+char* get_last_path_segment(char* path);
+
+int count_slashes(char* path) ;
+
 char* unified_path(char* path, char* cwd,char * ret);
 // 如果自己不自己申请空间则要释放第二个指针,当两个返回指针都为空时，说明路径分割完毕或路径不合法，当只有第一为空时，说明传入指针为null
 char* split_path_name(char* path, char* buf = nullptr);

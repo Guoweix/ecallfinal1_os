@@ -204,6 +204,19 @@ void VFSM::get_file_path(FileNode* file, char* ret)
     return;
 }
 
+void VFS::get_file_path(FileNode* file, char* ret)
+{
+    if (file == root)
+        return;
+
+    get_file_path(file->parent, ret);
+
+    strcat(ret, "/");
+    strcat(ret, file->get_name());
+
+    return;
+}
+
 // 只能打开已经打开的文件，说实话，我都不知道这东西有啥用，但是好像有很多地方在用
 FileNode* VFSM::find_file_by_path(char* path, bool& isOpened)
 {
