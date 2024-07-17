@@ -55,8 +55,11 @@ enum SyscallID
 	SYS_gettimeofday	=169,//
 	SYS_getpid			=172,//
 	SYS_getppid			=173,//
+	SYS_getuid			=174,
 	SYS_geteuid			=175,
+	SYS_getgid			=176,
 	SYS_getegid			=177,
+
 	SYS_gettid			=178,
 	SYS_socket			=198,
 	SYS_bind			=200, 

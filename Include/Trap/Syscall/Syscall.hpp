@@ -4,6 +4,7 @@
 #include "Types.hpp"
 #include <Trap/Syscall/SyscallID.hpp>
 #include <Trap/Trap.hpp>
+#include <Synchronize/Sigaction.hpp>
 
 bool TrapFunc_Syscall(TrapFrame* tf);
 inline void Syscall_Exit(int re);
@@ -67,76 +68,6 @@ int Syscall_linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, uns
 int Syscall_unlinkat(int dirfd, char* path, int flags);
 inline int Syscall_getpid();
 inline int Syscall_getppid();
-
-
-
-enum SIGNUM : int {
-    SIGHUP = 1,
-    SIGINT,
-    SIGQUIT,
-    SIGILL,
-    SIGTRAP,
-    SIGABRT,
-    SIGFPE,
-    SIGKILL,
-    SIGUSR1,
-    SIGSEGV,
-    SIGUSR2,
-    SIGPIPE,
-    SIGALRM,
-    SIGTERM,
-    SIGCHLD,
-    SIGCONT,
-    SIGSTOP,
-    SIGTSTP,
-    SIGTTIN,
-    SIGTTOU,
-    SIGURG,
-    SIGXCPU,
-    SIGXFSZ,
-    SIGVTALRM,
-    SIGPROF,
-    SIGWINCH,
-    SIGIO,
-    SIGPWR,
-    SIGSYS,
-};
-
-
-union sigval {
-    int   sival_int;  /* Integer signal value */
-    void *sival_ptr;  /* Pointer signal value */
-};
-
-typedef union sigval sigval_t;
-
-
-typedef struct siginfo {
-    int si_signo;     /* Signal number */
-    int si_errno;     /* An errno value */
-    int si_code;      /* Signal code */
-    int si_trapno;    /* Trap number that caused hardware-generated signal (unused on most architectures) */
-    PID si_pid;     /* Sending process ID */
-    UID si_uid;     /* Real user ID of sending process */
-    int si_status;    /* Exit value or signal */
-    ClockTime si_utime; /* User time consumed */
-    ClockTime si_stime; /* System time consumed */
-    sigval_t si_value;/* Signal value */
-    int si_int;       /* POSIX.1b signal */
-    void *si_ptr;     /* POSIX.1b signal */
-    int si_overrun;   /* Timer overrun count; POSIX.1b timers */
-    int si_timerid;   /* Timer ID; POSIX.1b timers */
-    void *si_addr;    /* Memory location which caused fault */
-    int si_band;      /* Band event (used for SIGPOLL) */
-    int si_fd;        /* File descriptor (used for SIGPOLL) */
-} siginfo_t;
-
-struct sigaction {
-    void (*sa_handler)(int);    // 信号处理函数指针
-    SIGNUM * sa_mask;          // 在信号处理期间要阻塞的其他信号集合
-    int sa_flags;              // 信号处理选项标志
-    void (*sa_sigaction)(int, siginfo_t *, void *);  // 备用信号处理函数指针
-};
 
 int Syscall_sigaction(int signum, const struct sigaction* act, struct sigaction* oldact);
 

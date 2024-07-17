@@ -162,6 +162,7 @@ void Process::init(ProcFlag _flags)
     stacksize = 0;
     father = broNext = broPre = fstChild = nullptr;
     exitCode = 0;
+    sigQueue.init();
 
     fom.init_proc_fo_head(this);
     initFds();
@@ -573,7 +574,7 @@ bool Process::copyFds(Process* src)
 
 bool Process::setProcCWD(const char* cwd_path)
 {
-
+    // kout[Warning]<<"set Proc CWD___________________________________"<<cwd_path<<endl;
     if (cwd_path == nullptr) {
         kout[Fault] << "The cwd_path to be set is NULL!" << endl;
         return false;
@@ -587,6 +588,8 @@ bool Process::setProcCWD(const char* cwd_path)
     // 不能忘记分配空间
     curWorkDir = (char*)kmalloc(strlen(cwd_path) + 5);
     strcpy(curWorkDir, cwd_path);
+    kout[Warning]<<"set Proc CWD___________________________________"<<curWorkDir<<endl;
+    
     return true;
 }
 

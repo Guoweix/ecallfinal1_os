@@ -5,7 +5,7 @@
 #include <Library/KoutSingle.hpp>
 #include <Memory/pmm.hpp>
 #include <Synchronize/SpinLock.hpp>
-// #include <Synchronize/Synchronize.hpp>
+#include <Synchronize/Sigaction.hpp>
 #include <Memory/vmm.hpp>
 #include <Trap/Syscall/Syscall.hpp>
 #include <Trap/Trap.hpp>
@@ -90,6 +90,8 @@ public:
     Uint32 stacksize;
     VirtualMemorySpace* VMS; //虚拟内存管理，所有用一个
     file_object* fo_head;    //文件object拥有通过文件描述符管理文件，实际是一个打开文件的链表
+                             //
+    SigactionQueue sigQueue; 
 
 public:
     // 关于父节点及子节点的链接

@@ -13,7 +13,8 @@ FLAGS := -nostdlib -I"Include" -I"Include/File/lwext4_include" -fno-exceptions -
 C_FLAGS := -nostdlib -I"Include" -I"Include/File/lwext4_include" -fno-exceptions -mcmodel=medany 
 LD := riscv64-unknown-elf-ld
 OBJCOPY := riscv64-unknown-elf-objcopy
-DRIVE := -drive file=Img/sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
+# DRIVE := -drive file=Img/sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
+DRIVE := -drive file=Img/fat32_image.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 
 BIOS :=  -bios SBI_BIN/opensbi-qemu.elf
 USERIMG := -initrd Img/User.img
 

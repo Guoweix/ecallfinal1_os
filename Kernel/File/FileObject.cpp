@@ -121,7 +121,7 @@ file_object* FileObjectManager::create_flobj(file_object* fo_head, int fd)
         fo_ptr = fo_ptr->next;
     }
     fo_ptr->next = new_fo;
-    kout[Info]<<"FileObjectManager::create_flobj  fd is "<<new_fd<<endl;
+    // kout[Info]<<"FileObjectManager::create_flobj  fd is "<<new_fd<<endl;
     return new_fo; // 返回这个创建的新的节点用来设置相关属性
 }
 

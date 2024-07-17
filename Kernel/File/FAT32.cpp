@@ -248,7 +248,7 @@ bool FAT32::get_clus(Uint64 clus, unsigned char* buf, Uint64 start, Uint64 end)
 
 FAT32FILE* FAT32::get_child_form_clus(char* child_name, Uint64 src_clus)
 {
-    kout << Red << "Get Child  " << child_name << ' ' << src_clus << endl;
+    // kout << Red << "Get Child  " << child_name << ' ' << src_clus << endl;
     // kout[blue]<<child_name<<' '<<src_lba<<endl;
     unsigned char* clus = new unsigned char[Dbr.clus_size];
     get_clus(src_clus, clus);
@@ -542,7 +542,7 @@ FAT32FILE* FAT32::create_dir(FileNode* dir_, char* fileName)
 
 FAT32FILE* FAT32::open(char* path, FileNode* _parent)
 {
-    kout[Info] << "FAT32::open " << path << " " << _parent << endl;
+    // kout[Info] << "FAT32::open " << path << " " << _parent << endl;
     char* sigleName = new char[50];
     unsigned char* clus = new unsigned char[Dbr.clus_size];
     Uint64 clus_n = Dbr.root_clus;

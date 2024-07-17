@@ -21,7 +21,10 @@
 extern "C" {
 void Putchar(char ch)
 {
+    // if ((ch>='0'&&ch<='9')||(ch>='a'&&ch<='z')||(ch>='A'&&ch<='Z')||ch=='\n'||ch=='\e'||ch==' '||ch=='[') {
     SBI_PUTCHAR(ch);
+    // }
+
 }
 };
 
@@ -308,14 +311,17 @@ void final_test()
         // kout[Info] << "____________________1___________________--" << endl;
 
         // VFSM_test1(ch++);
-        int argc = 3;
+        int argc = 2;
         char** argv = new char*[3];
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             argv[i] = new char[10];
         }
         strcpy(argv[0], "busybox");
         strcpy(argv[1], "sh");
-        strcpy(argv[2], "./test_all.sh");
+        // strcpy(argv[2], "-c");
+        // strcpy(argv[3], "exit");
+        // strcpy(argv[1], "--help");
+        // strcpy(argv[2], "./test_all.sh");
 
         Process* task;
         if (strcmp(file->name, "busybox") == 0) {
@@ -408,7 +414,7 @@ int main()
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    // kout.SetEnabledType(0);
+    kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
     kout.SwitchTypeOnoff(Error, true);
     kout.SwitchTypeOnoff(EXT4, false);
@@ -430,7 +436,7 @@ int main()
     // A();
 
     kout[Info] << "Diskinit finish" << endl;
-    test_ext4();
+    // test_ext4();
 
     // SBI_SHUTDOWN();
     // kout[Fault]<<"test_ext4 end"<<endl;
@@ -459,7 +465,7 @@ int main()
     // VFSM_test1('a');
     // }
 
-    // final_test();
+    final_test();
     // test_final1();
     // VFSM_test2();
     // pm_test();

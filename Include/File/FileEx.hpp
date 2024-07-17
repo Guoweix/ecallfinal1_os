@@ -7,6 +7,7 @@
 #include <File/vfsm.hpp>
 #include <Memory/vmm.hpp>
 #include <Synchronize/Synchronize.hpp>
+#define __ECHO
 
 class MemapFileRegion : public VirtualMemoryRegion {
 protected:

@@ -17,6 +17,7 @@ Process* CreateKernelThread(int (*func)(void*), char* name, void* arg, ProcFlag 
     kPorcess->setName(name);
     kPorcess->setVMS(VirtualMemorySpace::Kernel());
     kPorcess->setStack(nullptr, UserPageSize);
+
     // kPorcess->setStack();
 
     kPorcess->start((void*)func, arg);
@@ -49,8 +50,10 @@ Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
     // vms->InsertVMR(vmr_kernel);
     vms->InsertVMR(vmr_stack);
     Process* proc = pm.allocProc();
-    proc->init(Flag);
+    // proc->init(Flag);
     proc->setVMS(vms);
+
+    // proc->setProcCWD("/");
     // char a[100];
 
     {
@@ -365,6 +368,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     char* abs_cwd = new char[200];
     kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
     unified_path((char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
+    // kout<<abs_cwd
     proc->setProcCWD(abs_cwd);
     kout << Blue << "abs_cwd " << abs_cwd << endl;
     // pm.init_proc(proc, 2, proc_flags);

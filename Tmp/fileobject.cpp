@@ -3,6 +3,8 @@
 #include <File/fileobject.hpp>
 #include <File/vfsm.hpp>
 
+#include <linux/ioctl.h>
+
 FAT32FILE* STDIO = nullptr;
 
 void FileObjectManager::init_proc_fo_head(Process* proc)

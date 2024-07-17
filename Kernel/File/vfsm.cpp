@@ -1,6 +1,7 @@
 #include "File/FileEx.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Library/Pathtool.hpp"
+#include "Trap/Interrupt.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
 #include <File/vfsm.hpp>
@@ -143,7 +144,20 @@ bool VFSM::init()
     // STDERR->pre=STDOUT;
     // STDOUT->pre=STDIN;
     // STDIN->pre=OpenedFile;
-    
+/*     
+    FileNode * dev=new FileNode;
+    dev->parent=root;
+    dev->TYPE|=FileType::__DIR;
+    dev->RefCount=1000;
+    dev->name=new char[20];
+    strcpy(dev->name,"dev");
+
+    UartFile * tty=new UartFile;
+    tty->parent=dev;
+    tty->TYPE|=FileType::__DEVICE;
+    tty->RefCount=1000;
+
+ */
 
     STDIO =new UartFile();
 
@@ -294,7 +308,12 @@ void FileNode::show()
 }
 FileNode* VFSM::open(const char* path, char* cwd)
 {
-    kout[Info] << "VFSM::open " << path << " " << cwd << endl;
+    bool a;
+    IntrSave(a);
+
+    // kout[Info] << " VFSM::open0 " << path << " cwd " << cwd << endl;
+    IntrRestore(a);
+
     if (path[0] == '/' && path[1] == 0) {
         root->RefCount++;
         return get_root();
@@ -304,10 +323,14 @@ FileNode* VFSM::open(const char* path, char* cwd)
     strcpy(pathsrc, path);
     char* path1 = new char[512];
     path1[0]=0;
-    kout[Info] << "VFSM " << pathsrc << " " << cwd << endl;
+    IntrSave(a);
+
+
+    // kout[Info] << "VFSM " << pathsrc << " " << cwd << endl;
     unified_path(pathsrc, cwd, path1);
     // unified_file_path(pathsrc, path1);
-    kout[Info] << "VFSM::open " << path1<<endl;
+    // kout[Info] << "VFSM::open1 " << path1<<endl;
+    IntrRestore(a);
     
     char* sigleName = new char[100];
     FileNode* re;
@@ -315,6 +338,7 @@ FileNode* VFSM::open(const char* path, char* cwd)
     FileNode* child = t->child;
     bool isFind = 0;
     while ((path1 = split_path_name(path1, sigleName)) != nullptr) {
+        // kout<<path1<<endl;
         isFind = 0;
         child = t->child;
         while (child != nullptr) {
@@ -328,11 +352,11 @@ FileNode* VFSM::open(const char* path, char* cwd)
         if (isFind) {
             t = child;
         } else if (t->TYPE & FileType::__VFS) {
-            kout[Info] << "find VFS" << endl;
+            // kout[Info] << "find VFS" << endl;
             re = t->vfs->open(path1, t);
             delete[] sigleName;
             delete[] path1;
-            kout[Info] <<(void*)re << endl;
+            // kout[Info] <<(void*)re << endl;
             if(re==nullptr)
             {
                 kout[Warning]<<"can't open "<<path<<endl;
@@ -340,7 +364,7 @@ FileNode* VFSM::open(const char* path, char* cwd)
 
             return re;
         } else {
-            kout[Info] << "can't find VFS" << endl;
+            kout[Warning] << "can't find VFS" << endl;
             delete[] sigleName;
             delete[] path1;
             delete[] pathsrc;
@@ -352,12 +376,12 @@ FileNode* VFSM::open(const char* path, char* cwd)
     delete[] path1;
     FileNode* r = t; // 如果能成功打开，则路径上的文件的引用计数都要+1
     while (r != get_root()) {
-        kout[Info] << "open " << r->name << endl;
+        // kout[Info] << "open " << r->name << endl;
         r->RefCount++;
         r = r->parent;
     }
     root->RefCount++;
-    kout[Info]<<"VFMS::open "<<t->name<< " success"<<endl;
+    // kout[Info]<<"VFMS::open "<<t->name<< " success"<<endl;
     return t;
 }
 void VFSM::close(FileNode* t)

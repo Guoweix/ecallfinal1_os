@@ -6,6 +6,7 @@
 #include "Library/SBI.h"
 #include "Memory/pmm.hpp"
 #include "Memory/vmm.hpp"
+#include "Synchronize/Sigaction.hpp"
 #include "Synchronize/Synchronize.hpp"
 #include "Trap/Interrupt.hpp"
 #include "Trap/Trap.hpp"
@@ -189,6 +190,7 @@ char* Syscall_getcwd(char* buf, Uint64 size)
     } else {
         Process* cur_proc = pm.getCurProc();
         const char* cwd = cur_proc->getCWD();
+        // kout[Warning]<<cwd<<"______________________---------_"<<endl;
         POS::Uint64 cwd_len = strlen(cwd);
         if (cwd_len > 0 && cwd_len < size) {
             strcpy(buf, cwd);
@@ -402,7 +404,7 @@ int Syscall_fstat(int fd, kstat* kst)
     // 输入fd为文件句柄 kst为接收保存文件状态的指针
     // 目前只需要填充几个值
     // 成功返回0 失败返回-1
-    kout[Info] << "SYScall :: fstat" << endl;
+    // kout[Info] << "SYScall :: fstat" << endl;
     if (kst == nullptr) {
         return -1;
     }
@@ -416,15 +418,22 @@ int Syscall_fstat(int fd, kstat* kst)
     if (file == nullptr) {
         return -1;
     }
-    kout << "fstat file " << file->name << "file:table_size " << file->fileSize << endl;
+    // kout << "fstat file " << file->name << " file:table_size " << file->fileSize << endl;
     VirtualMemorySpace::EnableAccessUser();
     memset(kst, 0, sizeof(kstat));
     kst->st_size = file->fileSize;
-    kst->st_mode = fo->mode;
+    // kst->st_mode = fo->mode;
+
     kst->st_nlink = 1;
+    kst->st_uid = 0;
+    kst->st_gid = 0;
+    kst->st_mode = 0x1ff;
+    if (file->TYPE & FileType::__DIR) {
+        kst->st_mode |= 0040000;
+    }
     // ... others to be added
     VirtualMemorySpace::DisableAccessUser();
-    kout << Green << "fstat Success" << DataWithSizeUnited(kst, sizeof(kstat), 12);
+    // kout << Green << "fstat Success" << DataWithSizeUnited(kst, sizeof(kstat), 12);
     return 0;
 }
 
@@ -686,11 +695,62 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     return rd_size;
 }
 
+inline RegisterData Syscall_fcntl(int fd, int cmd, TrapFrame* tf)
+{
+    file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
+    if (fh == nullptr)
+        return -1;
+
+    enum {
+        F_DUPFD = 0,
+        F_GETFD = 1,
+        F_SETFD = 2,
+        F_GETFL = 3,
+        F_SETFL = 4,
+        F_SETOWN = 8,
+        F_GETOWN = 9,
+        F_SETSIG = 10,
+        F_GETSIG = 11,
+    };
+
+    int re = -1;
+    file_object* t;
+    switch (cmd) {
+        /*     case F_SETFD:
+                t = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
+                re = (fom.set_fo_fd(t, tf->reg.a3) ? 0 : -1);
+                break; */
+    default:
+        kout[Warning] << "Unknown fcnt cmd " << cmd << endl;
+
+        return -1;
+    }
+    return re;
+}
+
 int Syscall_sigaction(int signum, const struct sigaction* act, struct sigaction* oldact)
 {
-    kout[Warning] << "sys " << signum << endl;
 
-    return -1;
+    kout[Warning] << "Syscall_sigaction " << signum << " " << act << " " << oldact << endl;
+    if (act == nullptr) {
+        return -1;
+    }
+    sigaction* act1 = new sigaction;
+    act1->sa_sigaction = act->sa_sigaction;
+    act1->sa_flags = act->sa_flags;
+    act1->sa_mask = act->sa_mask;
+    SIGNUM* a = act->sa_mask;
+    // while (a!=0) {
+    // kout[Info]<<a<<endl;
+    // a++;
+    // }
+    act1->sa_handler = act->sa_handler;
+    if (act1 != nullptr) {
+        pm.getCurProc()->sigQueue.enqueue(act1);
+    }
+
+    kout[Warning] << "Syscall_sigaction end" << endl;
+    return 0;
 }
 
 inline int Syscall_close(int fd)
@@ -806,19 +866,20 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // flags为访问模式 必须包含以下一种 O_RDONLY O_WRONLY O_RDWR
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
-    kout << Red << "OpenedFile" << endl;
+    // kout << Red << "OpenedFile" << endl;
+    kout[Info] << "SYSCALL__openat" << endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = nullptr;
     Process* cur_proc = pm.getCurProc();
-    kout << Red << "OpenedFile1" << endl;
+    // kout << Red << "OpenedFile1" << endl;
     char* cwd = cur_proc->getCWD();
     // kout << Red << "OpenedFile2" << endl;
     if (fd == AT_FDCWD) {
-        kout << Red << "OpenedFile3" << endl;
+        // kout << Red << "OpenedFile3" << endl;
         rela_wd = cur_proc->getCWD();
     } else {
-        kout << Red << "OpenedFile4" << endl;
+        // kout << Red << "OpenedFile4" << endl;
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
         // kout << Red << "OpenedFile5" << endl;
         if (fo != nullptr) {
@@ -829,7 +890,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         }
     }
 
-    kout << Red << rela_wd << endl;
+    // kout << Red << rela_wd << endl;
 
     if (filename[0] == '.' && filename[1] != '.') {
         filename += 2;
@@ -838,19 +899,19 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     if (flags & file_flags::O_CREAT) {
         // 创建文件或目录
         // 创建则在进程的工作目录进行
-        kout << Red << "OpenedFile6" << endl;
+        // kout << Red << "OpenedFile6" << endl;
         if (flags & file_flags::O_DIRECTORY) {
-            kout << Red << "OpenedFile6 DIR" << endl;
+            // kout << Red << "OpenedFile6 DIR" << endl;
             vfsm.create_dir(rela_wd, cwd, (char*)filename);
         } else {
-            kout << Red << "OpenedFile6 FILE" << endl;
+            // kout << Red << "OpenedFile6 FILE" << endl;
             kout[Info] << "creaet_file " << rela_wd << " " << cwd << " " << filename << endl;
             if (!vfsm.create_file(rela_wd, cwd, (char*)filename))
                 kout[Fault] << "create" << endl;
         }
     }
 
-    kout << Red << "OpenedFile7" << endl;
+    // kout << Red << "OpenedFile7" << endl;
     // char* path = vfsm.unified_path(filename, rela_wd);
     // kout << Red << "OpenedFile8" << endl;
     // if (path == nullptr) {
@@ -878,10 +939,10 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     kout[Info] << filename << ' ' << rela_wd << endl;
     file = vfsm.open(filename, rela_wd);
 
-    file->show();
+    // file->show();
 
     if (file != nullptr) {
-        kout << Red << "OpenedFile12" << endl;
+        // kout << Red << "OpenedFile12" << endl;
         if (!(file->TYPE & FileType::__DIR) && (flags & O_DIRECTORY)) {
             file = nullptr;
         }
@@ -891,17 +952,18 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     }
 
     file_object* fo = fom.create_flobj(cur_proc->fo_head);
-    kout << Red << "OpenedFile13" << endl;
+
+    // kout << Red << "SYSCALL__openat::create_flobj fo_head"<< cur_proc->fo_head  << endl;
     if (fo == nullptr || fo->fd < 0) {
         delete[] rela_wd;
         return -1;
     }
-    kout << Red << "OpenedFile14" << endl;
+    // kout << Red << "OpenedFile14" << endl;
     if (file != nullptr) {
         fom.set_fo_file(fo, file);
         fom.set_fo_flags(fo, flags);
         fom.set_fo_mode(fo, mode);
-        kout << Red << "OpenedFile15" << endl;
+        // kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
     kout << Green << "Open Success" << file << endl;
@@ -909,7 +971,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     file->show();
     kout << Green << "Open Success1" << endl;
 
-    kout << fo->fd << endl;
+    // kout << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
     delete[] rela_wd;
     return fo->fd;
@@ -1089,7 +1151,7 @@ inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint
     for (int i = 0; i < iovcnt; ++i) {
         kout[Info] << "iov " << iov[i].base << endl;
         if (iov[i].base == nullptr) {
-            break;
+            continue;
         }
         if constexpr (rw == ModeRW::W) {
             // r=fh->Write(iov[i].base,iov[i].len,off==-1?-1:off+re);
@@ -1167,7 +1229,9 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
     } __attribute__((packed));
 
     Process* proc = pm.getCurProc();
+    kout[Info] << "Syscall_getdents64  fd" << fd << "fo_head" << proc->getFoHead() << endl;
     file_object* dir = fom.get_from_fd(proc->getFoHead(), fd);
+    // kout[Info]<<"dir->pos_k"<<dir->pos_k<<endl;
 
     if (dir == nullptr) {
         return -1;
@@ -1176,26 +1240,33 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
     FAT32* t = (FAT32*)vfsm.get_root()->vfs;
     FileNode* file = t->get_next_file((FAT32FILE*)dir->file, nullptr);
 
+    for (int i = 0; i < dir->pos_k; i++) {
+        file = t->get_next_file((FAT32FILE*)dir->file, (FAT32FILE*)file);
+    }
+
     VirtualMemorySpace::EnableAccessUser();
     if (file == nullptr) {
         return 0;
     }
     int n_read = 0;
-    int i = 0;
-    kout << Red << "getdents buf start" << (void*)_buf << endl;
+    int i = dir->pos_k;
+    // kout << Red << "getdents buf start" << (void*)_buf << endl;
     bool wirte = true;
 
     while (file) {
+    // for (int k = 0; k < 1; k++) {
 
-        kout << Green << file->name << endl;
+        // kout << Green << file->name << endl;
 
         Dirent* dirent = (Dirent*)(_buf + n_read);
 
         Uint64 size = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
-        n_read += size;
-        if (n_read > bufSize) {
-            wirte = 0;
+        if (n_read + size > bufSize) {
+            kout << Green << "pos " << dir->pos_k << endl;
+            dir->pos_k = i;
+            return n_read;
         }
+        n_read += size;
         if (wirte) {
             dirent->d_ino = i + 1;
             dirent->d_off = 32;
@@ -1209,33 +1280,13 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
             dirent->d_reclen = sizeof(Uint64) * 2 + sizeof(unsigned) * 2 + strlen(file->name) + 1;
         }
 
+        i++;
         file = t->get_next_file((FAT32FILE*)dir->file, (FAT32FILE*)file);
     }
-    // FileNode* *nodes  = new FileNode* [bufSize];
-    // int cnt=VFSM.GetAllFileIn(dir,nodes,bufSize,0);
-    // if(cnt == 0)
-    // {
-    // 	return 0;
-    // }
-    // int n_read = 0;
-    // for(int i=0;i<1;i++)//size会超掉
-    // {
-    // 	Dirent * dirent = (Dirent *)(_buf + n_read) ;
-    // 	dirent->d_ino = i+1;
-    // 	dirent->d_off = 32;
-    // 	dirent->d_type = 0;
-    // 	const char * name = nodes[i]->GetName();
-    // 	int j = 0;
-    // 	for(;j<strLen(name);j++)
-    // 	{
-    // 		dirent->d_name[j] = name[j];
-    // 	}
-    // 	dirent->d_name[j] = 0;
-    // }
-    // VirtualMemorySpace::DisableAccessUser();
-    // kout<<Red<<"IIIIIIIIIIIIIIIIi"<<endl;
 
-    kout << Red << "getdents buf end" << (void*)(_buf + n_read) << endl;
+    kout << Green << "pos " << dir->pos_k << endl;
+    dir->pos_k = i;
+    // kout << Red << "getdents buf end" << (void*)(_buf + n_read) << endl;
     return n_read;
 }
 
@@ -1255,19 +1306,34 @@ int Syscall_clock_gettime(RegisterData clkid, RegisterData tp)
 
 int Syscall_newfstatat(int dirfd, const char* pathname, kstat* statbuf, int flags)
 {
-    if (flags) {
-        kout[Warning] << "Syscall::SYS_newfstatat : flags is unsolove" << endl;
-    }
+    enum : int {
+        AT_EMPTY_PATH = 0x1000,
+    };
+
     kout[Info] << "SYS_newfstatat " << endl;
+    if (flags) {
+        switch (flags) {
+        case AT_EMPTY_PATH:
+
+            // return 0;
+            break;
+        }
+
+        kout[Warning] << "Syscall::SYS_newfstatat : flags is unsolove  " << flags << endl;
+    }
 
     file_object* dir;
-    char* buf = nullptr;
-    dir = fom.get_from_fd(pm.getCurProc()->getFoHead(), dirfd);
-    if (dir == nullptr) {
-        kout[Warning] << "dir is nullptr" << endl;
+    char* buf = new char[200];
+    if (dirfd != AT_FDCWD) {
+        dir = fom.get_from_fd(pm.getCurProc()->getFoHead(), dirfd);
+        if (dir == nullptr) {
+            kout[Warning] << "dir is nullptr" << endl;
+        } else {
+
+            vfsm.get_file_path(dir->file, buf);
+        }
     } else {
-        new char[200];
-        vfsm.get_file_path(dir->file, buf);
+        strcpy(buf, pm.getCurProc()->getCWD());
     }
 
     FileNode* file = vfsm.open(pathname, buf);
@@ -1297,7 +1363,7 @@ Sint64 Syscall_get_unsolve_id()
 
 /* Sint32 Syscall_madvise(void* addr, Uint64 length, int advice)
 {
-    
+
     VirtualMemorySpace * vms= pm.getCurProc()->getVMS();
     VirtualMemoryRegion *vmr_bin = new VirtualMemoryRegion(addr, addr + length, VirtualMemoryRegion::VM_RWX);
     vms->InsertVMR();
@@ -1305,9 +1371,49 @@ Sint64 Syscall_get_unsolve_id()
     return 0;
 }
  */
+
+int Syscall_skip_ok(int syscall_num)
+{
+    kout[Warning] << "syscall: " << syscall_num << "sikp ok  ";
+    return 0;
+}
+struct winsize {
+    unsigned short ws_row; /* rows， in character */
+    unsigned short ws_col; /* columns, in characters */
+    unsigned short ws_xpixel; /* horizontal size, pixels (unused) */
+    unsigned short ws_ypixel;
+};
+
+int Syscall_ioctl(int fd, int cmd, TrapFrame* tf)
+{
+
+    kout[Warning] << "sikp ioctl  fd: " << fd << "cmd :" << cmd << endl;
+    enum : int {
+
+        TIOCGWINSZ = 0x5413,
+    };
+
+    switch (cmd) {
+    case TIOCGWINSZ:
+        winsize* winSize = (winsize*)tf->reg.a2;
+        winSize->ws_row = 64;
+        winSize->ws_col = 64;
+        winSize->ws_xpixel = 1024;
+        winSize->ws_ypixel = 1024;
+        break;
+    };
+
+    return 0;
+}
+int Syscall_set_tid_address(int* tidptr)
+{
+    *tidptr = pm.getCurProc()->id;
+    return 0;
+}
+
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout[Info] << endline << "Syscall:" <<  SyscallName(tf->reg.a7) << endl;
+    kout[Info] << "Syscall:" << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -1349,13 +1455,15 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
 
     case SYS_geteuid:
+    case SYS_getuid:
+    case SYS_getgid:
     case SYS_getegid:
         tf->reg.a0 = Syscall_get_unsolve_id();
         break;
     // case SYS_madvise:
-        // tf->reg.a0 = Syscall_madvise(void* addr, size_t length, int advice);
-        // int madvise();
-        // break;
+    // tf->reg.a0 = Syscall_madvise(void* addr, size_t length, int advice);
+    // int madvise();
+    // break;
     case SYS_gettimeofday:
         tf->reg.a0 = Syscall_gettimeofday((timeval*)tf->reg.a0, 0);
         break;
@@ -1443,15 +1551,25 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_sigaction(tf->reg.a0, (const struct sigaction*)tf->reg.a1, (struct sigaction*)tf->reg.a2);
         break;
     case SYS_fcntl:
+        tf->reg.a0 = Syscall_fcntl(tf->reg.a0, tf->reg.a1, tf);
+        break;
+
+    case SYS_ioctl:
+        tf->reg.a0 = Syscall_ioctl(tf->reg.a0, tf->reg.a1, tf);
+        break;
+    case SYS_set_tid_address:
+        tf->reg.a0 = Syscall_set_tid_address((int*)tf->reg.a0);
+        break;
 
     case SYS_sigprocmask:
+
+        tf->reg.a0 = Syscall_skip_ok(tf->reg.a7);
+        break;
     case SYS_sigtimedwait:
-    case SYS_set_tid_address:
     case SYS_exit_group:
 
     case SYS_madvise:
         //		case SYS_futex:
-    case SYS_ioctl:
 
     case SYS_get_robust_list:
 
@@ -1472,9 +1590,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
 
         break;
 
-    case 174:
-    // case 175:
-    case 176:
+        // case 174:
+        // case 175:
+        // case 176:
 
         tf->reg.a0 = 0;
         break;
