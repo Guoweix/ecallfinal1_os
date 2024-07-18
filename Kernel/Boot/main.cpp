@@ -480,18 +480,21 @@ void test_vfs()
     temp->RefCount++;
     EXT4 *e1 = new EXT4;
     temp->initdir(ed, (char *)".root", e1);
-    temp->show();
+    // temp->show();
     e1->root = temp;
     kout << "ready!" << endl;
 
-    char*buf=new char[20];
-    buf[0]='a';
-    buf[1]='b';
-    buf[2]=0;
-    ext4node*t3=e1->open("/hello1.txt/",temp);
-    kout<<t3->fp.fsize<<"   address:   "<<&t3->fp.fsize<<endl;
-    t3->write(buf,1,2);
-    delete[]buf;
+    // e1->create_file(temp, "hello1.txt", __FILE);
+    ext4node *t3 = e1->open("/hello1.txt/", temp);
+    if (temp->child != nullptr)
+    {
+        e1->del(t3);
+        if (temp->child == nullptr)
+        {
+            kout << "delete success" << endl;
+        }
+        // kout << temp->child->name << endl;
+    }
 
     /*ext4node *t2 = e1->open("/hello1.txt/", temp);
     if (t2 != nullptr)

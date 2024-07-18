@@ -94,6 +94,9 @@ FileNode::~FileNode()
     if (pre != nullptr) {
         pre->next = next;
     }
+    if(next!=nullptr){
+    kout<<"next:"<<next->name<<endl;
+    }
     if (parent != nullptr) {
         if (parent->child == this)
             parent->child = next;
