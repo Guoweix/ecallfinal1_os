@@ -6,6 +6,7 @@
 #include <File/FAT32.hpp>
 #include <File/vfsm.hpp>
 
+
 // FileNode::FileNode(VFS* _VFS, Uint64 _flags)
 // {
 // vfs=_VFS;
@@ -219,15 +220,16 @@ void VFSM::get_file_path(FileNode* file, char* ret)
 }
 
 // 只能打开已经打开的文件，说实话，我都不知道这东西有啥用，但是好像有很多地方在用
-FileNode* VFSM::find_file_by_path(char* path, bool& isOpened)
+FileNode* VFSM::find_file_by_path(const char* path, bool& isOpened)
 {
     if (path[0] == '/' && path[1] == 0) {
         isOpened = true;
         return get_root();
     }
 
-    char* path1 = new char[512];
-    unified_file_path(path, path1);
+    char* path_ = new char[512];
+    unified_file_path(path, path_);
+    const char * path1=(const char *)path;
     char* sigleName = new char[100];
     FileNode* re;
     FileNode* t = get_root();
@@ -306,7 +308,7 @@ void FileNode::show()
     kout[Info] << "name " << name << endl
                << "size " << fileSize << endl;
 }
-FileNode* VFSM::open(const char* path, char* cwd)
+FileNode* VFSM::open(const char* path,const char* cwd)
 {
     bool a;
     IntrSave(a);
@@ -321,13 +323,14 @@ FileNode* VFSM::open(const char* path, char* cwd)
 
     char* pathsrc = new char[512];
     strcpy(pathsrc, path);
-    char* path1 = new char[512];
-    path1[0]=0;
+    char* path_ = new char[512];
+    path_[0]=0;
     IntrSave(a);
 
 
     // kout[Info] << "VFSM " << pathsrc << " " << cwd << endl;
-    unified_path(pathsrc, cwd, path1);
+    unified_path(pathsrc, cwd, path_);
+    const char* path1=(const char *)path_;
     // unified_file_path(pathsrc, path1);
     // kout[Info] << "VFSM::open1 " << path1<<endl;
     IntrRestore(a);
@@ -451,7 +454,7 @@ void VFSM::close(FileNode* t)
 
  */
 
-bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint64 type)
+bool VFSM::create_file(const char* path,const char* cwd, char* fileName, Uint64 type)
 {
     FileNode* dir;
     dir = open(path, cwd);
@@ -469,7 +472,7 @@ bool VFSM::create_file(const char* path, char* cwd, char* fileName, Uint64 type)
     return true;
 }
 
-bool VFSM::create_dir(const char* path, char* cwd, char* dirName)
+bool VFSM::create_dir(const char* path,const char* cwd, char* dirName)
 {
 
     FileNode* dir;
@@ -488,7 +491,7 @@ bool VFSM::create_dir(const char* path, char* cwd, char* dirName)
     return true;
 }
 
-bool VFSM::del_file(const char* path, char* cwd)
+bool VFSM::del_file(const char* path,const char* cwd)
 {
 
     FileNode* file;
@@ -582,7 +585,7 @@ void VFSM::show_all_opened_child(FileNode* tar, bool r)
     return true;
  */
 
-bool VFSM::link(const char* srcpath, const char* ref_path, char* cwd)
+bool VFSM::link(const char* srcpath, const char* ref_path,const char* cwd)
 {
     kout[Info] << "VFSM::link isn't finish" << endl;
     return true;
@@ -602,7 +605,7 @@ bool VFSM::link(const char* srcpath, const char* ref_path, char* cwd)
     }
     return t->fat->unlink(t); */
 
-bool VFSM::unlink(const char* path, char* cwd)
+bool VFSM::unlink(const char* path,const char* cwd)
 {
 
     kout[Info] << "VFSM::unling isn't finish" << endl;

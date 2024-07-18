@@ -19,6 +19,7 @@
 #include <Trap/Syscall/Syscall.hpp>
 #include <Trap/Syscall/SyscallID.hpp>
 
+
 extern bool needSchedule;
 
 void Syscall_Exit(TrapFrame* tf, int re)
@@ -59,23 +60,22 @@ int Syscall_mkdirat(int dirfd, const char* path, int mode)
     // 相关参数的解释可以参考open的系统调用
     // 成功返回0 失败返回-1
 
-    char* rela_wd = nullptr;
+    char* rela_wd =  new char[200];
     Process* cur_proc = pm.getCurProc();
     // kout<<"S1"<<endl;
-    char* cwd = cur_proc->getCWD();
+    const char* cwd = cur_proc->getCWD();
     // kout<<"S2"<<endl;
     if (dirfd == AT_FDCWD) {
         // kout<<"S3"<<endl;
         // VirtualMemorySpace::Boot()->Enter();
         // kout<<(void *)cur_proc->getCWD()<<endl;
         // kout<<"S3"<<endl;
-        rela_wd = cur_proc->getCWD();
+        strcpy(rela_wd,cur_proc->getCWD());
         // kout<<"S3"<<endl;
     } else {
         file_object* fo = fom.get_from_fd(cur_proc->getFoHead(), dirfd);
         if (fo != nullptr) {
 
-            rela_wd = new char[200];
             vfsm.get_file_path(fo->file, rela_wd);
         }
     }
@@ -190,7 +190,7 @@ char* Syscall_getcwd(char* buf, Uint64 size)
     } else {
         Process* cur_proc = pm.getCurProc();
         const char* cwd = cur_proc->getCWD();
-        // kout[Warning]<<cwd<<"______________________---------_"<<endl;
+        kout[Warning]<<cwd<<"_______________________"<<endl;
         POS::Uint64 cwd_len = strlen(cwd);
         if (cwd_len > 0 && cwd_len < size) {
             strcpy(buf, cwd);
@@ -561,18 +561,20 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     // 成功返回0 失败返回-1
     kout << "Unlinkat dir fd " << dirfd << endl;
 
-    char* rela_wd = nullptr;
+    char* rela_wd = new char[200];
     Process* cur_proc = pm.getCurProc();
-    char* cwd = cur_proc->getCWD();
+    const char* cwd = cur_proc->getCWD();
     if (dirfd == AT_FDCWD) {
-        rela_wd = cur_proc->getCWD();
+         
+        strcpy(rela_wd, cur_proc->getCWD());
+
     } else {
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, dirfd);
         if (fo != nullptr) {
-            rela_wd = new char[200];
             vfsm.get_file_path(fo->file, rela_wd);
         } else {
             kout << "unlink can't find file" << endl;
+            delete [] rela_wd;
             return -1;
         }
     }
@@ -589,6 +591,7 @@ int Syscall_unlinkat(int dirfd, char* path, int flags)
     }
     VirtualMemorySpace::DisableAccessUser();
     kout << Green << "Unlinkat 6" << endl;
+
     delete[] rela_wd;
     return 0;
 }
@@ -870,14 +873,14 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     kout[Info] << "SYSCALL__openat" << endl;
 
     VirtualMemorySpace::EnableAccessUser();
-    char* rela_wd = nullptr;
+    char* rela_wd = new char [200];
     Process* cur_proc = pm.getCurProc();
     // kout << Red << "OpenedFile1" << endl;
-    char* cwd = cur_proc->getCWD();
+    const char* cwd = cur_proc->getCWD();
     // kout << Red << "OpenedFile2" << endl;
     if (fd == AT_FDCWD) {
         // kout << Red << "OpenedFile3" << endl;
-        rela_wd = cur_proc->getCWD();
+        strcpy(rela_wd, cur_proc->getCWD());
     } else {
         // kout << Red << "OpenedFile4" << endl;
         file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
@@ -1218,6 +1221,17 @@ inline int Syscall_pipe2(int* fd, int flags)
     return 0;
 }
 
+int Syscall_ppoll(struct pollfd* fds, nfds_t nfds,
+    const struct timespec*  tmo_p,
+    const sigset_t* sigmask)
+{
+
+
+    kout[Warning] << "Syscall_flock is ignore" << endl;
+
+    return -1;
+}
+
 int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 {
     struct Dirent {
@@ -1254,7 +1268,7 @@ int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
     bool wirte = true;
 
     while (file) {
-    // for (int k = 0; k < 1; k++) {
+        // for (int k = 0; k < 1; k++) {
 
         // kout << Green << file->name << endl;
 
@@ -1564,6 +1578,10 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_sigprocmask:
 
         tf->reg.a0 = Syscall_skip_ok(tf->reg.a7);
+        break;
+
+    case SYS_ppoll:
+        tf->reg.a0 = Syscall_ppoll((struct pollfd *)tf->reg.a0, (nfds_t)tf->reg.a1,(const struct timespec *)tf->reg.a2,(const sigset_t *)tf->reg.a3);
         break;
     case SYS_sigtimedwait:
     case SYS_exit_group:

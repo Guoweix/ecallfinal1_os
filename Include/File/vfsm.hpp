@@ -80,11 +80,11 @@ public:
     VFS() {};
     virtual ~VFS() {};
 
-    virtual FileNode* open(char* path, FileNode* parent) = 0;
+    virtual FileNode* open(const char* path, FileNode* parent) = 0;
     virtual bool close(FileNode* p) = 0;
 
-    virtual FileNode* create_file(FileNode* dir, char* fileName, FileType type = FileType::__FILE) = 0;
-    virtual FileNode* create_dir(FileNode* dir, char* fileName) = 0;
+    virtual FileNode* create_file(FileNode* dir,const char* fileName, FileType type = FileType::__FILE) = 0;
+    virtual FileNode* create_dir(FileNode* dir,const char* fileName) = 0;
     // 返回一个fileNode列表，其中是所有满足文件类型的文件
     virtual FileNode** get_all_file_in_dir(FileNode* dir, bool (*p)(FileType type)) = 0;
 
@@ -96,20 +96,20 @@ class VFSM {
 private:
     FileNode* root;
 
-    FileNode* find_file_by_path(char* path, bool& isOpened);//返回一个孤立的FileNode,
+    FileNode* find_file_by_path(const char* path, bool& isOpened);//返回一个孤立的FileNode,
 
 public:
-    FileNode* open(const char* path, char* cwd);
+    FileNode* open(const char* path,const char* cwd);
     FileNode* open(FileNode* file);
     void close(FileNode* t);
     
 
     void showRootDirFile();
-    bool create_file(const char* path, char* cwd, char* fileName, Uint64 type = FileType::__FILE);
-    bool create_dir(const char* path, char* cwd, char* dirName);
-    bool del_file(const char* path, char* cwd);
-    bool link(const char* srcpath, const char* ref_path, char* cwd); // ref_path为被指向的文件
-    bool unlink(const char* path, char* cwd);
+    bool create_file(const char* path,const char* cwd, char* fileName, Uint64 type = FileType::__FILE);
+    bool create_dir(const char* path,const char* cwd, char* dirName);
+    bool del_file(const char* path,const char* cwd);
+    bool link(const char* srcpath, const char* ref_path,const char* cwd); // ref_path为被指向的文件
+    bool unlink(const char* path,const char* cwd);
     bool unlink(char* abs_path);
     // FileNode* get_next_file(FileNode* dir, FileNode* cur = nullptr, bool (*p)(void* temp) = IsFile); // 获取到的dir下cur的下一个满足p条件的文件，如果没有则返回空
 

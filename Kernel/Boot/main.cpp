@@ -414,7 +414,7 @@ int main()
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    kout.SetEnabledType(0);
+    // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
     kout.SwitchTypeOnoff(Error, true);
     kout.SwitchTypeOnoff(EXT4, false);

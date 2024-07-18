@@ -1,12 +1,12 @@
 #include <Library/KoutSingle.hpp>
 #include <Library/Kstring.hpp>
 
-char* split_path_name(char* path, char* buf)
+const char* split_path_name(const char* path, char* buf)
 {
     if (path == nullptr || path[0] == 0) {
         return nullptr;
     }
-    char* t = path;
+    const char* t = path;
 
     int i = 0;
     while (*t != 0 && *t != '/') {
@@ -19,7 +19,7 @@ char* split_path_name(char* path, char* buf)
     // return (*t)?nullptr:t + 1;
     if(*t==0) 
     {
-        *(t+1)=0;
+        return t;
     }
     return t + 1;
 }
@@ -110,13 +110,15 @@ char* unicodecopy(char* dst, char* src, int len)
     return &src[re];
 }
 
-bool unified_file_path(char* src, char* ret)
+bool unified_file_path(const char* src, char* ret)
 {
 
     char* siglename = new char[50];
-    // char* re = new char[200];
+    // char* src = new char[200];
+    // strcpy(src,src_);
     ret[0] = 0;
     int i=0;
+
     while ((src = split_path_name(src, siglename)) != nullptr) {
         // kout<<Yellow<<siglename<< endl;
         // kout<<Green<<i++<<endl;
@@ -146,10 +148,11 @@ bool unified_file_path(char* src, char* ret)
         }
     }
     delete[] siglename;
+    // delete[] src;
     return true;
 }
 
-char* unified_path(char* path, char* cwd, char* ret)
+char* unified_path(const char* path,const char* cwd, char* ret)
 {
     char* path1 = new char[400];
     memset(path1,0,400);

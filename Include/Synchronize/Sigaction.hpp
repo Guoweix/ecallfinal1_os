@@ -3,7 +3,9 @@
 
 #include <Types.hpp>
 
-
+#define _NSIG 65
+#define _BITS_PER_WORD 64
+#define _SIGSET_NWORDS (sizeof(unsigned long int) / sizeof(int) * _NSIG / _BITS_PER_WORD)
 
 enum SIGNUM : int {
     SIGHUP = 1,
@@ -73,6 +75,10 @@ struct sigaction {
     void (*sa_sigaction)(int, siginfo_t*, void*); // 备用信号处理函数指针
 };
 
+typedef struct {
+    unsigned long __val[_SIGSET_NWORDS];
+} sigset_t;
+typedef unsigned long int nfds_t;
 void showSigaction(sigaction * t);
 
 

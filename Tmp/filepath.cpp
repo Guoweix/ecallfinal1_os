@@ -1,13 +1,14 @@
 #include <cstring>
 #include <iostream>
+#include <linux/unistd.h>
 using namespace std;
-char* split_path_name(char* path, char* buf)
+const char* split_path_name(const char* path, char* buf)
 {
 
     if (path == nullptr || path[0] == 0) {
         return nullptr;
     }
-    char* t = path;
+    const char* t = path;
 
     int i = 0;
     while (*t != 0 && *t != '/') {
@@ -24,7 +25,7 @@ char* split_path_name(char* path, char* buf)
 
 
 
-bool unified_file_path(char* src, char* ret)
+bool unified_file_path(const char* src, char* ret)
 {
 
     char* siglename = new char[50];
@@ -63,7 +64,7 @@ bool unified_file_path(char* src, char* ret)
     return true;
 }
 
-char* unified_path(char* path, char* cwd, char* ret)
+char* unified_path(const char* path,const char* cwd, char* ret)
 {
     char* path1 = new char[400];     
     ret[0] = 0;

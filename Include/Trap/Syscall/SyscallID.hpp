@@ -36,6 +36,7 @@ enum SyscallID
 	SYS_pwrite64		=68,
 	SYS_preadv			=69,
 	SYS_pwritev			=70,
+	SYS_ppoll			=73,
 	SYS_newfstatat		=79,
 	SYS_fstat			=80,
 	SYS_utimensat		=88,
@@ -119,6 +120,7 @@ inline const char *SyscallName(int sys)
 		case SYS_pwrite64:			return "SYS_pwrite64";
 		case SYS_preadv:			return "SYS_preadv";
 		case SYS_pwritev:			return "SYS_pwritev";
+		case SYS_ppoll:				return "SYS_ppoll";
 		case SYS_newfstatat:		return "SYS_newfstatat";
 		case SYS_fstat:				return "SYS_fstat";
 		case SYS_utimensat:			return "SYS_utimensat";

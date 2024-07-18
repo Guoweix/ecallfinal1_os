@@ -20,7 +20,7 @@ FAT32FILE* FAT32::get_node(const char* path)
     return nullptr;
 }
 
-FAT32FILE::FAT32FILE(FATtable ft, char* lName, FAT32* fat_, Uint64 _clus, Uint64 pos, char* _path)
+FAT32FILE::FAT32FILE(FATtable ft,const char* lName, FAT32* fat_, Uint64 _clus, Uint64 pos, char* _path)
 {
 
     // kout << Yellow << "FAT32FILE" << endl;
@@ -406,7 +406,7 @@ Uint8 FAT32::TypeConvert(FileType type)
     return re;
 }
 
-FAT32FILE* FAT32::create_file(FileNode* dir_, char* fileName, FileType type)
+FAT32FILE* FAT32::create_file(FileNode* dir_,const char* fileName, FileType type)
 {
     FATtable temp;
     FAT32FILE* dir = (FAT32FILE*)dir_;
@@ -452,7 +452,9 @@ FAT32FILE* FAT32::create_file(FileNode* dir_, char* fileName, FileType type)
                     ft[i] = temp;
                     kout << "SSSS " << i << '\t';
                     i--;
-                    char* p = fileName;
+                    char* p =new char[50];
+                    strcpy(p,fileName) ;
+
                     for (int j = 0; j < n; j++) {
                         memset(&temp, 0, 32);
                         temp.type = 0x0f;
@@ -506,7 +508,7 @@ FAT32FILE* FAT32::create_file(FileNode* dir_, char* fileName, FileType type)
     return nullptr;
 }
 
-FAT32FILE* FAT32::create_dir(FileNode* dir_, char* fileName)
+FAT32FILE* FAT32::create_dir(FileNode* dir_,const char* fileName)
 {
     FAT32FILE* dir = (FAT32FILE*)dir_;
     FAT32FILE* re;
@@ -540,7 +542,7 @@ FAT32FILE* FAT32::create_dir(FileNode* dir_, char* fileName)
 }
 
 
-FAT32FILE* FAT32::open(char* path, FileNode* _parent)
+FAT32FILE* FAT32::open(const char* path, FileNode* _parent)
 {
     // kout[Info] << "FAT32::open " << path << " " << _parent << endl;
     char* sigleName = new char[50];
@@ -550,6 +552,7 @@ FAT32FILE* FAT32::open(char* path, FileNode* _parent)
     FAT32FILE* pre;
 
     FATtable* ft;
+    
     while ((path = split_path_name(path, sigleName)) != nullptr) {
         // kout[green] << sigleName << endl;
         pre = tb;

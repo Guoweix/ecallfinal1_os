@@ -86,7 +86,7 @@ public:
     Uint64 table_clus_off;
     Uint32 clus;
 
-    FAT32FILE(FATtable tb, char* lName,FAT32 * fat_, Uint64 _clus = 0, Uint64 pos = 0, char* path = nullptr);
+    FAT32FILE(FATtable tb, const char* lName,FAT32 * fat_, Uint64 _clus = 0, Uint64 pos = 0, char* path = nullptr);
 
     ~FAT32FILE();
 
@@ -136,13 +136,13 @@ public:
 
     void show_all_file_in_dir(FAT32FILE * dir,Uint32 level=0);
     FileNode** get_all_file_in_dir(FileNode* dir, bool (*p)(FileType type)) override;
-    FAT32FILE* open(char* path, FileNode* parent) override;
+    FAT32FILE* open(const  char* path, FileNode* parent) override;
     FAT32FILE* get_node(const char* path) override;
     bool close(FileNode* p) override;
     bool del(FileNode* file) override; // 可用于删除文件夹
                                        //
-    FAT32FILE* create_file(FileNode* dir, char* fileName, FileType type = FileType::__FILE) override;
-    FAT32FILE* create_dir(FileNode* dir, char* fileName) override;
+    FAT32FILE* create_file(FileNode* dir,const char* fileName, FileType type = FileType::__FILE) override;
+    FAT32FILE* create_dir(FileNode* dir,const char* fileName) override;
 
     bool link();
     bool unlink(FAT32FILE* file);

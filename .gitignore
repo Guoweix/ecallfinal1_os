@@ -1,2 +1,4 @@
 *.elf
 Img/fat32_image.img
+Test
+Tmp

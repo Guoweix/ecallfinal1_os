@@ -367,7 +367,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
 
     char* abs_cwd = new char[200];
     kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
-    unified_path((char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
+    unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
     // kout<<abs_cwd
     proc->setProcCWD(abs_cwd);
     kout << Blue << "abs_cwd " << abs_cwd << endl;

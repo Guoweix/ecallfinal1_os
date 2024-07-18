@@ -150,7 +150,7 @@ public:
     inline file_object* getFoHead() { return fo_head; };
     bool copyFds(Process* a);
     bool setProcCWD(const char* cwd);
-    inline char* getCWD() { return curWorkDir; };
+    inline const char* getCWD() { return curWorkDir; };
 
     void switchStatus(ProcStatus tarStatus);
 
