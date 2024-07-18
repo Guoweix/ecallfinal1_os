@@ -205,7 +205,7 @@ bool test_lwext4_file_test(uint8_t *rw_buff, uint32_t rw_size, uint32_t rw_count
 	printf("  rw count: %" PRIu32 "\n", rw_count);
 
 	/*Add hello world file.*/
-	r = ext4_fopen(&f, "/mp/hello.txt", "wb");
+	r = ext4_fopen(&f, "/mp/hello1.txt", "wb");
 	r = ext4_fwrite(&f, "Hello World !\n", strlen("Hello World !\n"), 0);
 	//SBI_SHUTDOWN();
 	r = ext4_fclose(&f);
@@ -558,6 +558,8 @@ int test_ext4()
 		test_lwext4_mp_stats();
 
 	test_lwext4_dir_ls("/mp/");
+
+	ext4_frename("/mp/lib/my.so","/mp/lib/dlopen_dso.so");
 	// fflush(stdout);
 
 	// if (!test_lwext4_dir_test(dir_cnt))
@@ -583,8 +585,8 @@ int test_ext4()
 	if (sbstat)
 		test_lwext4_mp_stats();
 
-	if (cleanup_flag)
-		test_lwext4_cleanup();
+	// if (cleanup_flag)
+		// test_lwext4_cleanup();
 
 	if (bstat)
 		test_lwext4_block_stats();

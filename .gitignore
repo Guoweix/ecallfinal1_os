@@ -1,3 +1,4 @@
 *.elf
 Img/fat32_image.img
 Img/sdcard.img
+Test/
