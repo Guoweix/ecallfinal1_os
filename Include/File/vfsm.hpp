@@ -76,9 +76,9 @@ class VFS {
 public:
     FileNode* root;
 
-    virtual char* FileSystemName() {};
+    virtual char* FileSystemName() {return nullptr;};
     VFS() {};
-    virtual ~VFS() {};
+    ~VFS() {};
 
     virtual FileNode* open(char* path, FileNode* parent) = 0;
     virtual bool close(FileNode* p) = 0;

@@ -38,7 +38,7 @@
  * @file  ext4_block_group.c
  * @brief Block group function set.
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"

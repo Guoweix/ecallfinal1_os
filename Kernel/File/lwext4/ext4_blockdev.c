@@ -33,7 +33,7 @@
  * @file  ext4_blockdev.c
  * @brief Block device module.
  */
-
+#include "LWEXT4_Tools.h"
 #include "File/lwext4_include/LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"

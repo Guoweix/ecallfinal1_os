@@ -34,7 +34,7 @@
  * @file  ext4_trans.c
  * @brief Ext4 transaction buffer operations.
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"

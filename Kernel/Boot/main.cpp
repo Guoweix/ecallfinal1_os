@@ -15,7 +15,7 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
-
+#include <File/myext4.hpp>
 
 
 extern "C" {
@@ -394,9 +394,67 @@ void test_final1()
     kout << "test finish" << endl;
 }
 
+static struct ext4_bcache *bc;
+struct ext4_blockdev *ext4_blockdev_get(void);
+static struct ext4_blockdev *bd;
+void test_vfs(){
+    kout<<"open_filedev start:"<<endl;
+    bd = ext4_blockdev_get();
+    if (!bd) {
+		kout<<"open_filedev: fail"<<endl;
+		return ;
+	}
+
+    kout<<"ext4_device_register: start:"<<endl;
+    int r = ext4_device_register(bd, "ext4_fs");
+    if (r != EOK) {
+		kout<<"ext4_device_register: rc = "<< r<<endl;
+		return ;
+	}
+
+    kout<<"ext4_mount: start:"<<endl;
+	r = ext4_mount("ext4_fs", "/", false);
+	if (r != EOK) {
+		kout<<"ext4_mount: rc ="<< r<<endl;
+		return;
+	}
+
+    kout<<"ext4_recover: start:"<<endl;
+	r = ext4_recover("/");
+	if (r != EOK && r != ENOTSUP) {
+		kout<<"ext4_recover: rc ="<< r<<endl;
+		return ;
+	}
+
+    kout<<"ext4_journal_start: start:"<<endl;
+	r = ext4_journal_start("/");
+	if (r != EOK) {
+		kout<<"ext4_journal_start: rc = "<< r<<endl;
+		return;
+	}
+
+	ext4_cache_write_back("/", 1);
+    
+    ext4_dir ed;
+    ext4_dir_open(&ed,"/");
+    kout<<"ext4_dir_open: sucess:"<<endl;
+
+    ext4node* temp=new ext4node;
+    //temp->show();
+    temp->RefCount++;
+    EXT4* e1=new EXT4;
+    temp->initdir(ed,(char*)".root",e1);
+    temp->show();
+    e1->root=temp;
+    kout<<"ready!"<<endl;
+    
+    ext4node*t2=e1->create_file(temp,"mytest.txt",__FILE);
+
+}
+
 unsigned VMMINFO;
 unsigned NEWINFO;
-unsigned EXT4;
+unsigned EXT;
  
 extern int test_ext4();
 
@@ -404,14 +462,14 @@ int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Red);
-    EXT4 = kout.RegisterType("EXT4", KoutEX::Blue);
+    EXT = kout.RegisterType("EXT4", KoutEX::Blue);
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
     kout.SwitchTypeOnoff(Error, true);
-    kout.SwitchTypeOnoff(EXT4, false);
+    kout.SwitchTypeOnoff(EXT, false);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
 
@@ -430,7 +488,9 @@ int main()
     // A();
 
     kout[Info] << "Diskinit finish" << endl;
-    test_ext4();
+    // test_ext4();
+    test_vfs();
+    SBI_SHUTDOWN();
 
     // SBI_SHUTDOWN();
     // kout[Fault]<<"test_ext4 end"<<endl;

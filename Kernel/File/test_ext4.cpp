@@ -1,5 +1,6 @@
 #include "ext4.h"
 #include <Library/KoutSingle.hpp>
+#include <LWEXT4_Tools.h>
 #define printf kout
 #define  EXIT_FAILURE 1
 
@@ -206,6 +207,7 @@ bool test_lwext4_file_test(uint8_t *rw_buff, uint32_t rw_size, uint32_t rw_count
 	/*Add hello world file.*/
 	r = ext4_fopen(&f, "/mp/hello.txt", "wb");
 	r = ext4_fwrite(&f, "Hello World !\n", strlen("Hello World !\n"), 0);
+	//SBI_SHUTDOWN();
 	r = ext4_fclose(&f);
 
 	// io_timings_clear();

@@ -38,7 +38,7 @@
  * @file  ext4_inode.c
  * @brief Inode handle functions
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"

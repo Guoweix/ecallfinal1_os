@@ -28,7 +28,7 @@ Build/Kernel.elf:$(BUILD_ELF_FILES)
 
 
 run:Build/Kernel.elf
-	cp Test/a.img SBI_BIN/a.img
+	# cp Test/a.img SBI_BIN/a.img
 	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG)
 
 $(TARGET_DIR)/%.elf: %.c

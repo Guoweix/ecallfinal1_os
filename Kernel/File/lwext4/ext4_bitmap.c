@@ -39,6 +39,7 @@
 #include "ext4_misc.h"
 #include "ext4_errno.h"
 #include "ext4_debug.h"
+#include "LWEXT4_Tools.h"
 
 #include "ext4_bitmap.h"
 
