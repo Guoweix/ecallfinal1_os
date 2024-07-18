@@ -1,4 +1,5 @@
 *.elf
 Img/fat32_image.img
-Test
-Tmp
+Test/
+Tmp/
+Build/

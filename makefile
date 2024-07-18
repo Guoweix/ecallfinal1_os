@@ -28,7 +28,7 @@ Build/Kernel.elf:$(BUILD_ELF_FILES)
 	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
 
 
-run:Build/Kernel.elf
+run:mkdir Build/Kernel.elf
 	cp Test/a.img SBI_BIN/a.img
 	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG)
 
@@ -40,6 +40,9 @@ $(TARGET_DIR)/%.elf: %.cpp
 
 $(TARGET_DIR)/%.elf: %.S
 	$(CC) $(FLAGS) -c $<  -o $@
+
+
+#-----------------user part---------------------------------
 
 Img/User.o:User/User.cpp
 	$(CC) $(FLAGS) -c $<  -o $@
@@ -55,6 +58,21 @@ Img/User.elf:Img/User.o Img/UserStart.o Img/UserMain.o
 
 Img/User.img:Img/User.elf
 	$(OBJCOPY) $^ --strip-all -O binary $@
+#----------------func part---------------------------------
 
 clear:
 	find Build -type f -delete
+
+mkdir:
+	mkdir -p Build/Kernel/Boot
+	mkdir -p Build/Kernel/Driver
+	mkdir -p Build/Kernel/File
+	mkdir -p Build/Kernel/File/lwext4
+	mkdir -p Build/Kernel/Library
+	mkdir -p Build/Kernel/Memory
+	mkdir -p Build/Kernel/Process
+	mkdir -p Build/Kernel/Synchronize
+	mkdir -p Build/Kernel/Trap
+	mkdir -p Build/Kernel/Trap/Syscall
+
+	
