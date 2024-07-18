@@ -484,18 +484,25 @@ void test_vfs()
     e1->root = temp;
     kout << "ready!" << endl;
 
-    // ext4node*t3=e1->open("/lib/dlopen_dso.so/",temp);
-    // t3->set_name("my.so");
+    char*buf=new char[20];
+    buf[0]='a';
+    buf[1]='b';
+    buf[2]=0;
+    ext4node*t3=e1->open("/hello1.txt/",temp);
+    kout<<t3->fp.fsize<<"   address:   "<<&t3->fp.fsize<<endl;
+    t3->write(buf,1,2);
+    delete[]buf;
 
-    ext4node *t2 = e1->open("/hello1.txt/", temp);
+    /*ext4node *t2 = e1->open("/hello1.txt/", temp);
     if (t2 != nullptr)
     {
-        kout<<"t2 name is:"<<t2->name<<endl;
+        // kout<<"t2 name is:"<<t2->name<<endl;
         char *buf = new char[255];
-        t2->read(buf, 0, 10);
+        // kout<<(void*) t2<<" ";
+        t2->read(buf, 9);
         kout << "read buf :" << buf << endl;
         delete[] buf;
-    }
+    }*/
 
     ext4_cache_write_back("/", 0);
 

@@ -19,17 +19,17 @@ public:
     void initfile(ext4_file tb, char* Name,EXT4 * fat_);
     void initdir(ext4_dir tb, char* Name,EXT4 * fat_);
     
-    bool set_name(char* _name) override;
-    Sint64 read(void* dst, Uint64 pos, Uint64 size)override;
-    Sint64 read(void* dst,  Uint64 size)override;
-    Sint64 write(void* src, Uint64 pos, Uint64 size)override;
-    Sint64 write(void* src, Uint64 size)override;
+    bool set_name(char* _name) override;//
+    Sint64 read(void* dst, Uint64 pos, Uint64 size)override;//
+    Sint64 read(void* dst,  Uint64 size)override;//
+    Sint64 write(void* src, Uint64 pos, Uint64 size)override;//
+    Sint64 write(void* src, Uint64 size)override;//
 
     //bool del();//这个我看fat32也没有实现，而是实现vfs的del，所以我也先空着了
 
-    void show();
+    void show();//
     ext4node(){
-        kout<<"ext4node create"<<endl;
+        // kout<<"ext4node create"<<endl;
     };
     ~ext4node(){};
 };
@@ -55,9 +55,9 @@ public:
     ext4node* create_file(FileNode* dir_, char* fileName, FileType type = FileType::__FILE) override;//
     ext4node* create_dir(FileNode* dir_, char* fileName) override;//
     
-    bool init(){return 1;};
+    bool init(){return 1;};//
 
-    void get_next_file(ext4node* dir, ext4node* cur,ext4node* tag);
+    void get_next_file(ext4node* dir, ext4node* cur,ext4node* tag);//
     EXT4(){};
     ~EXT4(){};
 };

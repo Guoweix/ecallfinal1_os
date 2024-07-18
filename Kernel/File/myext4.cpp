@@ -94,12 +94,17 @@ Sint64 ext4node::write(void *src_, Uint64 pos, Uint64 size)
     vfs->get_file_path(this, path);
     path[strlen(path)-1]=0;
 
-    ext4_fopen(&fp, path, "wb");
+    // ext4_fopen(&fp, path, "wb+");
+    kout<<this->fp.fsize<<"    address:   "<<&fp.fsize<<endl;
 
-    ext4_fseek(&fp, pos, SEEK_SET);
+    int r=ext4_fseek(&fp, pos, SEEK_SET);
+    if(r!=EOK){
+        kout<<"seek fail"<<endl;
+        return -1;
+    }
 
     size_t *rcnt=new size_t;
-    int r = ext4_fwrite(&fp, src, size, rcnt);
+    r = ext4_fwrite(&fp, src, size, rcnt);
     
     delete rcnt;
     delete []path;
@@ -120,10 +125,14 @@ Sint64 ext4node::write(void *src_, Uint64 size)
 
     ext4_fopen(&fp, path, "wb");
 
-    ext4_fseek(&fp, 0, SEEK_SET);
+    int r=ext4_fseek(&fp, 0, SEEK_SET);
+    if(r!=EOK){
+        kout<<"seek fail"<<endl;
+        return -1;
+    }
 
     size_t *rcnt=new size_t;
-    int r = ext4_fwrite(&fp, src, size, rcnt);
+    r = ext4_fwrite(&fp, src, size, rcnt);
     
     delete []path;
     delete rcnt;
@@ -229,16 +238,16 @@ ext4node *EXT4::open(char *_path, FileNode *_parent)
         delete[] sigleName;
         return nullptr;
     }
-    ext4node *tb=new ext4node;
-    tb = (ext4node *)_parent;
-    ext4node *pre = new ext4node;
+    // kout<<"open:"<<_parent<<endl;
+    ext4node *tb=(ext4node*)_parent;
+    ext4node *pre1;
 
     int allslash = count_slashes(path);
     kout << "allslash is:" << allslash << endl;
 
     for (int i = 2; i <= allslash; i++)
     {
-        pre = tb;
+        pre1 = tb;
 
         char *temp_path = get_k_path(i, path);
         // kout<<i<<" level dir is:"<<temp_path<<endl;
@@ -254,22 +263,24 @@ ext4node *EXT4::open(char *_path, FileNode *_parent)
 
         if (tb == nullptr)
         {
-            delete pre;
             delete[] sigleName;
             return nullptr;
         }
 
-        if (pre->child)
+        if (pre1->child)
         {
-            pre->child->pre = tb;
-            tb->next = pre->child;
+            pre1->child->pre = tb;
+            tb->next = pre1->child;
         }
-        pre->child = tb;
-        tb->parent = pre;
+        pre1->child = tb;
+        tb->parent = pre1;
         tb->vfs = this;
         tb->RefCount++;
         //delete now;
     }
+
+    pre1 = tb;
+
     ext4_file temp;
     ext4_dir temp1;
     // path[strlen(path)-1]=0;
@@ -295,32 +306,27 @@ ext4node *EXT4::open(char *_path, FileNode *_parent)
         now->initlink(temp, name, this);
         tb = now;
     }
-
+    
     if (tb == nullptr)
     {
+        kout<<"tb is nullptr"<<endl;
         delete now;
-        delete pre;
         delete[] sigleName;
         return nullptr;
     }
 
-    if (pre->child)
+    if (pre1->child!=nullptr)
     {
-        pre->child->pre = tb;
-        tb->next = pre->child;
+        pre1->child->pre = tb;
+        tb->next = pre1->child;
     }
-    pre->child = tb;
-    tb->parent = pre;
+    pre1->child = tb;
+    tb->parent = pre1;
     tb->vfs = this;
     tb->RefCount++;
-    delete pre;
+   
     delete[] sigleName;
-    //delete now;
-
-    char* buf=new char[255];
-    // tb->read(buf,0,10);
-    // kout<<buf<<endl;
-    delete []buf;
+    
     return tb;
 }
 

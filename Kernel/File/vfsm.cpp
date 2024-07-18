@@ -24,14 +24,14 @@ bool FileNode::del()
 Sint64 FileNode::read(void* dst, Uint64 pos, Uint64 size)
 {
 
-    kout[Error] << "FileNode::read " << endl;
+    kout[Error] <<this<< "FileNode::read " << endl;
     return false;
 }
 
 Sint64 FileNode::read(void* dst, Uint64 size)
 {
 
-    kout[Error] << "FileNode::read " << endl;
+    kout[Error] <<" FileNode::read " << endl;
     return false;
 }
 
