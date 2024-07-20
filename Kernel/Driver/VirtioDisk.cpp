@@ -63,7 +63,7 @@ void VirtioDisk::init()
     memset(pages, 0, sizeof(pages));
     *R(VIRTIO_MMIO_QUEUE_PFN) = ((Uint64)pages - 0xffffffff00000000) >> 12;
 
-    kout[Debug] << (void*)this << endl;
+    // kout[Debug] << (void*)this << endl;
 
     desc = (VRingDesc*)pages;
     avail = (VRingAvail*)((char*)desc + NUM * sizeof(VRingDesc));
@@ -120,6 +120,8 @@ int VirtioDisk::alloc3_desc(int* idx)
 }
 
 static VirtioBlkOuthdr buf0;
+
+bool f;
 
 void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 {
@@ -198,14 +200,18 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 
     info.flag = 1;
 
-    InterruptEnable();
+    // InterruptEnable();
     *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; //通知QEMU 
 
+    // waitDisk->wait(); 
     while (last_used_idx==used->id) {//轮询操作,等待中断
+    // f=1;
+    // while (f) {
+    
     }
     
     // kout[Debug] << "!!!!!4!!!!!" << endl;
-    InterruptDisable();
+    // InterruptDisable();
 
     free_chain(idx[0]);
     IntrRestore(a);
@@ -213,6 +219,8 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 
 void VirtioDisk::virtio_disk_intr()
 {
+    // f=0;
+    // waitDisk->signal();
     // kout << "intr" << endl;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;

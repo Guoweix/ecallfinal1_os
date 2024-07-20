@@ -129,6 +129,8 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
     }
     create_proc->init(F_User);
 
+    
+
     pid_ret = create_proc->getID();
     create_proc->setStack(nullptr, cur_proc->getStackSize());
     if (stack == nullptr) {
@@ -183,14 +185,16 @@ char* Syscall_getcwd(char* buf, Uint64 size)
     // 获取当前工作目录的系统调用
     // 传入一块字符指针缓冲区和大小
     // 成功返回当前工作目录的字符指针 失败返回nullptr
-
+     
     if (buf == nullptr) {
         // buf为空时由系统分配缓冲区
         buf = (char*)kmalloc(size * sizeof(char));
     } else {
         Process* cur_proc = pm.getCurProc();
         const char* cwd = cur_proc->getCWD();
+
         kout[Warning]<<cwd<<"_______________________"<<endl;
+
         POS::Uint64 cwd_len = strlen(cwd);
         if (cwd_len > 0 && cwd_len < size) {
             strcpy(buf, cwd);
@@ -239,7 +243,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     // 这里需要文件系统提供的支持
     // argv参数是程序参数 envp参数是环境变量的数组指针 暂时未使用
     // 执行成功跳转执行对应的程序 失败则返回-1
-
+    pm.show();
     VirtualMemorySpace::EnableAccessUser();
     Process* cur_proc = pm.getCurProc();
     kout[Info] << "execve" << endl;
@@ -262,17 +266,16 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     int argc = 0;
     while (argv[argc] != nullptr)
         argc++;
-    kout << "argc" << argc << endl;
+    kout[Info] << "argc" << argc << endl;
     char** argv1 = new char*[argc];
     for (int i = 0; i < argc; i++) {
-        kout << "argv[" << i << "]" << argv[i] << endl;
+        kout[Info] << "argv[" << i << "]" << argv[i] << endl;
         argv1[i] = strdump(argv[i]);
     }
 
     kout[Info] << "execve 3 " << endl;
 
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
-    kfree(fo);
 
     kout[Info] << "execve 4 " << endl;
     int exit_value = 0;
@@ -288,7 +291,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
             // 当前场景的执行逻辑上只会有一个子进程
             Process* pptr = nullptr;
             for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
-                if (pptr->getStatus() == S_Terminated) {
+                if (pptr->getStatus() == S_Terminated||pptr->getStatus()==S_None) {
                     child = pptr;
                     break;
                 }
@@ -305,7 +308,8 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
                 exit_value = child->getExitCode();
                 VirtualMemorySpace::DisableAccessUser();
                 kout << cur_proc->getName() << "execve free" << child->getName() << endl;
-                pm.freeProc(child);
+                child->destroy();
+                // pm.freeProc(child);
                 break;
             }
         }
@@ -315,6 +319,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     VirtualMemorySpace::DisableAccessUser();
     // pm.exit_proc(cur_proc, exit_value);
     cur_proc->exit(exit_value);
+    kfree(fo);
     pm.immSchedule();
     kout[Fault] << "SYS_execve reached unreacheable branch!" << endl;
     return -1;
@@ -336,7 +341,7 @@ int Syscall_wait4(int pid, int* status, int options)
     if (cur_proc->fstChild == nullptr) {
         // 当前父进程没有子进程
         // 一般调用此函数不存在此情况
-        kout[Fault] << "The Process has Not Child Process!" << endl;
+        kout[Warning] << "The Process has Not Child Process!" << endl;
         return -1;
     }
 
@@ -370,9 +375,10 @@ int Syscall_wait4(int pid, int* status, int options)
             // child->getVMS()->show();
 
             // pm.getCurProc()->getVMS()->show();
+            kout[Debug]<<"destroy child"<<endl;
             child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
             kout << Red << cur_proc->getName() << "wait4 freeProc " << child->getName();
-            pm.freeProc(child);
+            // pm.freeProc(child);
             kout[Info] << "child DEAD   " << ret << endl;
             return ret;
         } else if (options & WNOHANG) {
@@ -1023,7 +1029,7 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
         node->show();
     } else
         DoNothing; // Anonymous mmap
-    kout[Debug] << "mmap " << start << " " << (void*)len << " " << prot << " " << flags << " " << fd << " " << off << " | " << node << endl;
+    kout[Info] << "mmap " << start << " " << (void*)len << " " << prot << " " << flags << " " << fd << " " << off << " | " << node << endl;
 
     VirtualMemorySpace* vms = pm.getCurProc()->getVMS();
 
@@ -1044,7 +1050,6 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
 
-    kout[Debug] << "mmap 1" << endl;
     kout << vmrProt << endl;
 
     constexpr Uint64 MAP_FIXED = 0x10;
@@ -1066,13 +1071,11 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
         }
     }
 
-    kout[Debug] << "mmap 2" << endl;
     PtrSint s = vms->GetUsableVMR(start == nullptr ? 0x60000000 : (PtrSint)start, (PtrSint)0x70000000 /*??*/, len);
     if (s == 0 || start != nullptr && ((PtrSint)start >> PageSizeBit << PageSizeBit) != s)
         goto ErrorReturn;
     s = start == nullptr ? s : (PtrSint)start;
 
-    kout[Debug] << "mmap 3" << endl;
 
     if (node != nullptr) {
         MemapFileRegion* mfr = new MemapFileRegion(node, (void*)s, len, off, vmrProt);
@@ -1100,10 +1103,9 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
         vms->InsertVMR(vmr);
     }
     // kout[Debug]<<"mmap 2"<<endl;
-    kout[Debug] << "mmaped at " << (void*)s << endl;
     return s;
 ErrorReturn:
-    kout[Debug] << "mmap error" << endl;
+    kout[Error] << "mmap error" << endl;
     if (node)
         vfsm.close(node);
     return -1;
@@ -1152,10 +1154,10 @@ inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint
     VirtualMemorySpace::EnableAccessUser();
     Sint64 re = 0, r;
     for (int i = 0; i < iovcnt; ++i) {
-        kout[Info] << "iov " << iov[i].base << endl;
         if (iov[i].base == nullptr) {
             continue;
         }
+        kout[Info] << "iov " << (char *)iov[i].base<<"len "<<iov[i].len << endl;
         if constexpr (rw == ModeRW::W) {
             // r=fh->Write(iov[i].base,iov[i].len,off==-1?-1:off+re);
             if (off != -1) {
@@ -1221,7 +1223,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     return 0;
 }
 
-int Syscall_ppoll(struct pollfd* fds, nfds_t nfds,
+/* int Syscall_ppoll(struct pollfd* fds, nfds_t nfds,
     const struct timespec*  tmo_p,
     const sigset_t* sigmask)
 {
@@ -1231,6 +1233,51 @@ int Syscall_ppoll(struct pollfd* fds, nfds_t nfds,
 
     return -1;
 }
+ */
+
+
+int Syscall_ppoll(void *_fds,Uint64 nfds,void *_tmo_p,void *_sigmask)
+{
+	if (nfds!=1)
+		kout[Warning]<<"Syscall_ppoll with nfds "<<nfds<<" is not supported yet!"<<endl;
+	if (_tmo_p!=nullptr)
+		kout[Warning]<<"Syscall_ppoll with tmo_p "<<_tmo_p<<" is not nullptr is not supported yet!"<<endl;
+	if (_sigmask!=nullptr)
+		kout[Warning]<<"Syscall_ppoll with sigmask "<<_sigmask<<" is not nullptr is not supported yet!"<<endl;
+
+	struct pollfd
+	{
+		int fd;
+		short events;
+		short revents;
+	}*fds=(pollfd*)_fds;
+	struct timespec
+	{
+		int tv_sec;
+		int tv_nsec;
+	}*tmo_p=(timespec*)_tmo_p;
+	enum
+	{
+		POLLIN=1
+	};
+	
+	VirtualMemorySpace::EnableAccessUser();
+	kout[Info]<<"ppoll in files:"<<endline;
+	for (int i=0;i<nfds;++i)
+		kout<<fds[i].fd<<" "<<fds[i].events<<endline;
+    kout<<endout;
+
+	if (nfds==1&&fds[0].fd==0&&fds[0].events==POLLIN)
+	{
+		fds[0].revents=POLLIN;
+		return 1;
+	}
+	else kout[Warning]<<"Skipped Syscall_ppoll"<<endl;
+	VirtualMemorySpace::DisableAccessUser();
+	
+	return -1;
+}
+
 
 int Syscall_getdents64(int fd, RegisterData _buf, Uint64 bufSize)
 {
@@ -1427,7 +1474,8 @@ int Syscall_set_tid_address(int* tidptr)
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout[Info] << "Syscall:" << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << endl;
+    kout[Info] << "Info:" << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << endl;
+    // kout[Info]<<pm.getCurProc()->getCWD()<<endl;
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -1559,6 +1607,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
     case SYS_writev:
         tf->reg.a0 = Syscall_ReadWriteVector<ModeRW::Write>(tf->reg.a0, (iovec*)tf->reg.a1, tf->reg.a2);
+        // ASSERTEX(tf->reg.a0>0," can't return normal" );
         break;
 
     case SYS_sigaction:
@@ -1581,7 +1630,7 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
 
     case SYS_ppoll:
-        tf->reg.a0 = Syscall_ppoll((struct pollfd *)tf->reg.a0, (nfds_t)tf->reg.a1,(const struct timespec *)tf->reg.a2,(const sigset_t *)tf->reg.a3);
+        tf->reg.a0 = Syscall_ppoll((struct pollfd *)tf->reg.a0,(nfds_t)tf->reg.a1,(void *)tf->reg.a2,( void *)tf->reg.a3);
         break;
     case SYS_sigtimedwait:
     case SYS_exit_group:

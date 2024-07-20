@@ -80,9 +80,9 @@ Sint64 UartFile::read(void* buf, Uint64 size)
     s[0] = getchar();
 			// while ((ch=SBI_GETCHAR())==-1);
 
-    #ifdef __ECHO
-    SBI_PUTCHAR(s[0]);
-    #endif
+    // #ifdef __ECHO
+    // SBI_PUTCHAR(s[0]);
+    // #endif
 
     if (s[0] == '\r') {
         s[0] = '\n';

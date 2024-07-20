@@ -1,4 +1,5 @@
 #include "File/FAT32.hpp"
+#include "File/FileEx.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Types.hpp"
 #include <File/FileObject.hpp>
@@ -328,7 +329,7 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
         kout[Fault] << "Read fo the file pointer is NULL!" << endl;
         return -1;
     }
-    kout << (void*)fo->file->vfs << endl;
+    // kout[Debug] << (void*)fo->file->vfs << endl;
 
     Sint64 rd_size;
     rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
@@ -358,6 +359,9 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
            PIPEFILE* pfile = (PIPEFILE*)fo->file;
            wr_size = pfile->write((unsigned char*)src,  size);
        } else { */
+    // if (file==STDIO) {
+        // kout[Info]<<"file is STDIO"<<endl;
+    // }
     wr_size = file->write((unsigned char*)src, fo->pos_k,size);
     file->fileSize=size;
     // }

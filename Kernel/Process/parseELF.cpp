@@ -66,13 +66,17 @@ Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
         VirtualMemorySpace::Current()->show();
         // kout<<a[0]<<endl;
         proc->getVMS()->DisableAccessUser();
-        proc->getVMS()->Leave();
+        // proc->getVMS()->Leave();
+
+        pm.getCurProc()->getVMS()->Enter();
     }
     proc->setStack(nullptr, PAGESIZE * 4);
     if (!(Flag & F_AutoDestroy)) {
         proc->setFa(pm.getCurProc());
     }
     // vms->RemoveVMR(VirtualMemorySpace::Kernel()->FindVMR((PtrUint)kernelstart), false);
+    //
+    
     proc->start((void*)nullptr, nullptr, InnerUserProcessLoadAddr);
     kout[Test] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
 
@@ -126,14 +130,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
             //
             //
             {
-                kout[Debug] << "p_align: " << (void*)(pgm_hdr.p_align) << endl;
-                kout[Debug] << "p_filesz: " << (void*)(pgm_hdr.p_filesz) << endl;
-                kout[Debug] << "p_flags: " << (void*)(pgm_hdr.p_flags) << endl;
-                kout[Debug] << "p_memsz: " << (void*)(pgm_hdr.p_memsz) << endl;
-                kout[Debug] << "p_offset: " << (void*)(pgm_hdr.p_offset) << endl;
-                kout[Debug] << "p_paddr: " << (void*)(pgm_hdr.p_paddr) << endl;
-                kout[Debug] << "p_type: " << (void*)(pgm_hdr.p_type) << endl;
-                kout[Debug] << "p_vaddr: " << (void*)(pgm_hdr.p_vaddr) << endl;
+                kout[Info] << "p_align: " << (void*)(pgm_hdr.p_align) << endl;
+                kout[Info] << "p_filesz: " << (void*)(pgm_hdr.p_filesz) << endl;
+                kout[Info] << "p_flags: " << (void*)(pgm_hdr.p_flags) << endl;
+                kout[Info] << "p_memsz: " << (void*)(pgm_hdr.p_memsz) << endl;
+                kout[Info] << "p_offset: " << (void*)(pgm_hdr.p_offset) << endl;
+                kout[Info] << "p_paddr: " << (void*)(pgm_hdr.p_paddr) << endl;
+                kout[Info] << "p_type: " << (void*)(pgm_hdr.p_type) << endl;
+                kout[Info] << "p_vaddr: " << (void*)(pgm_hdr.p_vaddr) << endl;
 
                 // 统计相关信息
                 // 加入VMR
@@ -166,7 +170,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 vms->Enter();
 
                 memset((char*)vmr_begin, 0, vmr_memsize);
-                vms->Leave();
+                // vms->Leave();
+                pm.getCurProc()->getVMS()->Enter();
 
                 Uint64 tmp_end = vmr_add->GetEnd();
                 if (tmp_end > breakpoint) {
@@ -182,7 +187,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 vms->Enter();
                 // kout<<Red<<"START"<<pgm_hdr.p_filesz<<endl;
                 rd_size = fom.read_fo(fo, (void*)vmr_begin, pgm_hdr.p_filesz);
-                vms->Leave();
+                
+                pm.getCurProc()->getVMS()->Enter();
                 if (rd_size != pgm_hdr.p_filesz) {
                     kout[Fault] << "Read ELF program header in file Fail!" << endl;
                     return -1;
@@ -234,7 +240,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
     kout << (void*)hmr->GetStart();
     memset((char*)hmr->GetStart(), 0, hmr->GetLength());
     // kout<<DataWithSize((void *)0x800020,1000);
-    vms->Leave();
+    // vms->Leave();
+    pm.getCurProc()->getVMS()->Enter();
     // 在这里将进程的heap成员更新
     // 也是在进程管理部分基本不会操作heap段的原因
     // pHMSm.set_proc_heap(proc, hmr);
@@ -277,10 +284,10 @@ int start_process_formELF(procdata_fromELF* proc_data)
         PushInfo64((Uint64)at);
         PushInfo64(value);
     };
-    kout[Info]<<"argc"<<proc_data->argc<<endl
-                <<"argv[0]"<<proc_data->argv[0]<<endl
-                <<"argv[1]"<<proc_data->argv[1]<<endl
-                <<"argv[2]"<<proc_data->argv[2]<<endl;
+    
+    for (int i=0; i<proc_data->argc; i++) {
+    kout[Info]<<"argv["<<i<<"]"<<proc_data->argv[i]<<endl;
+    }
 
     PushInfo32(proc_data->argc);
     if (proc_data->argc)
@@ -317,9 +324,13 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // kout << "++++++++++++start++++++++++=" << endl;
 
 
-    vms->Leave();
+    // vms->Leave();
+    pm.getCurProc()->getVMS()->Enter();
     vms->DisableAccessUser();
- 
+    
+    
+    // kout[Debug]<<"form ELF VMS"<<proc->getVMS()<<endl;
+
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry, proc_data->argc, proc_data->argv);
     proc->setName(fo->file->name);
     pm.show();
@@ -366,7 +377,9 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc->setFa(pm.getCurProc());
 
     char* abs_cwd = new char[200];
+    
     kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
+
     unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
     // kout<<abs_cwd
     proc->setProcCWD(abs_cwd);

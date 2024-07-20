@@ -9,6 +9,7 @@
 */
 
 #include "Arch/Riscv.hpp"
+#include "Library/Pathtool.hpp"
 extern "C" {
 void Putchar(char ch);
 };
@@ -157,6 +158,22 @@ public:
     }
 };
 
+class DebugLocation {
+
+    friend class KOUT;
+
+protected:
+    const char *file = nullptr,
+               *func = nullptr,
+               *pretty_func = nullptr;
+    const int line;
+    DebugLocation(const char* _file, const char* _func, const char* _pretty_func, int line)
+        : file(_file)
+        , func(_func)
+        , pretty_func(_pretty_func)
+        , line(line) {};
+};
+
 namespace KoutEX {
     enum KoutEffect {
         Reset = 0,
@@ -225,6 +242,7 @@ using namespace KoutEX;
 
 class KOUT {
     friend KOUT& endl(KOUT&);
+    friend KOUT& endout(KOUT&);
 
 protected:
     const char* TypeName[32] { "Info", "Warning", "Error", "Debug", "Fault", "Test", 0 };
@@ -546,6 +564,17 @@ inline KOUT& endl(KOUT& o)
 {
     o << "\n"
       << Reset;
+    if (o.CurrentType == KoutEX::Fault) {
+        o.SwitchCurrentType(KoutEX::NoneKoutType);
+        KernelFaultSolver();
+    }
+    o.SwitchCurrentType(KoutEX::NoneKoutType);
+    return o;
+}
+
+inline KOUT& endout(KOUT& o)
+{
+    o << Reset;
     if (o.CurrentType == KoutEX::Fault) {
         o.SwitchCurrentType(KoutEX::NoneKoutType);
         KernelFaultSolver();

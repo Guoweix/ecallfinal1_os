@@ -16,15 +16,12 @@
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
 
-
-
 extern "C" {
 void Putchar(char ch)
 {
     // if ((ch>='0'&&ch<='9')||(ch>='a'&&ch<='z')||(ch>='A'&&ch<='Z')||ch=='\n'||ch=='\e'||ch==' '||ch=='[') {
     SBI_PUTCHAR(ch);
     // }
-
 }
 };
 
@@ -311,13 +308,17 @@ void final_test()
         // kout[Info] << "____________________1___________________--" << endl;
 
         // VFSM_test1(ch++);
-        int argc = 2;
-        char** argv = new char*[3];
-        for (int i = 0; i < 4; i++) {
-            argv[i] = new char[10];
-        }
-        strcpy(argv[0], "busybox");
-        strcpy(argv[1], "sh");
+        //
+        /*
+                int argc = 2;
+                char** argv = new char*[3];
+                for (int i = 0; i < 4; i++) {
+                    argv[i] = new char[10];
+                }
+                strcpy(argv[0], "busybox");
+               strcpy(argv[1], "sh");
+               */
+
         // strcpy(argv[2], "-c");
         // strcpy(argv[3], "exit");
         // strcpy(argv[1], "--help");
@@ -325,8 +326,26 @@ void final_test()
 
         Process* task;
         if (strcmp(file->name, "busybox") == 0) {
+            char argvv[20][100]={"./busybox","sh","\0"};
+            char * argv[20];
+            int j=0;
+            while (argvv[j][0]!='\0') {
+                argv[j]=argvv[j];
+                j++;
+            }
+            argv[j]=nullptr;
 
-            task = CreateProcessFromELF(fo, "/", argc, argv);
+            int argc = 0;
+            while (argv[argc] != nullptr)
+                argc++;
+            kout[Info] << "argc" << argc << endl;
+            char** argv1 = new char*[argc];
+            for (int i = 0; i < argc; i++) {
+                kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+                argv1[i] = strdump(argv[i]);
+            }
+
+            task = CreateProcessFromELF(fo, "/", argc, argv1);
             while (1) {
                 if (task->getStatus() == S_Terminated) {
                     goto FinalTestEnd;
@@ -403,7 +422,7 @@ void test_final1()
 unsigned VMMINFO;
 unsigned NEWINFO;
 unsigned EXT4;
- 
+
 extern int test_ext4();
 
 int main()
@@ -417,6 +436,7 @@ int main()
     // kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Fault, true);
     kout.SwitchTypeOnoff(Error, true);
+    // kout.SwitchTypeOnoff(Info, false);
     kout.SwitchTypeOnoff(EXT4, false);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
@@ -431,8 +451,9 @@ int main()
     // pmm_test();
     VirtualMemorySpace::InitStatic();
 
+    pm.init();
     Disk.DiskInit();
-    
+
     // A();
 
     kout[Info] << "Diskinit finish" << endl;
@@ -442,7 +463,6 @@ int main()
     // kout[Fault]<<"test_ext4 end"<<endl;
     vfsm.init();
     kout[Info] << "vfsm finish" << endl;
-    pm.init();
 
     // Driver_test();
     InterruptEnable();

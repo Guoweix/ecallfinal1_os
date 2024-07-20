@@ -544,12 +544,10 @@ int test_ext4()
 		return EXIT_FAILURE;
 	}
 
-    kout[Debug]<<"A0"<<endl;
 
 	if (!test_lwext4_mount(bd, bc))
 		return EXIT_FAILURE;
 
-    kout[Debug]<<"A1"<<endl;
 	test_lwext4_cleanup();
 
 	if (sbstat)
@@ -565,7 +563,6 @@ int test_ext4()
 	uint8_t *rw_buff =(uint8_t *) malloc(rw_szie);
 	if (!rw_buff) {
 		free(rw_buff);
-    kout[Debug]<<"A2"<<endl;
 		return EXIT_FAILURE;
 	}
 	if (!test_lwext4_file_test(rw_buff, rw_szie, rw_count)) {
