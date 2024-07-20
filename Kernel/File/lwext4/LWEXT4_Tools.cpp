@@ -2,7 +2,7 @@
 #include <Memory/pmm.hpp>
 using namespace POS;
 
-extern unsigned EXT4;
+extern unsigned EXT;
 
 extern "C" {
 
@@ -10,82 +10,82 @@ extern "C" {
 
 void EXT4_Debug(unsigned long long m, const char* fmt)
 {
-    kout[EXT4] << fmt << endl;
+    kout[EXT] << fmt << endl;
 }
 
 void EXT4_Debug_s(unsigned long long m, const char* fmt, const char* s)
 {
-    kout[EXT4] << fmt << s << endl;
+    kout[EXT] << fmt << s << endl;
 }
 
 void EXT4_Debug_u16(unsigned long long m, const char* fmt, unsigned short u)
 {
-    kout[EXT4] << fmt << u << endl;
+    kout[EXT] << fmt << u << endl;
 }
 
 void EXT4_Debug_i32(unsigned long long m, const char* fmt, int i)
 {
-    kout[EXT4] << fmt << i << endl;
+    kout[EXT] << fmt << i << endl;
 }
 
 void EXT4_Debug_u32(unsigned long long m, const char* fmt, unsigned u)
 {
-    kout[EXT4] << fmt << u << endl;
+    kout[EXT] << fmt << u << endl;
 }
 
 void EXT4_Debug_u64(unsigned long long m, const char* fmt, unsigned long long u)
 {
-    kout[EXT4] << fmt << u << endl;
+    kout[EXT] << fmt << u << endl;
 }
 
 void EXT4_Debug_x(unsigned long long m, const char* fmt, void* x)
 {
-    kout[EXT4] << fmt << x << endl;
+    kout[EXT] << fmt << x << endl;
 }
 
 void EXT4_Debug_u32_u32(unsigned long long m, const char* fmt, unsigned u1, unsigned u2)
 {
-    kout[EXT4] << fmt << u1 << u2 << endl;
+    kout[EXT] << fmt << u1 << u2 << endl;
 }
 
 void EXT4_Debug_u64_u32(unsigned long long m, const char* fmt, unsigned long long u1, unsigned u2)
 {
-    kout[EXT4] << fmt << u1 << u2 << endl;
+    kout[EXT] << fmt << u1 << u2 << endl;
 }
 
 void EXT4_Debug_s_i64(unsigned long long m, const char* fmt, const char* s, long long i)
 {
-    kout[EXT4] << fmt << s << i << endl;
+    kout[EXT] << fmt << s << i << endl;
 }
 
 void EXT4_Debug_u32_u64_u32(unsigned long long m, const char* fmt, unsigned u1, unsigned long long u2, unsigned u3)
 {
-    kout[EXT4] << fmt << u1 << u2 << u3 << endl;
+    kout[EXT] << fmt << u1 << u2 << u3 << endl;
 }
 
 void EXT4_Debug_u32_u64_i32(unsigned long long m, const char* fmt, unsigned u1, unsigned long long u2, int u3)
 {
-    kout[EXT4] << fmt << u1 << u2 << u3 << endl;
+    kout[EXT] << fmt << u1 << u2 << u3 << endl;
 }
 
 void EXT4_Debug_i32_u64_td_td(unsigned long long m, const char* fmt, int i, unsigned long long u, long long td1, long long td2)
 {
-    kout[EXT4] << fmt << i << u << (void*)td1 << (void*)td2 << endl;
+    kout[EXT] << fmt << i << u << (void*)td1 << (void*)td2 << endl;
 }
 
 void EXT4_Debug_02x(unsigned long long m, const char* fmt, unsigned char x)
 {
-    kout[EXT4] << fmt << (void*)x << endl;
+    kout[EXT] << fmt << (void*)x << endl;
 }
 
 void EXT4_Debug_04x(unsigned long long m, const char* fmt, unsigned short x)
 {
-    kout[EXT4] << fmt << (void*)x << endl;
+    kout[EXT] << fmt << (void*)x << endl;
 }
 
 void EXT4_Debug_08x(unsigned long long m, const char* fmt, unsigned int x)
 {
-    kout[EXT4] << fmt << (void*)x << endl;
+    kout[EXT] << fmt << (void*)x << endl;
 }
 
 void EXT4_AssertFailed(const char* file, int line, const char* info)

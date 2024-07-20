@@ -70,7 +70,7 @@ extern "C" {
 #define DEBUG_NOPREFIX (1ul << 31)
 #define DEBUG_ALL (0xFFFFFFFF)
 
-#include "LWEXT4_Tools.h"
+//#include "LWEXT4_Tools.h"
 
 static inline const char *ext4_dmask_id2str(uint32_t m)
 {

@@ -21,7 +21,7 @@
 #include "ext4_errno.h"
 #include "ext4_misc.h"
 #include "ext4_types.h"
-
+#include "LWEXT4_Tools.h"
 #include "ext4_balloc.h"
 #include "ext4_block_group.h"
 #include "ext4_blockdev.h"

@@ -76,9 +76,9 @@ class VFS {
 public:
     FileNode* root;
 
-    virtual char* FileSystemName() {};
+    virtual char* FileSystemName() {return nullptr;};
     VFS() {};
-    virtual ~VFS() {};
+    ~VFS() {};
 
     virtual FileNode* open(const char* path, FileNode* parent) = 0;
     virtual bool close(FileNode* p) = 0;
@@ -90,6 +90,7 @@ public:
 
     virtual FileNode* get_node(const char* path) = 0;
     virtual bool del(FileNode* p) = 0;
+    virtual void get_file_path(FileNode* file, char* ret);
 };
 
 class VFSM {

@@ -38,7 +38,7 @@
  * @file  ext4_super.h
  * @brief Superblock operations.
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"
