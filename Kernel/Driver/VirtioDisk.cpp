@@ -126,9 +126,10 @@ bool f;
 void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 {
 
+    ASSERTEX((Uint64)buf > 0xffffffff00000000, "buf must be high_address");
     bool a;
     IntrSave(a);
-    intr=false; 
+    intr = false;
     // memset(pages, 0, PAGESIZE*2);
     // for (int i; i<8; i++) {
     //     free[i]=1;
@@ -194,22 +195,22 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     avail->index = avail->index + 1;
 
     // kout[Debug] << "!!!!!3!!!!!" << endl;
-    last_used_idx=used->id;
+    last_used_idx = used->id;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;
 
     info.flag = 1;
 
     // InterruptEnable();
-    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; //通知QEMU 
+    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // 通知QEMU
 
-    // waitDisk->wait(); 
-    while (last_used_idx==used->id) {//轮询操作,等待中断
-    // f=1;
-    // while (f) {
-    
+    // waitDisk->wait();
+    while (last_used_idx == used->id) { // 轮询操作,等待中断
+        // f=1;
+        // while (f) {
     }
-    
+
+    // kout<<"wait"<<endl;
     // kout[Debug] << "!!!!!4!!!!!" << endl;
     // InterruptDisable();
 
@@ -224,8 +225,7 @@ void VirtioDisk::virtio_disk_intr()
     // kout << "intr" << endl;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;
-    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;//确认受到响应
-
+    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3; // 确认受到响应
 }
 
 // void VirtioDisk::virtio_disk_intr()
@@ -260,6 +260,7 @@ bool DISK::DiskInit()
     // kout[yellow] << "Disk init..." << endl;
     // kout[yellow] << "plic init..." << endl;
     // kout[red]<<Hex(f())<<endl;
+    diskBuf = (void*)kmalloc(0x1000);
     plicinit();
 
     kout[Info] << "plic init hart..." << endl;
@@ -275,19 +276,41 @@ bool DISK::DiskInit()
 bool DISK::readSector(unsigned long long LBA, Sector* sec, int cnt)
 {
     VDisk.waitDisk->wait();
-    for (int i = 0; i < cnt; ++i) {
-        VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 0);
+    // bool f;
+    // IntrSave(f);
+    if ((Uint64)sec < 0xffffffff00000000) {
+        for (int i = 0; i < cnt; ++i) {
+            VDisk.disk_rw((Uint8*)(diskBuf), LBA + i, 0);
+            memcpy((void*)(sec + i), (const char*)diskBuf, sectorSize);
+        }
+    } else {
+        for (int i = 0; i < cnt; ++i) {
+            // kout[Info]<<"read blk "<<LBA+i<<endl;
+            VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 0);
+        }
     }
     VDisk.waitDisk->signal();
+    // IntrRestore(f);
     return true;
 }
 
 bool DISK::writeSector(unsigned long long LBA, const Sector* sec, int cnt)
 {
+
     VDisk.waitDisk->wait();
-    for (int i = 0; i < cnt; ++i)
-        VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 1);
+    if ((Uint64)sec < 0xffffffff00000000) {
+        for (int i = 0; i < cnt; ++i) {
+            memcpy(diskBuf, (const char*)(sec + i), sectorSize);
+            VDisk.disk_rw((Uint8*)(diskBuf), LBA + i, 1);
+        }
+    } else {
+        for (int i = 0; i < cnt; ++i) {
+            VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 1);
+        }
+    }
+
     VDisk.waitDisk->signal();
+
     return true;
 }
 

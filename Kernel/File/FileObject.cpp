@@ -315,6 +315,8 @@ bool FileObjectManager::set_fo_mode(file_object* fo, Uint64 mode)
 
 Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
 {
+
+    // kout[Debug] << "read_fo"<<endl;
     if (fo == nullptr) {
         kout[Fault] << "Read fo the fo is NULL!" << endl;
         return -1;
@@ -324,14 +326,16 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
         return -1;
     }
 
+    // kout[Debug] << "read_fo1"<<endl;
     FileNode* file = fo->file;
     if (file == nullptr) {
         kout[Fault] << "Read fo the file pointer is NULL!" << endl;
         return -1;
     }
-    // kout[Debug] << (void*)fo->file->vfs << endl;
+    kout[Debug] << (void*)fo->file->vfs << " file " << file->name << " dst " << (void*)dst << " pos_k " << fo->pos_k <<" size "<<size<< endl;
 
     Sint64 rd_size;
+    // kout[Debug] << "read_fo1 "<<()dst<<endl;
     rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
 
     return rd_size;
@@ -360,10 +364,10 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
            wr_size = pfile->write((unsigned char*)src,  size);
        } else { */
     // if (file==STDIO) {
-        // kout[Info]<<"file is STDIO"<<endl;
+    // kout[Info]<<"file is STDIO"<<endl;
     // }
-    wr_size = file->write((unsigned char*)src, fo->pos_k,size);
-    file->fileSize=size;
+    wr_size = file->write((unsigned char*)src, fo->pos_k, size);
+    file->fileSize = size;
     // }
     return wr_size;
 }
@@ -396,7 +400,7 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 进程完全不需要进行对文件的任何操作
     // 这就是这一层封装和隔离的妙处所在
     FileNode* file = fo->file;
-    // kout<<"close_fo"<<fo->file<<fo->file->name<<endl;
+    kout[Info]<<"close_fo fd"<<fo->fd << " "<<fo->file<<fo->file->name<<endl;
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点
     file_object* fo_head = proc->fo_head;
@@ -421,6 +425,12 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
     // 直接原地赋值 不调用函数了 节省开销
     dup_fo->fd = -1; // 这个fd在需要插入这个fo节点时再具体化
     dup_fo->file = fo->file; // 关键是file flags这些信息的拷贝
+    fo->file->RefCount++;
+                             
+    // char a[200];
+    // dup_fo->file->read(a,200);
+    // kout[DeBug]<<"duplicate "<<a<<endl;
+
     dup_fo->flags = fo->flags;
     dup_fo->pos_k = fo->pos_k;
     return dup_fo;

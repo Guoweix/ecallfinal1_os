@@ -45,13 +45,13 @@ extern "C" {
 // #include <stdint.h>
 // #include <stddef.h>
 
-#include <ext4_config.h>
-#include <ext4_types.h>
-#include <ext4_errno.h>
-#include <ext4_oflags.h>
-#include <ext4_debug.h>
+#include <File/lwext4_include/ext4_config.h>
+#include <File/lwext4_include/ext4_types.h>
+#include <File/lwext4_include/ext4_errno.h>
+#include <File/lwext4_include/ext4_oflags.h>
+#include <File/lwext4_include/ext4_debug.h>
 
-#include <ext4_blockdev.h>
+#include <File/lwext4_include/ext4_blockdev.h>
 
 /********************************OS LOCK INFERFACE***************************/
 

@@ -70,6 +70,9 @@ static int ext4_bdif_bread(struct ext4_blockdev *bdev, void *buf,
 			   uint64_t blk_id, uint32_t blk_cnt)
 {
 	ext4_bdif_lock(bdev);
+
+	EXT4_Debug_u32(1, "_________________- blk_id",blk_id);
+
 	int r = bdev->bdif->bread(bdev, buf, blk_id, blk_cnt);
 	bdev->bdif->bread_ctr++;
 	ext4_bdif_unlock(bdev);
@@ -289,7 +292,7 @@ int ext4_blocks_get_direct(struct ext4_blockdev *bdev, void *buf, uint64_t lba,
 
 	pba = (lba * bdev->lg_bsize + bdev->part_offset) / bdev->bdif->ph_bsize;
 	pb_cnt = bdev->lg_bsize / bdev->bdif->ph_bsize;
-
+	EXT4_Debug_u32_u32(1, "blk count", pb_cnt*cnt,pb_cnt);
 	return ext4_bdif_bread(bdev, buf, pba, pb_cnt * cnt);
 }
 
@@ -392,7 +395,7 @@ int ext4_block_readbytes(struct ext4_blockdev *bdev, uint64_t off, void *buf,
 	if (!bdev->bdif->ph_refctr)
 		return EIO;
 
-	EXT4_Debug_u32_u32(0, "part_size", off+len, bdev->part_size);
+	EXT4_Debug_u32_u32(0, "part_size ", off+len, bdev->part_size);
 	if (off + len > bdev->part_size)
 		return EINVAL; /*Ups. Out of range operation*/
 

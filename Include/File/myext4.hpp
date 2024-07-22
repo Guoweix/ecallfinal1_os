@@ -1,11 +1,14 @@
+// #include "File/lwext4_include/ext4.h"
 #include "vfsm.hpp"
-#include "ext4.h"
+#include <File/lwext4_include/ext4.h>
 #include "Library/KoutSingle.hpp"
 #include "Memory/pmm.hpp"
 #include "Memory/vmm.hpp"
 #include "Types.hpp"
 
 class EXT4;
+// struct ext4_file;
+// struct ext4_dir;
 
 class ext4node : public FileNode{
 
@@ -13,11 +16,11 @@ public:
 
     ext4_file fp;
     ext4_dir  fd;
-    Uint64 offset;
+    Sint64 offset;
 
-    void initlink(ext4_file tb, char* Name,EXT4 * fat_);
-    void initfile(ext4_file tb, char* Name,EXT4 * fat_);
-    void initdir(ext4_dir tb, char* Name,EXT4 * fat_);
+    void initlink(ext4_file tb,const char* Name,EXT4 * fat_);
+    void initfile(ext4_file tb, const char* Name,EXT4 * fat_);
+    void initdir(ext4_dir tb,const char* Name,EXT4 * fat_);
     
     bool set_name(char* _name) override;//
     Sint64 read(void* dst, Uint64 pos, Uint64 size)override;//
@@ -43,7 +46,7 @@ public:
     FileNode** get_all_file_in_dir(FileNode* dir, bool (*p)(FileType type)) override{
         return nullptr;
     };//
-    ext4node* open(char* _path, FileNode* parent) override;//
+    ext4node* open(const char* _path, FileNode* parent) override;//
     ext4node* get_node(const char* path) override{
         return nullptr;
     };
@@ -52,8 +55,8 @@ public:
     };//
     bool del(FileNode* file) override; 
                                        
-    ext4node* create_file(FileNode* dir_, char* fileName, FileType type = FileType::__FILE) override;//
-    ext4node* create_dir(FileNode* dir_, char* fileName) override;//
+    ext4node* create_file(FileNode* dir_, const char* fileName, FileType type = FileType::__FILE) override;//
+    ext4node* create_dir(FileNode* dir_, const  char* fileName) override;//
     
     bool init(){return 1;};//
 
@@ -61,3 +64,5 @@ public:
     EXT4(){};
     ~EXT4(){};
 };
+
+extern Uint32 EXT;

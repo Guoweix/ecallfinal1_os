@@ -951,6 +951,7 @@ static int ext4_generic_open2(ext4_file *f, const char *path, int flags,
 	struct ext4_dir_search_result result;
 	struct ext4_inode_ref ref;
 
+	// EXT4_Debug_u32(1,"asdad",f);
 	f->mp = 0;
 
 	if (!mp)
@@ -1130,6 +1131,7 @@ static int ext4_generic_open(ext4_file *f, const char *path, const char *flags,
 	if (iflags & O_CREAT)
 		ext4_trans_start(mp);
 
+	EXT4_Debug_u32(1, "f", f);
 	r = ext4_generic_open2(f, path, iflags, filetype, parent_inode,
 				name_off);
 
@@ -1804,6 +1806,9 @@ int ext4_fread(ext4_file *file, void *buf, size_t size, size_t *rcnt)
 
 		r = ext4_blocks_get_direct(file->mp->fs.bdev, u8_buf, fblock_start,
 					   fblock_count);
+		EXT4_Debug_u32(1, "u8_buf ",u8_buf[0] );
+		EXT4_Debug_u32(1, "size ",  block_size * fblock_count);
+		EXT4_Debug_u32(1, "Start ",  fblock_start );
 		if (r != EOK)
 			goto Finish;
 
@@ -3178,8 +3183,12 @@ int ext4_dir_open(ext4_dir *dir, const char *path)
 	if (!mp)
 		return ENOENT;
 
+	EXT4_Debug(1, "ext4_dir_open");
 	EXT4_MP_LOCK(mp);
+	EXT4_Debug_u32(1, "ext4_dir_open1",dir);
+
 	r = ext4_generic_open(&dir->f, path, "r", false, 0, 0);
+	EXT4_Debug(1, "ext4_dir_open2");
 	dir->next_off = 0;
 	EXT4_MP_UNLOCK(mp);
 	return r;
@@ -3200,61 +3209,61 @@ const ext4_direntry *ext4_dir_entry_next(ext4_dir *dir)
 	struct ext4_inode_ref dir_inode;
 	struct ext4_dir_iter it;
 
-	EXT4_Debug(1, "C0");
-	EXT4_Debug_x(1, "%x",dir);
-	EXT4_Debug_x(1, "%x",dir->f.mp);
+	// EXT4_Debug(1, "C0");
+	// EXT4_Debug_x(1, "%x",dir);
+	// EXT4_Debug_x(1, "%x",dir->f.mp);
 
 	EXT4_MP_LOCK(dir->f.mp);
-	EXT4_Debug(1, "C1");
+	// EXT4_Debug(1, "C1");
 
 	if (dir->next_off == EXT4_DIR_ENTRY_OFFSET_TERM) {
 		EXT4_MP_UNLOCK(dir->f.mp);
-	EXT4_Debug(1, "C2");
+	// EXT4_Debug(1, "C2");
 		return 0;
 	}
 
 	r = ext4_fs_get_inode_ref(&dir->f.mp->fs, dir->f.inode, &dir_inode);
-	EXT4_Debug(1, "C3");
+	// EXT4_Debug(1, "C3");
 	if (r != EOK) {
 		goto Finish;
 	}
 
-	EXT4_Debug(1, "C4");
+	// EXT4_Debug(1, "C4");
 	r = ext4_dir_iterator_init(&it, &dir_inode, dir->next_off);
-	EXT4_Debug(1, "C5");
+	// EXT4_Debug(1, "C5");
 	if (r != EOK) {
 		ext4_fs_put_inode_ref(&dir_inode);
 		goto Finish;
 	}
 
 	memset(&dir->de.name, 0, sizeof(dir->de.name));
-	EXT4_Debug(1, "C6");
+	// EXT4_Debug(1, "C6");
 	name_length = ext4_dir_en_get_name_len(&dir->f.mp->fs.sb,
 					       it.curr);
-	EXT4_Debug(1, "C7");
+	// EXT4_Debug(1, "C7");
 	memcpy(&dir->de.name, it.curr->name, name_length);
 
-	EXT4_Debug(1, "C8");
+	// EXT4_Debug(1, "C8");
 	/* Directly copying the content isn't safe for Big-endian targets*/
 	dir->de.inode = ext4_dir_en_get_inode(it.curr);
 	dir->de.entry_length = ext4_dir_en_get_entry_len(it.curr);
-	EXT4_Debug(1, "C9");
+	// EXT4_Debug(1, "C9");
 	dir->de.name_length = name_length;
 	dir->de.inode_type = ext4_dir_en_get_inode_type(&dir->f.mp->fs.sb,
 						      it.curr);
 
-	EXT4_Debug(1, "C10");
+	// EXT4_Debug(1, "C10");
 	de = &dir->de;
 
 	ext4_dir_iterator_next(&it);
 
-	EXT4_Debug(1, "C11");
+	// EXT4_Debug(1, "C11");
 	dir->next_off = it.curr ? it.curr_off : EXT4_DIR_ENTRY_OFFSET_TERM;
 
 	ext4_dir_iterator_fini(&it);
 	ext4_fs_put_inode_ref(&dir_inode);
 
-	EXT4_Debug(1, "C12");
+	// EXT4_Debug(1, "C12");
 Finish:
 	EXT4_MP_UNLOCK(dir->f.mp);
 	return de;

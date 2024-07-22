@@ -77,13 +77,12 @@ Sint64 PIPEFILE::write(void* src_, Uint64 size)
 Sint64 UartFile::read(void* buf, Uint64 size)
 {
     char* s = (char*)buf;
+    // if(!isFake)
     s[0] = getchar();
-			// while ((ch=SBI_GETCHAR())==-1);
-
+    // while ((ch=SBI_GETCHAR())==-1);
     // #ifdef __ECHO
     // SBI_PUTCHAR(s[0]);
     // #endif
-
     if (s[0] == '\r') {
         s[0] = '\n';
         // return 2;
@@ -95,9 +94,13 @@ Sint64 UartFile::write(void* src, Uint64 size)
 {
     char* end = (char*)src + size;
     char* start = (char*)src;
-    while (start != end) {
-        putchar(*start);
-        start++;
+
+    // if(!isFake)
+    {
+        while (start != end) {
+            putchar(*start);
+            start++;
+        }
     }
     return size;
 }

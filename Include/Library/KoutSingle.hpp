@@ -158,22 +158,24 @@ public:
     }
 };
 
-class DebugLocation {
-
-    friend class KOUT;
-
-protected:
+ class DebugLocation {
+public:
     const char *file = nullptr,
                *func = nullptr,
                *pretty_func = nullptr;
-    const int line;
-    DebugLocation(const char* _file, const char* _func, const char* _pretty_func, int line)
+    const int line = 0;
+
+    DebugLocation(const char* _file, const char* _func, const char* _pretty_func, const int _line)
         : file(_file)
         , func(_func)
         , pretty_func(_pretty_func)
-        , line(line) {};
+        , line(_line)
+    {
+    }
 };
 
+#define DeBug POS::DebugLocation(nullptr, __func__, nullptr, __LINE__)
+#define DEBug POS::DebugLocation(__FILE__, __func__, __PRETTY_FUNCTION__, __LINE__)
 namespace KoutEX {
     enum KoutEffect {
         Reset = 0,
@@ -277,6 +279,17 @@ protected:
     }
 
 public:
+
+    inline KOUT& operator[](const DebugLocation& dbg)
+    {
+        SwitchCurrentType(Debug);
+        *this << Reset << TypeColor[Debug] << "[" << dbg.func << ":" << dbg.line << "] ";
+        if (dbg.file != nullptr)
+            *this << "in file " << dbg.file << ". ";
+        if (dbg.pretty_func != nullptr)
+            *this << "function " << dbg.pretty_func << ". ";
+        return *this;
+    }
     inline KOUT& operator[](unsigned p) // Current Kout Info is type p. It will be clear when Endline is set!
     {
         if ((p <= 5 || 7 < p && p <= 7 + RegisteredType) && p <= 31)

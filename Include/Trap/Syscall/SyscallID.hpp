@@ -51,7 +51,9 @@ enum SyscallID
 	SYS_sigaction		=134,
 	SYS_sigprocmask		=135,
 	SYS_sigtimedwait	=137,
-	SYS_times			=153,//
+	SYS_times			=153,
+	SYS_setpgid 	 	=154,
+	SYS_getpgid 		=155,
 	SYS_uname			=160,//
 	SYS_gettimeofday	=169,//
 	SYS_getpid			=172,//
@@ -136,6 +138,8 @@ inline const char *SyscallName(int sys)
 		case SYS_sigprocmask:		return "SYS_sigprocmask";
 		case SYS_sigtimedwait:		return "SYS_sigtimedwait";
 		case SYS_times:				return "SYS_times";
+		case SYS_setpgid: 			return "SYS_setpgid"; 
+		case SYS_getpgid: 			return "SYS_getpgid"; 
 		case SYS_uname:				return "SYS_uname";
 		case SYS_gettimeofday:		return "SYS_gettimeofday";
 		case SYS_getpid:			return "SYS_getpid";

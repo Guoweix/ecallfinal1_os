@@ -343,6 +343,7 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr, int argc, char
         context->status = (read_csr(sstatus) | SPIE) & (~SPP) & (~SIE); // 详见手册
         context->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
     }
+    kout[Info]<<"Process::start epc "<<(void *)context->epc<<" sp"<<context->reg.sp<<endl;
 
     switchStatus(S_Ready);
 
@@ -506,13 +507,13 @@ bool Process::initFds()
         // 只有当stdio文件对象非空时创建才有必有
         tmp_fo = fom.create_flobj(cur_fo_head, STDIN_FILENO); // 标准输入
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_RDONLY);
+        fom.set_fo_flags(tmp_fo, file_flags::RDONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDOUT_FILENO); // 标准输出
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
+        fom.set_fo_flags(tmp_fo,file_flags::WRONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
+        fom.set_fo_flags(tmp_fo,file_flags::WRONLY);
     }
     /*  else {
          // 暂时如下trick

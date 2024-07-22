@@ -76,6 +76,7 @@ struct VirtioDisk {
 } __attribute__((aligned(PAGESIZE)));
 
 struct DISK {
+    void * diskBuf;
     bool DiskInit();
     bool readSector(Uint64 LBA, Sector* sec, int cnt = 1);
     bool writeSector(Uint64 LBA, const Sector* sec, int cnt = 1);

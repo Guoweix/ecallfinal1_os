@@ -99,10 +99,12 @@ public:
 
 class UartFile : public FileNode {
 
+    bool isFake=0;
 public:
-    UartFile(){};
+    UartFile(){ TYPE|=FileType::__DEVICE;};
     ~UartFile(){};
 
+    void setFakeDevice(bool _isFake){isFake=_isFake;};
     virtual Sint64 read(void* buf, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 size) override;
     virtual Sint64 read(void* buf, Uint64 pos,Uint64 size) override;
