@@ -116,4 +116,7 @@ void* memcpy(void* dst, const char* src, Uint64 size);
 
 char* strDump(const char* src);
 
+
+Sint64 readline(const char * src,char * buf,Uint64 srcSize,Uint64 start);
+
 #endif

@@ -323,21 +323,13 @@ void final_test()
         }
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-        // kout[Info] << "____________________1___________________--" << endl;
 
-        // VFSM_test1(ch++);
-/*         int argc = 3;
-        char** argv = new char*[3];
-        for (int i = 0; i < 3; i++) {
-            argv[i] = new char[10];
-        }
-        strcpy(argv[0], "busybox");
-        strcpy(argv[1], "sh");
-        strcpy(argv[2], "./test_all.sh");
- */
         Process* task;
         if (strcmp(file->name, "busybox") == 0) {
-            char argvv[20][100] = { "./busybox", "sh","\0","./test_all.sh" };
+            char argvv[20][100] = { "busybox","sh","run-static.sh" };
+            // char argvv[20][100] = { "./busybox", "sh","\0","busybox_testcode.sh" };
+            // char argvv[20][100] = { "./busybox", "sh","test_all.sh" };
+            // char argvv[20][100] = {"pipe2", "\0" };
             char* argv[20];
             int j = 0;
             while (argvv[j][0] != '\0') {
@@ -349,10 +341,10 @@ void final_test()
             int argc = 0;
             while (argv[argc] != nullptr)
                 argc++;
-            kout[Info] << "argc" << argc << endl;
+            // kout[Info] << "argc" << argc << endl;
             char** argv1 = new char*[argc];
             for (int i = 0; i < argc; i++) {
-                kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+                // kout[Info] << "argv[" << i << "]" << argv[i] << endl;
                 argv1[i] = strdump(argv[i]);
             }
 
@@ -530,6 +522,50 @@ unsigned EXT;
 
 extern int test_ext4();
 
+
+
+void PreRun()
+{
+    FileNode * t;
+    t=vfsm.open("/test_all.sh","/");
+    ASSERTEX(t, "t is nullptr");
+    char * buf=new char [4096];
+    char * re=new char [4096];
+    memset(re, 0, 4096);
+    char * buf1=new char [512];
+    int size,start=0;
+    size=t->read(buf,4096);
+
+    while ((start= readline(buf, buf1, size,  start))!=-1) {
+        kout[Debug]<<"line::"<<buf1<<endl;
+        if (buf1[0]=='#') {
+            break;
+        }
+        if (buf1[strlen(buf1)-1]=='h'&&buf1[strlen(buf1)-2]=='s') {
+           strcat(re,"busybox sh " ) ;
+        }
+        strcat(re, buf1);
+        strcat(re, "\n");
+    }
+
+    kout[Error]<<"write back"<<re<<endl;
+    t->write(re,strlen(re));
+
+    vfsm.close(t);
+    delete [] buf;
+    delete [] buf1;
+    delete [] re;
+}
+
+void mkdir()
+{
+    // FileNode * root=vfsm.get_root();
+    // vfsm.create_file("/", "/","tmp1" );
+    vfsm.create_dir("/", "/","tmp" );
+
+    return;
+}
+
 int main()
 {
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
@@ -539,7 +575,7 @@ int main()
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     // kout.SetEnabledType(0);
-    // kout.SwitchTypeOnoff(Info,false);
+    // kout.SwitchTypeOnoff(Info,true);
     kout.SwitchTypeOnoff(Fault, true);
     kout.SwitchTypeOnoff(Error, true);
     kout.SwitchTypeOnoff(EXT, false);
@@ -563,9 +599,13 @@ int main()
 
     kout[Info] << "Diskinit finish" << endl;
     // test_ext4();
-    // test_vfs();
-    // SBI_SHUTDOWN();
+    // #define RECOVER
+    #ifdef RECOVER
+    test_vfs();
+    SBI_SHUTDOWN();
+    #endif
 
+    // test_ext4();
     // SBI_SHUTDOWN();
     // kout[Fault]<<"test_ext4 end"<<endl;
     vfsm.init();
@@ -592,7 +632,8 @@ int main()
     // for (char ch='A';ch<'Z'+1;ch++) {
     // VFSM_test1('a');
     // }
-
+    // PreRun();
+    // mkdir();
     final_test();
     // test_final1();
     // VFSM_test1(10);

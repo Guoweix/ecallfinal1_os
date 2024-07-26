@@ -436,7 +436,7 @@ FAT32FILE* FAT32::create_file(FileNode* dir_,const char* fileName, FileType type
         for (int i = 0; i < Dbr.clus_size / 32; i++) {
             int k = 0;
             while (ft[i].attribute == 0 || ft[i].attribute == 0xe5) {
-                kout << Yellow << i << endl;
+                // kout << Yellow << i << endl;
 
                 k++;
                 if (i >= Dbr.clus_size / 32)

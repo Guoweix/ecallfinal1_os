@@ -93,23 +93,30 @@ public:
     Uint32 in, out;
     Uint8 data[FILESIZE];
     Semaphore *file, *full, *empty;
-    Sint64 read(void* buf, Uint64 pos, Uint64 size);
-    Sint64 write(void* src, Uint64 size);
+    Sint64 read(void* buf, Uint64 pos, Uint64 size) override;
+    Sint64 read(void* buf,  Uint64 size) override;
+    Sint64 write(void* src, Uint64 pos, Uint64 size) override;
+    Sint64 write(void* src,  Uint64 size) override;
 };
 
 class UartFile : public FileNode {
 
-    bool isFake=0;
-public:
-    UartFile(){ TYPE|=FileType::__DEVICE;};
-    ~UartFile(){};
+    bool isFake = 0;
 
-    void setFakeDevice(bool _isFake){isFake=_isFake;};
+public:
+    UartFile()
+    {
+        TYPE |= FileType::__DEVICE;
+        RefCount = 1e9;
+    };
+    ~UartFile() {};
+
+    void setFakeDevice(bool _isFake) { isFake = _isFake; };
     virtual Sint64 read(void* buf, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 size) override;
-    virtual Sint64 read(void* buf, Uint64 pos,Uint64 size) override;
+    virtual Sint64 read(void* buf, Uint64 pos, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 pos, Uint64 size) override;
 };
 
-extern UartFile * STDIO;
+extern UartFile* STDIO;
 #endif

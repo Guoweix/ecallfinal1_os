@@ -41,6 +41,11 @@ protected:
     ProcessQueue queue;
 
 public:
+    inline void printAllWaitProcess()
+    {
+       queue.printAllQueue(); 
+    }
+
     inline void lockProcess()
     {
         pm.lock.lock();

@@ -165,7 +165,7 @@ char* unified_path(const char* path,const char* cwd, char* ret)
     {
         return nullptr;//如果返回nullptr则说明路径错误
     }
-    kout<<Yellow<<path<<" " <<path1<<endl;
+    // kout<<Yellow<<path<<" " <<path1<<endl;
     if (path[0]=='/') {//如果发现path为绝对路径，则直接返回
         strcpy(ret, path1);
         // kout[Info]<<"path"<<ret<<endl;

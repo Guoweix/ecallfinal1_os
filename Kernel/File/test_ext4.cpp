@@ -1,6 +1,8 @@
 #include "ext4.h"
 #include <Library/KoutSingle.hpp>
+// #include <Library/Kstring.hpp>
 #include <LWEXT4_Tools.h>
+// #include <cstring>
 #define printf kout
 #define  EXIT_FAILURE 1
 
@@ -134,7 +136,6 @@ void test_lwext4_block_stats(void)
 
 	printf("********************\n");
 }
-/* 
 bool test_lwext4_dir_test(int len)
 {
 	ext4_file f;
@@ -145,21 +146,26 @@ bool test_lwext4_dir_test(int len)
 	long int stop;
 	long int start;
 
-	printf("test_lwext4_dir_test: %d\n", len);
-	io_timings_clear();
-	start = get_ms();
+	// printf("test_lwext4_dir_test: %d\n", len);
+	// io_timings_clear();
+	// start = get_ms();
 
-	printf("directory create: /mp/dir1\n");
-	r = ext4_dir_mk("/mp/dir1");
+	// printf("directory create: /mp/dir1\n");
+	r = ext4_dir_mk("/dir1");
 	if (r != EOK) {
 		printf("ext4_dir_mk: rc = %d\n", r);
 		return false;
 	}
+	char II[100];
+	memset(II,0,100);
+	strcpy(II,"/dir1/f");
 
-	printf("add files to: /mp/dir1\n");
+	// printf("add files to: /mp/dir1\n");
 	for (i = 0; i < len; ++i) {
 		// sprintf(path, "/mp/dir1/f%d", i);
-        strcpy(path,"" );
+		II[7]=i+'0';
+        strcpy(path,II);
+
 		r = ext4_fopen(&f, path, "wb");
 		if (r != EOK) {
 			printf("ext4_fopen: rc = %d\n", r);
@@ -167,15 +173,14 @@ bool test_lwext4_dir_test(int len)
 		}
 	}
 
-	stop = get_ms();
-	diff = stop - start;
-	test_lwext4_dir_ls("/mp/dir1");
-	printf("test_lwext4_dir_test: time: %d ms\n", (int)diff);
-	printf("test_lwext4_dir_test: av: %d ms/entry\n", (int)diff / (len + 1));
-	printf_io_timings(diff);
+	// stop = get_ms();
+	// diff = stop - start;
+	test_lwext4_dir_ls("/dir1");
+	// printf("test_lwext4_dir_test: time: %d ms\n", (int)diff);
+	// printf("test_lwext4_dir_test: av: %d ms/entry\n", (int)diff / (len + 1));
+	// printf_io_timings(diff);
 	return true;
 }
- */
 static int verify_buf(const unsigned char *b, size_t len, unsigned char c)
 {
 	size_t i;
@@ -334,25 +339,25 @@ bool test_lwext4_mount(struct ext4_blockdev *bdev, struct ext4_bcache *bcache)
 		return false;
 	}
 
-	r = ext4_mount("ext4_fs", "/mp/", false);
+	r = ext4_mount("ext4_fs", "/", false);
 	if (r != EOK) {
 		printf("ext4_mount: rc = %d\n", r);
 		return false;
 	}
 
-	r = ext4_recover("/mp/");
+	r = ext4_recover("/");
 	if (r != EOK && r != ENOTSUP) {
 		printf("ext4_recover: rc = %d\n", r);
 		return false;
 	}
 
-	r = ext4_journal_start("/mp/");
+	r = ext4_journal_start("/");
 	if (r != EOK) {
 		printf("ext4_journal_start: rc = %d\n", r);
 		return false;
 	}
 
-	ext4_cache_write_back("/mp/", 1);
+	ext4_cache_write_back("/", 1);
     
     
 	return true;
@@ -535,12 +540,6 @@ int test_ext4()
 	// if (!parse_opt(argc, argv))
 		// return EXIT_FAILURE;
 
-	printf("ext4_generic\n");
-	printf("test conditions:\n");
-	printf("\timput name: %s\n", input_name);
-	printf("\trw size: %d\n", rw_szie);
-	printf("\trw count: %d\n", rw_count);
-
 	if (!open_filedev()) {
 		printf("open_filedev error\n");
 		return EXIT_FAILURE;
@@ -555,29 +554,30 @@ int test_ext4()
 	if (sbstat)
 		test_lwext4_mp_stats();
 
-	test_lwext4_dir_ls("/mp/");
+	test_lwext4_dir_ls("/");
 
-	ext4_frename("/mp/lib/my.so","/mp/lib/dlopen_dso.so");
+
+	if (!test_lwext4_dir_test(6))
+	{
+		kout[Error]<<"dir test failed"<<endl;
+		return EXIT_FAILURE;
+	}
+
 	// fflush(stdout);
-
-	// if (!test_lwext4_dir_test(dir_cnt))
+	// uint8_t *rw_buff =(uint8_t *) malloc(rw_szie);
+	// if (!rw_buff) {
+		// free(rw_buff);
 		// return EXIT_FAILURE;
+	// }
+	// if (!test_lwext4_file_test(rw_buff, rw_szie, rw_count)) {
+		// free(rw_buff);
+		// return EXIT_FAILURE;
+	// }
+
+	// free(rw_buff);
 
 	// fflush(stdout);
-	uint8_t *rw_buff =(uint8_t *) malloc(rw_szie);
-	if (!rw_buff) {
-		free(rw_buff);
-		return EXIT_FAILURE;
-	}
-	if (!test_lwext4_file_test(rw_buff, rw_szie, rw_count)) {
-		free(rw_buff);
-		return EXIT_FAILURE;
-	}
-
-	free(rw_buff);
-
-	// fflush(stdout);
-	test_lwext4_dir_ls("/mp/");
+	test_lwext4_dir_ls("/");
 
 	if (sbstat)
 		test_lwext4_mp_stats();

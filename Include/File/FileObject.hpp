@@ -2,6 +2,8 @@
 #define __FILEOBJECT_HPP__
 
 #include "File/FileEx.hpp"
+#include "Library/KoutSingle.hpp"
+#include "Types.hpp"
 #include <File/vfsm.hpp>
 #include <Process/Process.hpp>
 // #include <File/FAT32.hpp>
@@ -28,7 +30,7 @@ class Process;
 
 // 枚举结构列出flags信息
 // 以Linux规范为标准
-enum file_flags
+enum file_flags:Uint64
 {
     RDONLY = 0,               // 以只读方式打开文件
     WRONLY = 1,               // 以只写方式打开文件
@@ -81,9 +83,17 @@ struct file_object
     int tk_fd;
     FileNode* file;            // 对应的具体的打开的文件的结构指针
     Uint64 pos_k;               // 进程对于每个打开的文件维护文件指针的当前位置信息 用于实现seek等操作
-    Uint64 flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
+    file_flags flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
     Uint64 mode;                // 表示进程对打开的文件具有的权限信息位
     file_object* next;          // 链表结构的next指针
+    bool canRead()
+    {
+        return (Uint64)flags&(Uint64)file_flags::RDONLY;    
+    }
+    bool canWrite()
+    {
+        return (Uint64)flags&(Uint64)file_flags::WRONLY;    
+    }
 };
 
 // file_object实现依赖的一些函数的封装与管理
@@ -109,7 +119,7 @@ public:
     bool set_fo_fd(file_object* fo, int fd);                    // 设置进程fo的fd 修改用 使用几率不大
     bool set_fo_file(file_object* fo, FileNode* file);         // 设置fo的file指针
     bool set_fo_pos_k(file_object* fo, Uint64 pos_k);           // 设置fo的当前文件指针的位置
-    bool set_fo_flags(file_object* fo, Uint64 flags);           // 设置fo的flags标志位信息
+    bool set_fo_flags(file_object* fo, file_flags flags);           // 设置fo的flags标志位信息
     bool set_fo_mode(file_object* fo, Uint64 mode);             // 设置fo的mode权限位信息
 
     // 文件处理相关

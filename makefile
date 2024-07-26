@@ -7,6 +7,7 @@ ASM_FILES := $(shell find $(SRC_DIR) -name "*.S")
 ELF_FILES := $(patsubst %.cpp,%.elf,$(CPP_FILES)) $(patsubst %.S,%.elf,$(ASM_FILES)) $(patsubst %.c,%.elf,$(C_FILES))
 BUILD_ELF_FILES := $(patsubst %.cpp,$(TARGET_DIR)/%.elf,$(CPP_FILES)) $(patsubst %.S,$(TARGET_DIR)/%.elf,$(ASM_FILES)) $(patsubst %.c,$(TARGET_DIR)/%.elf,$(C_FILES))
 
+
 GCC := riscv64-unknown-elf-gcc
 CC := riscv64-unknown-elf-g++
 FLAGS := -nostdlib -I"Include" -I"Include/File/lwext4_include" -fno-exceptions -fno-rtti -mcmodel=medany -std=c++17 
@@ -25,12 +26,14 @@ all:Build/Kernel.elf
 	cp Build/Kernel.elf ./kernel-qemu
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
-	$(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
+	 $(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
 
 
 run:mkdir Build/Kernel.elf
 	cp Test/a.img SBI_BIN/a.img
-	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG)
+	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 256M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG) 2>&1 | tee output.log
+
+
 
 $(TARGET_DIR)/%.elf: %.c
 	$(GCC) $(C_FLAGS) -c $<  -o $@

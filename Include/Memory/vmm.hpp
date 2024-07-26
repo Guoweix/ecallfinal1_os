@@ -566,7 +566,7 @@ public:
 
     void Enter()
     { // 进入指定状态的vms
-        kout<<Red<<"enter vms is "<<this<<endl;
+        // kout<<Red<<"enter vms is "<<this<<endl;
         if (this == CurrentVMS)
             return;
         CurrentVMS = this;

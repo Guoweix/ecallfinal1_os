@@ -60,7 +60,7 @@ enum ProcStatus : Uint32 {
 enum ProcFlag : Uint64 {
     F_User = 0,
     F_Kernel = 1ull << 0,
-    F_AutoDestroy = 1ull << 1,
+    // F_AutoDestroy = 1ull << 1,
     F_GeneratedStack = 1ull << 2,
     F_OutsideName = 1ull << 3,
 };

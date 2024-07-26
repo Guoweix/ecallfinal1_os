@@ -40,14 +40,16 @@ Sint64 FileNode::read(void* dst, Uint64 size)
 
 Sint64 FileNode::write(void* src, Uint64 size)
 {
-    kout[Error] << "FileNode::write " << endl;
+    
+    kout[Fault] << "FileNode::write " << endl;
     return false;
 }
 
 Sint64 FileNode::write(void* src, Uint64 pos, Uint64 size)
 {
 
-    kout[Error] << "FileNode::write " << endl;
+    kout[Info]<<"write file "<<name<<endl;
+    kout[Fault] << "FileNode::write " << endl;
     return false;
 }
 
@@ -90,6 +92,7 @@ Sint64 FileNode::size()
 
 FileNode::~FileNode()
 {
+    kout[Warning]<<"FileNode:: Delete  filenode "<<name<<endl;
     delete[] name;
     while (child != nullptr) {
         delete child;
@@ -223,7 +226,6 @@ bool VFSM::init()
         tty->TYPE|=FileType::__DEVICE;
         tty->RefCount=1000;
      */
-/*     
     FileNode * dev=new FileNode;
     dev->name=new char[10];
     strcpy(dev->name,"dev");
@@ -240,9 +242,9 @@ bool VFSM::init()
     tty->TYPE|=__DEVICE;
     tty->RefCount+=10;
     tty->setFakeDevice(true);
- */
 
     STDIO = new UartFile();
+
 
     return true;
 }
@@ -390,7 +392,7 @@ FileNode* VFSM::open(const char* path, const char* cwd)
     FileNode* t = get_root();
     FileNode* child = t->child;
     bool isFind = 0;
-    path1++;
+    // path1++;
     while ((path1 = split_path_name(path1, sigleName)) != nullptr) {
         kout<<path1<<endl;
         isFind = 0;
@@ -445,16 +447,16 @@ FileNode* VFSM::open(const char* path, const char* cwd)
 
 void VFSM::close(FileNode* t)
 {
-    if (t->TYPE == FileType::__PIPEFILE||t->TYPE==FileType::__DEVICE) {
+    if ((t->TYPE & FileType::__PIPEFILE)||(t->TYPE & FileType::__DEVICE)) {
         return;
     }
 
-    kout[DeBug]<<" VFSM::close "<<t->get_name()<<endl;
+    kout[DeBug]<<" VFSM::close "<<t->get_name()<<" sss "<<t->RefCount<<endl;
 /*     if (t==root) {
     
-    kout[Warning]<<" VFSM::close "<<endl;
     }
  */
+    // kout[Warning]<<" VFSM::close "<<endl;
     FileNode* r = t; // 将路径上的所有文件节点引用计数--，如果为零则关闭删除节点
     FileNode* tmp = nullptr;
     while (r != get_root()) {
@@ -524,6 +526,7 @@ bool VFSM::create_file(const char* path, const char* cwd, char* fileName, Uint64
         return false;
     }
     FileNode* file;
+     
     file = dir->vfs->create_file(dir, fileName);
     if (file == nullptr) {
         kout[Error] << "VFSM::create_file file can't create" << endl;
@@ -547,6 +550,7 @@ bool VFSM::create_dir(const char* path, const char* cwd, char* dirName)
         kout[Error] << "VFSM::create_dir dirfile can't create" << endl;
         return false;
     }
+    delete file;
     close(dir);
     return true;
 }

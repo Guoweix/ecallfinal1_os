@@ -90,7 +90,7 @@ bool SigactionQueue::check(sigaction* _check)
 void SigactionQueue::enqueue(sigaction* insertProc)
 {
     ListNode_siga* t = (ListNode_siga*)new ListNode_siga;
-    kout[Info] << "enqueue" << (void*)t << ' ' << this << endl;
+    // kout[Info] << "enqueue" << (void*)t << ' ' << this << endl;
     t->siga = insertProc;
     rear->next = t;
     t->next = nullptr;
@@ -106,7 +106,7 @@ void SigactionQueue::dequeue()
     kout[Info] << "dequeue" << (void*)t << ' ' << this << endl;
     front->next = t->next;
     if (rear == t) {
-        kout[Info] << "rear is t" << endl;
+        // kout[Info] << "rear is t" << endl;
         rear = front;
     }
     delete t;

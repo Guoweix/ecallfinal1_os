@@ -71,12 +71,12 @@ Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
         // pm.getCurProc()->getVMS()->Enter();
     }
     proc->setStack(nullptr, PAGESIZE * 4);
-    if (!(Flag & F_AutoDestroy)) {
-        proc->setFa(pm.getCurProc());
-    }
+    // if (!(Flag & F_AutoDestroy)) {
+    proc->setFa(pm.getCurProc());
+    // }
     // vms->RemoveVMR(VirtualMemorySpace::Kernel()->FindVMR((PtrUint)kernelstart), false);
     //
-    
+
     proc->start((void*)nullptr, nullptr, InnerUserProcessLoadAddr);
     kout[Test] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
 
@@ -130,14 +130,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
             //
             //
             {
-                kout[Info] << "p_align: " << (void*)(pgm_hdr.p_align) << endl;
-                kout[Info] << "p_filesz: " << (void*)(pgm_hdr.p_filesz) << endl;
-                kout[Info] << "p_flags: " << (void*)(pgm_hdr.p_flags) << endl;
-                kout[Info] << "p_memsz: " << (void*)(pgm_hdr.p_memsz) << endl;
-                kout[Info] << "p_offset: " << (void*)(pgm_hdr.p_offset) << endl;
-                kout[Info] << "p_paddr: " << (void*)(pgm_hdr.p_paddr) << endl;
-                kout[Info] << "p_type: " << (void*)(pgm_hdr.p_type) << endl;
-                kout[Info] << "p_vaddr: " << (void*)(pgm_hdr.p_vaddr) << endl;
+                // kout[Info] << "p_align: " << (void*)(pgm_hdr.p_align) << endl;
+                // kout[Info] << "p_filesz: " << (void*)(pgm_hdr.p_filesz) << endl;
+                // kout[Info] << "p_flags: " << (void*)(pgm_hdr.p_flags) << endl;
+                // kout[Info] << "p_memsz: " << (void*)(pgm_hdr.p_memsz) << endl;
+                // kout[Info] << "p_offset: " << (void*)(pgm_hdr.p_offset) << endl;
+                // kout[Info] << "p_paddr: " << (void*)(pgm_hdr.p_paddr) << endl;
+                // kout[Info] << "p_type: " << (void*)(pgm_hdr.p_type) << endl;
+                // kout[Info] << "p_vaddr: " << (void*)(pgm_hdr.p_vaddr) << endl;
 
                 // 统计相关信息
                 // 加入VMR
@@ -161,7 +161,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 Uint64 vmr_begin = pgm_hdr.p_vaddr;
                 Uint64 vmr_memsize = pgm_hdr.p_memsz;
                 Uint64 vmr_end = vmr_begin + vmr_memsize;
-                kout << "Add VMR from " << (void *)vmr_begin << " to " << (void *)vmr_end << " " << (void*)vmr_flags << endl;
+                // kout << "Add VMR from " << (void*)vmr_begin << " to " << (void*)vmr_end << " " << (void*)vmr_flags << endl;
 
                 // VirtualMemoryRegion* vmr_add = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
                 // vmr_add->Init(vmr_begin, vmr_end, vmr_flags);
@@ -172,7 +172,6 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 memset((char*)vmr_begin, 0x00, vmr_memsize);
                 pm.getCurProc()->getVMS()->Enter();
                 // vms->Leave();
-
 
                 Uint64 tmp_end = vmr_add->GetEnd();
                 if (tmp_end > breakpoint) {
@@ -186,10 +185,10 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 // 这边就是用filesz来读取具体的内容
                 fom.seek_fo(fo, pgm_hdr.p_offset, file_ptr::Seek_beg);
                 vms->Enter();
-                kout<<Red<<"size "<<(void *)pgm_hdr.p_filesz<<endl;
+                kout << Red << "size " << (void*)pgm_hdr.p_filesz << endl;
                 rd_size = fom.read_fo(fo, (void*)vmr_begin, pgm_hdr.p_filesz);
                 // kout[Debug]<<DataWithSizeUnited((void *)vmr_begin,0x1000,32);
-                
+
                 pm.getCurProc()->getVMS()->Enter();
                 // vms->Leave();
                 if (rd_size != pgm_hdr.p_filesz) {
@@ -252,7 +251,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     // kout << "++++++++++argv++++++++++++=" << endl;
     PtrSint p = vms->GetUsableVMR(0x60000000, 0x70000000, PAGESIZE);
-    kout[Info]<<"start_process_formELF:: p " << (void*)p << endl;
+    // kout[Info]<<"start_process_formELF:: p " << (void*)p << endl;
     VirtualMemoryRegion* vmr_str = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
 
     TrapFrame* tf = (TrapFrame*)((char*)proc->stack + proc->stacksize) - 1;
@@ -278,7 +277,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     auto PushString = [&s](const char* str) -> const char* {
         const char* s_bak = s;
         s = strcpyre(s, str);
-        kout[Info]<<"start_process_formELF :: *s"<<(void *)s<<" "<<s<<endl;
+        // kout[Info]<<"start_process_formELF :: *s"<<(void *)s<<" "<<s<<endl;
         *s++ = 0;
         return s_bak;
     };
@@ -287,25 +286,26 @@ int start_process_formELF(procdata_fromELF* proc_data)
         PushInfo64((Uint64)at);
         PushInfo64(value);
     };
-    
-    for (int i=0; i<proc_data->argc; i++) {
-    kout[Info]<<"argv["<<i<<"]"<<proc_data->argv[i]<<endl;
-    }
+
+    // for (int i=0; i<proc_data->argc; i++) {
+    // kout[Info]<<"argv["<<i<<"]"<<proc_data->argv[i]<<endl;
+    // }
 
     PushInfo32(proc_data->argc);
     if (proc_data->argc)
-        for (int i = 0; i < proc_data->argc; ++i)
-        {
+        for (int i = 0; i < proc_data->argc; ++i) {
             PushInfo64((Uint64)PushString(proc_data->argv[i]));
-    // kout[Info]<<"x"<<endl;
+            // kout[Info]<<"x"<<endl;
         }
     PushInfo64(0); // End of argv
     // kout[Info]<<"A"<<endl;
-    PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/VFS/FAT32"));
+    PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/"));
+    PushInfo64((Uint64)PushString("PATH=/"));
+    PushInfo64((Uint64)PushString("SHELL=/busybox"));
     // kout[Info]<<"B"<<endl;
     PushInfo64(0); // End of envs
     // kout[Info]<<"C"<<endl;
-   // kout << "++++++++++++++++++++++=" << endl;
+    // kout << "++++++++++++++++++++++=" << endl;
     // AUX的添加，暂时先不处理
 
     if (ProgramHeaderAddress != 0) {
@@ -313,7 +313,6 @@ int start_process_formELF(procdata_fromELF* proc_data)
         AddAUX(ELF_AT::PHENT, proc_data->e_header.e_phentsize);
         AddAUX(ELF_AT::PHNUM, proc_data->e_header.e_phnum);
 
-        
         AddAUX(ELF_AT::UID, 10);
         AddAUX(ELF_AT::EUID, 10);
         AddAUX(ELF_AT::GID, 10);
@@ -321,7 +320,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     }
     AddAUX(ELF_AT::PAGESZ, PAGESIZE);
     // if (ProgramInterpreterBase != 0)
-        // AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
+    // AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
     AddAUX(ELF_AT::ENTRY, proc_data->e_header.e_entry);
     PushInfo64(0); // End of auxv
     // kout << "++++++++++++start++++++++++=" << endl;
@@ -330,13 +329,12 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // vms->Leave();
     pm.getCurProc()->getVMS()->Enter();
     vms->DisableAccessUser();
-    
-    
+
     // kout[Debug]<<"form ELF VMS"<<proc->getVMS()<<endl;
 
     proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry, proc_data->argc, proc_data->argv);
     proc->setName(fo->file->name);
-    pm.show();
+    // pm.show();
 
     // 正确完整地执行了这个流程
     // 接触阻塞并且返回0
@@ -381,13 +379,13 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc->setFa(pm.getCurProc());
 
     char* abs_cwd = new char[200];
-    
-    kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
+
+    // kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
 
     unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
     // kout<<abs_cwd
     proc->setProcCWD(abs_cwd);
-    kout << Blue << "abs_cwd " << abs_cwd << endl;
+    // kout << Blue << "abs_cwd " << abs_cwd << endl;
     // pm.init_proc(proc, 2, proc_flags);
     // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);
     // pm.set_proc_vms(proc, vms);
@@ -404,7 +402,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     proc_data->proc = proc;
     proc_data->argv = argv;
     proc_data->argc = argc;
-    kout[Info]<<"argc "<<argc<<endl;
+    // kout[Info]<<"argc "<<argc<<endl;
 
     Uint64 user_start_addr = proc_data->e_header.e_entry;
     start_process_formELF(proc_data);

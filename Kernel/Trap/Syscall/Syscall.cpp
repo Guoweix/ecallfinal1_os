@@ -1,5 +1,6 @@
 #include "Driver/VirtioDisk.hpp"
 #include "Error.hpp"
+#include "File/lwext4_include/ext4_errno.h"
 #include "File/myext4.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Library/Kstring.hpp"
@@ -24,9 +25,10 @@ extern bool needSchedule;
 void Syscall_Exit(TrapFrame* tf, int re)
 {
     Process* cur = pm.getCurProc();
-    // kout<<"SDAD"<<re<<endl;
+    // kout[Fault]<<"SDAD"<<re<<endl;
     cur->exit(re);
     Process* child = cur;
+    cur->destroy();
     // while (cur) {
     // kout[Fault]<<cur<<endl;
     // cur->exit(re);
@@ -168,11 +170,17 @@ int Syscall_clone(TrapFrame* tf, int flags, void* stack, int ptid, int tls, int 
     create_proc->copyFromProc(cur_proc);
     if (flags & SIGCHLD) {
         // clone的是子进程
+        char* name = new char[50];
+        strcpy(name, cur_proc->getName());
+        strcat(name, "_child");
+        create_proc->setName(name);
+        delete[] name;
+
         create_proc->setFa(cur_proc);
     }
     // pm.switchstat_proc(create_proc, Proc_ready);
     create_proc->switchStatus(S_Ready);
-    pm.show(1);
+    // pm.show(1);
     IntrRestore(intr_flag);
     return pid_ret;
 }
@@ -240,7 +248,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     // 这里需要文件系统提供的支持
     // argv参数是程序参数 envp参数是环境变量的数组指针 暂时未使用
     // 执行成功跳转执行对应的程序 失败则返回-1
-    pm.show();
+    // pm.show();
     VirtualMemorySpace::EnableAccessUser();
     Process* cur_proc = pm.getCurProc();
     kout[Info] << "execve" << endl;
@@ -252,29 +260,29 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
         return -1;
     }
 
-    kout[Info] << "execve 1 " << endl;
+    // kout[Info] << "execve 1 " << endl;
     file_object* fo = (file_object*)kmalloc(sizeof(file_object));
     fom.set_fo_file(fo, file_open);
     fom.set_fo_pos_k(fo, 0);
-    fom.set_fo_flags(fo, 0);
+    fom.set_fo_flags(fo, file_flags::RDONLY);
 
-    kout[Info] << "execve 2 " << endl;
+    // kout[Info] << "execve 2 " << endl;
 
     int argc = 0;
     while (argv[argc] != nullptr)
         argc++;
-    kout[Info] << "argc" << argc << endl;
+    // kout[Info] << "argc" << argc << endl;
     char** argv1 = new char*[argc];
     for (int i = 0; i < argc; i++) {
-        kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+        // kout[Info] << "argv[" << i << "]" << argv[i] << endl;
         argv1[i] = strdump(argv[i]);
     }
 
-    kout[Info] << "execve 3 " << endl;
+    // kout[Info] << "execve 3 " << endl;
 
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
 
-    kout[Info] << "execve 4 " << endl;
+    // kout[Info] << "execve 4 " << endl;
     int exit_value = 0;
     if (new_proc == nullptr) {
         kout[Error] << "SYS_execve CreateProcessFromELF Fail!" << endl;
@@ -401,6 +409,34 @@ int Syscall_sched_yeild()
     return 0;
 }
 
+enum STAT_MODE {
+
+    __S_IFDIR = 0040000, /* Directory.  */
+    __S_IFCHR = 0020000, /* Character device.  */
+    __S_IFBLK = 0060000, /* Block device.  */
+    __S_IFREG = 0100000, /* Regular file.  */
+    __S_IFIFO = 0010000, /* FIFO.  */
+    __S_IFLNK = 0120000, /* Symbolic link.  */
+    __S_IFSOC = 0140000, /* Socket.  */
+
+    /* POSIX.1b objects.  Note that these macros always evaluate to zero.  But
+       they do it by enforcing the correct use of the macros.  */
+    // __S_TYPEISMQ(buf)  ((buf)->st_mode - (buf)->st_mode)
+    // __S_TYPEISSEM(buf) ((buf)->st_mode - (buf)->st_mode)
+    // __S_TYPEISSHM(buf) ((buf)->st_mode - (buf)->st_mode)
+
+    /* Protection bits.  */
+
+    __S_ISUID = 04000, /* Set user ID on execution.  */
+    __S_ISGID = 02000, /* Set group ID on execution.  */
+    __S_ISVTX = 01000, /* Save swapped text after use (sticky).  */
+    __S_IREAD = 0400, /* Read by owner.  */
+    __S_IWRITE = 0200, /* Write by owner.  */
+    __S_IEXEC = 0100, /* Execute by owner.  */
+    __S_IRWX = __S_IWRITE | __S_IEXEC | __S_IREAD,
+
+};
+
 int Syscall_fstat(int fd, kstat* kst)
 {
     // 获取文件状态的系统调用
@@ -430,9 +466,11 @@ int Syscall_fstat(int fd, kstat* kst)
     kst->st_nlink = 1;
     kst->st_uid = 0;
     kst->st_gid = 0;
-    kst->st_mode = 0x1ff;
+    kst->st_mode = __S_IRWX;
     if (file->TYPE & FileType::__DIR) {
         kst->st_mode |= 0040000;
+    } else {
+        kst->st_mode |= __S_IFREG;
     }
     // ... others to be added
     VirtualMemorySpace::DisableAccessUser();
@@ -610,6 +648,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
+    kout[DeBug] << "Syscall_write fd" << fd << endl;
     if (fd == STDOUT_FILENO) {
         VirtualMemorySpace::EnableAccessUser();
         // kout << Yellow << buf << endl;
@@ -674,11 +713,11 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
         return -1;
     }
 
-    kout[DeBug]<<"Syscall_read fd"<<fd <<endl;
+    kout[DeBug] << "Syscall_read fd" << fd << endl;
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
     if (fo == nullptr) {
-        kout[Error]<<"Syscall_read can't open fd "<<endl;
+        kout[Error] << "Syscall_read can't open fd " << endl;
         return -1;
     }
     // kout<<Yellow<<"read2"<<endl;
@@ -686,15 +725,15 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     long long rd_size = 0;
     unsigned char* buf1 = new unsigned char[count];
 
-    kout[Debug]<<"SYS_read  read_size "<< count<<" "<<fo<<endl;
-    
-    char a[100];
-    fo->file->read(a,100);
-    kout<<Red<<a<<endl;
-    
+    kout[Debug] << "SYS_read  read_size " << count << " " << fo << endl;
+    /*
+     char a[100];
+     fo->file->read(a,100);
+     kout<<Red<<a<<endl;
+      */
     rd_size = fom.read_fo(fo, buf1, count);
     if (rd_size == 0) {
-        kout[Error]<<"Syscall_read rd_size is 0"<<endl;
+        kout[Error] << "Syscall_read rd_size is 0" << endl;
         return -1;
     }
     memcpy(buf, (const char*)buf1, count);
@@ -703,7 +742,7 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // kout<<Yellow<<"read4"<<endl;
     VirtualMemorySpace::DisableAccessUser();
     if (rd_size < 0) {
-        kout[Error]<<"Syscall_read  read failed"<<endl;
+        kout[Error] << "Syscall_read  read failed" << endl;
         return -1;
     }
     return rd_size;
@@ -739,7 +778,7 @@ inline RegisterData Syscall_fcntl(int fd, int cmd, TrapFrame* tf)
     case F_SETFD:
         t = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
         re = -1;
-        if (fom.set_fo_flags(t, tf->reg.a2)) {
+        if (fom.set_fo_flags(t, (file_flags)tf->reg.a2)) {
             re = 0;
         }
         kout[Debug] << tf->reg.a2 << endl;
@@ -752,11 +791,11 @@ inline RegisterData Syscall_fcntl(int fd, int cmd, TrapFrame* tf)
         int ret_fd = -1;
         // 将复制的新的文件描述符直接插入当前的进程的文件描述符表
         ret_fd = fom.add_fo_tolist(pm.getCurProc()->fo_head, fo_new);
-        fom.set_fo_flags(fo_new,CLOEXEC);
+        fom.set_fo_flags(fo_new, file_flags::CLOEXEC);
         // char a[100];
         // fo_new->file->read(a,100);
         // kout[DeBug]<<"dup_fo fd "<<a<<endl;
-        kout[Debug]<<fo_new<<endl;
+        kout[Debug] << fo_new << endl;
         return ret_fd;
 
     } break;
@@ -808,17 +847,20 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->flags & file_flags::WRONLY)) {
+    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
         PIPEFILE* fp = (PIPEFILE*)fo->file;
+        kout[DeBug] << "close pipefile writeRef" << fp->writeRef << endl;
+
         fp->writeRef--;
         if (fp->writeRef == 0) {
             char* t = new char;
             *t = 4;
             // kout[Fault]<<"EOF "<<endl;
             fom.write_fo(fo, t, 1);
+            delete t;
         }
     }
-    // kout[Info]<<"close"<<endl;
+    kout[Info] << fo->file->name << endl;
     // vfsm.show_opened_file();
     // vfsm.close(fo->file);
     // vfsm.show_opened_file();
@@ -932,7 +974,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
 
     // kout << Red << rela_wd << endl;
 
-    if (flags & file_flags::CREAT) {
+    if (flags & (Uint64)file_flags::CREAT) {
         // 创建文件或目录
         // 创建则在进程的工作目录进行
         kout << Red << "OpenedFile6" << endl;
@@ -998,12 +1040,12 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     kout << Red << "OpenedFile14" << endl;
     if (file != nullptr) {
         fom.set_fo_file(fo, file);
-        fom.set_fo_flags(fo, flags);
+        fom.set_fo_flags(fo, (file_flags)flags);
         fom.set_fo_mode(fo, mode);
         kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
-    kout << Green << "Open Success filenode " << file <<" fd " << fo->fd<< endl;
+    kout << Green << "Open Success filenode " << file << " fd " << fo->fd << endl;
 
     file->show();
     kout << Green << "Open Success1" << endl;
@@ -1012,7 +1054,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // file->read(a,100);
     // kout[DeBug]<<"read "<<a<<endl;
 
-    // kout[Info] <<"open fd is _____________________________________"<< fo->fd << endl;
+    kout << Green << "Syscall_open fd is " << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
     delete[] rela_wd;
     return fo->fd;
@@ -1042,6 +1084,37 @@ int Syscall_munmap(void* start, Uint64 len)
     } else
         vms->RemoveVMR(vmr, 1);
     return 0;
+}
+
+Sint64 Syscall_lseek(int fd, Sint64 off, int whence)
+{
+    file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
+
+    if (fh == nullptr)
+        return -1;
+
+    constexpr int SEEK_SET_ = 0,
+                  SEEK_CUR_ = 1,
+                  SEEK_END_ = 2;
+    int base;
+    switch (whence) {
+    case SEEK_SET_:
+        base = 0;
+        break;
+    case SEEK_CUR_:
+        base = fh->pos_k;
+        break;
+    case SEEK_END_:
+        base = fh->file->size();
+        break;
+    default:
+        return -1;
+    }
+    ErrorType err = fom.set_fo_pos_k(fh, base + off);
+    if (err)
+        return -1;
+    else
+        return fh->pos_k;
 }
 
 PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int off) // Currently flags will be ignored...
@@ -1142,7 +1215,6 @@ ErrorReturn:
     return -1;
 }
 
-
 int Syscall_nanosleep(timespec* req, timespec* rem)
 {
     // 执行线程睡眠的系统调用
@@ -1189,7 +1261,7 @@ inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint
         if (iov[i].base == nullptr) {
             continue;
         }
-        kout[DeBug] << "iov " << (char*)iov[i].base << "len " << iov[i].len << endl;
+        // kout[DeBug] << "iov " << (char*)iov[i].base << "len " << iov[i].len << endl;
         if constexpr (rw == ModeRW::W) {
             // r=fh->Write(iov[i].base,iov[i].len,off==-1?-1:off+re);
             if (off != -1) {
@@ -1218,24 +1290,31 @@ inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint
 
 inline int Syscall_pipe2(int* fd, int flags)
 {
-    kout << Yellow << "pipe" << endl;
+    // kout << Yellow << "pipe" << endl;
     Process* cur = pm.getCurProc();
-    kout << Yellow << "pipe1" << endl;
+    // kout << Yellow << "pipe1" << endl;
     PIPEFILE* pipe = new PIPEFILE();
     if (pipe == nullptr)
         return -1;
-    kout << Yellow << "pipe2" << endl;
+    // kout << Yellow << "pipe2" << endl;
 
     file_object* fo1 = (file_object*)kmalloc(sizeof(file_object)); // 创建两个fo,实际对应同一个pipe文件
+    // kout << Yellow << "pipe3" << endl;
+    pipe->readRef++;
+    pipe->writeRef++;
     fom.set_fo_file(fo1, pipe);
     fom.set_fo_pos_k(fo1, 0);
-    fom.set_fo_flags(fo1, 0);
+    fom.set_fo_flags(fo1, file_flags::RDONLY);
 
+    kout << Yellow << pipe << endl;
     file_object* fo2 = (file_object*)kmalloc(sizeof(file_object));
+    // kout << Yellow << "pipe5" << endl;
     fom.set_fo_file(fo2, pipe);
     fom.set_fo_pos_k(fo2, 0);
-    fom.set_fo_flags(fo2, 1);
+    // fom.set_fo_flags(fo2, 1);
+    fom.set_fo_flags(fo2, file_flags::WRONLY);
 
+    // kout << Yellow << "pipe6" << endl;
     if (InThisSet(nullptr, fo1, fo2)) {
         if (fo1 == nullptr && fo2 == nullptr)
             delete pipe;
@@ -1245,16 +1324,83 @@ inline int Syscall_pipe2(int* fd, int flags)
             delete fo1;
         return -1;
     }
+    fo1->fd = -1;
+    fo2->fd = -1;
 
     fom.add_fo_tolist(cur->getFoHead(), fo1);
     fom.add_fo_tolist(cur->getFoHead(), fo2);
+
     VirtualMemorySpace::EnableAccessUser();
     fd[0] = fo1->fd;
     fd[1] = fo2->fd;
+    // kout << Yellow << "pipe7" << endl;
+    kout[Info] << "PIPE 2 " << fo1->fd << " " << fo2->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
     return 0;
 }
 
+int Syscall_sendfile(int out_fd, int in_fd, Uint64* offset, size_t count)
+{
+    Process* curProc = pm.getCurProc();
+    file_object* outFo = fom.get_from_fd(curProc->getFoHead(), out_fd);
+    file_object* inFo = fom.get_from_fd(curProc->getFoHead(), in_fd);
+
+    ASSERTEX(outFo, "SYSCALL::sendfile outFo is nullptr");
+    ASSERTEX(inFo, "SYSCALL::sendfile inFO is nullptr");
+
+    FileNode* outFile = outFo->file;
+    FileNode* inFile = inFo->file;
+
+    ASSERTEX(outFile, "SYSCALL::sendfile outFile is nullptr");
+    ASSERTEX(inFile, "SYSCALL::sendfile inFile is nullptr");
+
+    int read_size = 0, pos = 0, re = 0, ac_size = 0;
+
+    VirtualMemorySpace::EnableAccessUser();
+    if (offset) {
+        pos = *(offset);
+    } else {
+        pos = inFo->pos_k;
+        kout[DeBug] << "SYSCALL::sendfile pos_k " << pos << endl;
+    }
+    VirtualMemorySpace::DisableAccessUser();
+
+    char* buf = new char[4096];
+    read_size = (count >= 4096 ? 4096 : count);
+    kout[DeBug] << "SYSCALL::sendfile count" << count << endl;
+    while (count != 0) {
+
+        kout[DeBug] << "SYSCALL::sendfile read_size:" << read_size << endl;
+        read_size = (count >= 4096 ? 4096 : count);
+
+        ac_size = inFile->read(buf, pos, read_size);
+        if (ac_size == -1) {
+            break;
+        }
+        if (ac_size != read_size) {
+            kout[Debug] << "ac_size != read_size ac_size = " << ac_size << "read_size = " << read_size << endl;
+            read_size = ac_size;
+            count = ac_size;
+        }
+        outFile->write(buf, pos, read_size);
+        pos += read_size;
+        count -= read_size;
+        re += read_size;
+        kout[Debug] << "count " << count << " read_size " << read_size << " pos " << pos << " re " << re << endl;
+    }
+
+    VirtualMemorySpace::EnableAccessUser();
+
+    if (offset) {
+        (*offset) = pos;
+    } else {
+        inFo->pos_k = pos;
+    }
+    VirtualMemorySpace::DisableAccessUser();
+
+    delete[] buf;
+    return re;
+}
 /* int Syscall_ppoll(struct pollfd* fds, nfds_t nfds,
     const struct timespec*  tmo_p,
     const sigset_t* sigmask)
@@ -1266,6 +1412,50 @@ inline int Syscall_pipe2(int* fd, int flags)
     return -1;
 }
  */
+
+int Syscall_prlimit64(PID pid, int resource, RegisterData nlmt, RegisterData olmt) // It is not supported completely, only query is allowed now that pid and nlmt will be ignored...
+{
+    struct rlimit {
+        Uint64 cur,
+            max;
+    };
+
+    enum {
+        RLIMIT_CPU = 0,
+        RLIMIT_FSIZE = 1,
+        RLIMIT_DATA = 2,
+        RLIMIT_STACK = 3,
+        RLIMIT_CORE = 4,
+        RLIMIT_RSS = 5,
+        RLIMIT_NPROC = 6,
+        RLIMIT_NOFILE = 7,
+        RLIMIT_MEMLOCK = 8,
+        RLIMIT_AS = 9,
+        RLIMIT_LOCKS = 10,
+        RLIMIT_SIGPENDING = 11,
+        RLIMIT_MSGQUEUE = 12,
+        RLIMIT_NICE = 13,
+        RLIMIT_RTPRIO = 14,
+        RLIMIT_RTTIME = 15,
+        RLIMIT_NLIMITS = 16
+    };
+
+    int re = 0;
+    rlimit *oldlimit = (decltype(oldlimit))olmt,
+           *newlimit = (decltype(newlimit))nlmt;
+    if (oldlimit != nullptr)
+        switch (resource) {
+        case RLIMIT_STACK:
+            oldlimit->cur = oldlimit->max = InnerUserProcessStackSize - 512;
+            break; // Need improve...
+        default:
+            re = -1;
+            break;
+        }
+    if (newlimit != nullptr)
+        kout[Warning] << "Syscall_prlimit64 newlimit is set, however it will be ignored!" << endl;
+    return re;
+}
 
 int Syscall_ppoll(void* _fds, Uint64 nfds, void* _tmo_p, void* _sigmask)
 {
@@ -1501,8 +1691,9 @@ int Syscall_set_tid_address(int* tidptr)
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout[Info] << "Info:" << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << endl;
-    // kout[Info]<<pm.getCurProc()->getCWD()<<endl;
+    kout <<Green << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << " pid " << pm.getCurProc()->getID() << endl;
+
+    // kout[Info]<<
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -1544,7 +1735,10 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
         // tf->reg.a0 = Syscall_setppid(tf->reg.a0);
         // break;
-    
+    case SYS_lseek:
+        tf->reg.a0 = Syscall_lseek(tf->reg.a0, tf->reg.a1, tf->reg.a2);
+        break;
+
     case SYS_getpgid:
     case SYS_geteuid:
     case SYS_getuid:
@@ -1663,6 +1857,13 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_ppoll((struct pollfd*)tf->reg.a0, (nfds_t)tf->reg.a1, (void*)tf->reg.a2, (void*)tf->reg.a3);
         break;
 
+    case SYS_sendfile:
+        tf->reg.a0 = Syscall_sendfile(tf->reg.a0, tf->reg.a1, (Uint64*)tf->reg.a2, tf->reg.a3);
+        break;
+
+    case SYS_prlimit64:
+        tf->reg.a0 = Syscall_prlimit64(tf->reg.a0, tf->reg.a1, tf->reg.a2, tf->reg.a3);
+        break;
     case SYS_setpgid:
     case SYS_sigtimedwait:
     case SYS_exit_group:

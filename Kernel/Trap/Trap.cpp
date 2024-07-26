@@ -154,7 +154,7 @@ TrapFrame* Trap(TrapFrame* tf)
     if (needSchedule) {
         needSchedule = t;
         // if(t)
-        kout << "true" << endl;
+        // kout << "true" << endl;
         // else
         // kout<<"false"<<endl;
         return pm.Schedule(tf);

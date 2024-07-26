@@ -31,7 +31,7 @@ void FileObjectManager::init_proc_fo_head(Process* proc)
     proc->fo_head->fd = -1; // 头节点的fd默认置为-1
     proc->fo_head->file = nullptr; // 头节点的file指针置空 不会有任何引用和指向
     proc->fo_head->pos_k = -1; // 这些成员在头节点的定义下均不会使用 置-1即可 无符号数类型下
-    proc->fo_head->flags = -1;
+    proc->fo_head->flags = file_flags::RDONLY;
     proc->fo_head->mode = -1;
 }
 
@@ -113,7 +113,7 @@ file_object* FileObjectManager::create_flobj(file_object* fo_head, int fd)
     new_fo->fd = new_fd;
     new_fo->file = nullptr; // 相关属性在之后会有相关设置
     new_fo->next = nullptr;
-    new_fo->flags = -1;
+    new_fo->flags = file_flags::RDONLY;
     new_fo->mode = -1;
     new_fo->pos_k = 0;
     // 分配完成之后插入这个链表的最后一个位置即可
@@ -291,7 +291,7 @@ bool FileObjectManager::set_fo_pos_k(file_object* fo, Uint64 pos_k)
     return true;
 }
 
-bool FileObjectManager::set_fo_flags(file_object* fo, Uint64 flags)
+bool FileObjectManager::set_fo_flags(file_object* fo, file_flags flags)
 {
     if (fo == nullptr) {
         kout[Fault] << "The fo is Empty cannot be set!" << endl;
@@ -332,7 +332,7 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
         kout[Fault] << "Read fo the file pointer is NULL!" << endl;
         return -1;
     }
-    kout[Debug] << (void*)fo->file->vfs << " file " << file->name << " dst " << (void*)dst << " pos_k " << fo->pos_k <<" size "<<size<< endl;
+    // kout[Debug] << (void*)fo->file->vfs << " file " << file->name << " dst " << (void*)dst << " pos_k " << fo->pos_k <<" size "<<size<< endl;
 
     Sint64 rd_size;
     // kout[Debug] << "read_fo1 "<<()dst<<endl;
@@ -366,6 +366,7 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
     // if (file==STDIO) {
     // kout[Info]<<"file is STDIO"<<endl;
     // }
+    kout[Info]<<"FileObject::write file "<<file<<endl;
     wr_size = file->write((unsigned char*)src, fo->pos_k, size);
     file->fileSize = size;
     // }
@@ -401,9 +402,11 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 这就是这一层封装和隔离的妙处所在
     FileNode* file = fo->file;
     kout[Info]<<"close_fo fd"<<fo->fd << " "<<fo->file<<fo->file->name<<endl;
+    
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点
     file_object* fo_head = proc->fo_head;
+    file=nullptr;
     fom.delete_flobj(fo_head, fo);
     return true;
 }
@@ -426,6 +429,14 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
     dup_fo->fd = -1; // 这个fd在需要插入这个fo节点时再具体化
     dup_fo->file = fo->file; // 关键是file flags这些信息的拷贝
     fo->file->RefCount++;
+
+    if ((fo->file->TYPE&FileType::__PIPEFILE)&&(fo->canWrite())) 
+    {
+        // kout[Fault]<<"dup pipe"<<endl;
+        PIPEFILE * t=(PIPEFILE *)fo->file;
+        t->writeRef++;
+    }
+
                              
     // char a[200];
     // dup_fo->file->read(a,200);

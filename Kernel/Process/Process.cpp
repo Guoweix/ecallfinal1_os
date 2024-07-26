@@ -60,11 +60,10 @@ void ProcessManager::simpleShow()
 {
     for (int i = 0; i < MaxProcessCount; i++) {
         if (curProc->id == i) {
-            kout[Info] << "Cur====>" << endl;
+            kout[Info] << "Cur====>";
         }
         if (Proc[i].status != S_None) {
-            kout[Info] << Proc[i].name << endline
-                        << Proc[i].id << endl;
+            kout[Info] << Proc[i].name <<" id " << Proc[i].id << endl;
         }
     }
 }
@@ -143,7 +142,7 @@ bool Process::copyFromProc(Process* src)
     // pm.copy_proc_fds(dst, src);
 
     copyFds(src);
-    kout[Info] << "Porcess copyFromProc src cwd" << src->getCWD() << endl;
+    // kout[Info] << "Porcess copyFromProc src cwd" << src->getCWD() << endl;
     curWorkDir = new char[200];
     strcpy(curWorkDir, src->getCWD());
 
@@ -177,6 +176,8 @@ void Process::init(ProcFlag _flags)
     memset(&context, 0, sizeof(context));
     flags = _flags;
     name[0] = 0;
+
+    kout[DeBug]<<"new process "<<id<<endl;
 }
 
 void Process::destroy()
@@ -189,9 +190,9 @@ void Process::destroy()
         exit(Exit_Normal);
     }
     
-    kout[Info] <<"process ::destroy his family father"<<father<<endline
-                                            <<"broPre "<<broPre<<"broNext "<<broNext<<endline
-                                            <<"fstChild "<<fstChild<<"myself "<<this<<endl;
+    // kout[Info] <<"process ::destroy his family father"<<father<<endline
+                                            // <<"broPre "<<broPre<<"broNext "<<broNext<<endline
+                                            // <<"fstChild "<<fstChild<<"myself "<<this<<endl;
     while (fstChild) {
         // kout[Debug]<<"loop here"<<endl;
         fstChild->destroy();
@@ -243,7 +244,7 @@ void Process::destroy()
 
 bool Process::exit(int re)
 {
-    // kout<<"exit"<<re;
+    kout[DeBug]<<"process::exit id"<<id<<re;
     switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
@@ -254,9 +255,16 @@ bool Process::exit(int re)
     exitCode = re;
     // VMS->Leave();
     // destroyFds();
-    if (!(flags & F_AutoDestroy) && father != nullptr) {
+    while(waitSem->getValue()<1) {
+        waitSem->signal();
+    }
+    if (father!=nullptr) {
+        kout[DeBug]<<"wake up it's father "<<endl;
         father->waitSem->signal();
     }
+    // if (!(flags & F_AutoDestroy) && father != nullptr) {
+        // father->waitSem->signal();
+    // }
     return true;
 }
 
@@ -264,7 +272,7 @@ bool Process::run()
 {
     Process* cur = pm->getCurProc();
     // cur->show();
-    kout[Info] << "switch from " << cur->name << " id " << cur->getID() << " to " << name << " ID: " << id << endl;
+    // kout[Info] << "switch from " << cur->name << " id " << cur->getID() << " to " << name << " ID: " << id << endl;
     if (this != cur) {
         if (cur->status == S_Running) {
             cur->switchStatus(S_Ready);
@@ -280,6 +288,7 @@ bool Process::run()
 void Process::setFa(Process* fa)
 {
     if (fa == nullptr) {
+        kout[Error]<<"Process::setfa father is nullptr"<<endl;
         return;
     }
 
@@ -352,7 +361,7 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr, int argc, char
 
 void Process::switchStatus(ProcStatus tarStatus)
 {
-    kout << Yellow << name << "   status to" << tarStatus << endl;
+    // kout << Yellow << name << "   status to" << tarStatus << endl;
     ClockTime t = GetClockTime();
     ClockTime d = t - timeBase;
     timeBase = t;
@@ -378,9 +387,24 @@ void Process::switchStatus(ProcStatus tarStatus)
     default:
         break;
     }
-    if (tarStatus==S_None) {
-        kout[Error]<<"proc "<<id<<"change status to None"<<endl;
+
+    if (id==4) {
+        kout[DeBug]<<" process 4 switch to "<<tarStatus<<endl;
     }
+/* 
+    switch (tarStatus) {
+        case S_None:
+            kout[DeBug]<<this->id<<" status to S_None"<<endl;
+            break;
+        case S_Sleeping:
+            kout[DeBug]<<this->id<<" status to S_Sleep"<<endl;
+            break;
+        case S_Running:
+            kout[DeBug]<<this->id<<" status to S_Running"<<endl;
+            break;
+        default:
+            break; 
+    }  */
     status = tarStatus;
 }
 
@@ -415,7 +439,7 @@ bool ProcessManager::freeProc(Process* proc)
         return true;
     }
     if (proc == curProc) {
-        kout[Fault] << "freeProcess == curProc" << curProc->id << endl;
+        kout[Warning] << "freeProcess == curProc" << curProc->id << endl;
     }
     if (proc == &Proc[0]) {
         kout[Fault] << "freeProcess == idle0" << curProc->id << endl;
@@ -439,7 +463,8 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
     Process* tar;
 
-    kout[Debug] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
+    pm.simpleShow();
+    // kout[Debug] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
     kout << Blue << procCount << endl;
     if (curProc != nullptr && procCount >= 2) {
@@ -448,6 +473,10 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     RetrySchedule:
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
             tar = &Proc[(i + p) % MaxProcessCount];
+
+            // if (tar->getStatus()!=S_None) {
+            // kout[Info]<<" Process "<<tar->getID()<<" STATUS "<<tar->getStatus()<<endl;
+            // }
             if (tar->getStatus() == S_Terminated) {
                 pm.freeProc(tar);
             }
@@ -467,8 +496,9 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 // tar->getVMS()->DisableAccessUser();
 
                 return tar->context;
-            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
-                tar->destroy();
+            } 
+            // else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
+                // tar->destroy();
         }
     }
 
@@ -477,6 +507,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 
 void ProcessManager::immSchedule()
 {
+    kout[Info]<<"Schedule from Kernel "<<endl;
     RegisterData a7 = SYS_sched_yeild;
     asm volatile("ld a7,%0; ebreak" ::"m"(a7) : "memory");
     // kout<<"__________________"<<endl;
@@ -497,7 +528,7 @@ bool Process::initFds()
         // 那么就先释放掉所有的再新建头节点
         fom.init_proc_fo_head(this);
     }
-    kout[Info] << "initFds" << endl;
+    // kout[Info] << "initFds" << endl;
 
     // 初始化一个进程时需要初始化它的文件描述符表
     // 即一个进程创建时会默认打开三个文件描述符 标准输入 输出 错误
