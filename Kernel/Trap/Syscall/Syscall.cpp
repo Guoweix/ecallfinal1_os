@@ -25,10 +25,11 @@ extern bool needSchedule;
 void Syscall_Exit(TrapFrame* tf, int re)
 {
     Process* cur = pm.getCurProc();
-    // kout[Fault]<<"SDAD"<<re<<endl;
     cur->exit(re);
-    Process* child = cur;
-    cur->destroy();
+    // Process* child = cur;
+    // kout[DeBug]<<"father is "<<cur->father->id<<" cur status "<<cur->getStatus()<<endl;
+    // kout[Fault]<<"SDAD"<<re<<endl;
+    // cur->destroy();
     // while (cur) {
     // kout[Fault]<<cur<<endl;
     // cur->exit(re);
@@ -204,7 +205,7 @@ char* Syscall_getcwd(char* buf, Uint64 size)
         if (cwd_len > 0 && cwd_len < size) {
             strcpy(buf, cwd);
         } else {
-            kout[Info] << "SYS_getcwd the Buf Size is Not enough to Store the cwd!" << endl;
+            kout[Warning] << "SYS_getcwd the Buf Size is Not enough to Store the cwd!" << endl;
             return nullptr;
         }
     }
@@ -251,9 +252,9 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     // pm.show();
     VirtualMemorySpace::EnableAccessUser();
     Process* cur_proc = pm.getCurProc();
-    kout[Info] << "execve" << endl;
+    // kout[Info] << "execve" << endl;
     FileNode* file_open = vfsm.open(path, "/");
-    kout[Info] << "execve open finish" << endl;
+    // kout[Info] << "execve open finish" << endl;
 
     if (file_open == nullptr) {
         kout[Error] << "SYS_execve open File Fail!" << endl;
@@ -266,21 +267,19 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     fom.set_fo_pos_k(fo, 0);
     fom.set_fo_flags(fo, file_flags::RDONLY);
 
-    // kout[Info] << "execve 2 " << endl;
-
     int argc = 0;
     while (argv[argc] != nullptr)
         argc++;
-    // kout[Info] << "argc" << argc << endl;
+    kout[Info] << "argc" << argc << endl;
     char** argv1 = new char*[argc];
     for (int i = 0; i < argc; i++) {
-        // kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+        kout[Info] << "argv[" << i << "]" << argv[i] << endl;
         argv1[i] = strdump(argv[i]);
     }
 
-    // kout[Info] << "execve 3 " << endl;
-
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
+    new_proc->destroyFds();
+    new_proc->copyFds(cur_proc);
 
     // kout[Info] << "execve 4 " << endl;
     int exit_value = 0;
@@ -296,7 +295,8 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
             // 当前场景的执行逻辑上只会有一个子进程
             Process* pptr = nullptr;
             for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
-                if (pptr->getStatus() == S_Terminated || pptr->getStatus() == S_None) {
+                if (pptr->getStatus() == S_Terminated) {
+                    // kout[DeBug]<<" find death child "<<pptr->id<<endl;
                     child = pptr;
                     break;
                 }
@@ -314,7 +314,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
                 VirtualMemorySpace::DisableAccessUser();
                 kout << cur_proc->getName() << "execve free" << child->getName() << endl;
                 child->destroy();
-                // pm.freeProc(child);
+                pm.freeProc(child);
                 break;
             }
         }
@@ -330,6 +330,60 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     return -1;
 }
 
+/*
+int Syscall_execve(const char* path, char* const argv[], char* const envp[])
+{
+    // 执行一个指定的程序的系统调用
+    // 关键是利用解析ELF文件创建进程来实现
+    // 这里需要文件系统提供的支持
+    // argv参数是程序参数 envp参数是环境变量的数组指针 暂时未使用
+    // 执行成功跳转执行对应的程序 失败则返回-1
+    // pm.show();
+    VirtualMemorySpace::EnableAccessUser();
+    Process* cur_proc = pm.getCurProc();
+    FileNode* file_open = vfsm.open(path, "/");
+
+    if (file_open == nullptr) {
+        kout[Error] << "SYS_execve open File Fail!" << endl;
+        return -1;
+    }
+
+    // kout[Info] << "execve 1 " << endl;
+    file_object* fo = (file_object*)kmalloc(sizeof(file_object));
+    fom.set_fo_file(fo, file_open);
+    fom.set_fo_pos_k(fo, 0);
+    fom.set_fo_flags(fo, file_flags::RDONLY);
+
+    // kout[Info] << "execve 2 " << endl;
+
+    int argc = 0;
+    while (argv[argc] != nullptr)
+        argc++;
+    kout[Info] << "argc" << argc << endl;
+    char** argv1 = new char*[argc];
+    for (int i = 0; i < argc; i++) {
+        kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+        argv1[i] = strdump(argv[i]);
+    }
+
+    // kout[Info] << "execve 3 " << endl;
+
+    Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1,cur_proc->GetFlags(),cur_proc);
+
+    file_object * t=new_proc->getFoHead();
+    new_proc->fo_head=nullptr;
+
+
+
+    vfsm.close(file_open);
+
+
+    pm.immSchedule();
+    // kout[Fault] << "SYS_execve reached unreacheable branch!" << endl;
+    return -1;
+}
+
+*/
 int Syscall_wait4(int pid, int* status, int options)
 {
     // 等待进程改变状态的系统调用
@@ -381,9 +435,9 @@ int Syscall_wait4(int pid, int* status, int options)
 
             // pm.getCurProc()->getVMS()->show();
             kout[Debug] << "destroy child" << endl;
-            child->destroy(); // 回收子进程 子进程的回收只能让父进程来进行
+            child->destroy();
             kout << Red << cur_proc->getName() << "wait4 freeProc " << child->getName();
-            // pm.freeProc(child);
+            pm.freeProc(child); // 回收子进程 子进程的回收只能让父进程来进行
             kout[Info] << "child DEAD   " << ret << endl;
             return ret;
         } else if (options & WNOHANG) {
@@ -649,16 +703,16 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     }
 
     kout[DeBug] << "Syscall_write fd" << fd << endl;
-    if (fd == STDOUT_FILENO) {
-        VirtualMemorySpace::EnableAccessUser();
-        // kout << Yellow << buf << endl;
-        for (int i = 0; i < count; i++) {
-            putchar(((char*)buf)[i]);
-            // kout << (uint64)((char*)buf)[i] << endl;
-        }
-        VirtualMemorySpace::DisableAccessUser();
-        return count;
-    }
+    // if (fd == STDOUT_FILENO) {
+    // VirtualMemorySpace::EnableAccessUser();
+    // kout << Yellow << buf << endl;
+    // for (int i = 0; i < count; i++) {
+    // putchar(((char*)buf)[i]);
+    // kout << (uint64)((char*)buf)[i] << endl;
+    // }
+    // VirtualMemorySpace::DisableAccessUser();
+    // return count;
+    // }
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
@@ -666,7 +720,6 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
-    // trick实现文件信息的打印
     // 向标准输出写
     /*     if (fo->tk_fd == STDOUT_FILENO) {
             // putchar('s');
@@ -752,7 +805,7 @@ inline RegisterData Syscall_fcntl(int fd, int cmd, TrapFrame* tf)
 {
     file_object* fh = fom.get_from_fd(pm.getCurProc()->getFoHead(), fd);
     if (fh == nullptr) {
-        kout[DeBug] << "can't get_from_fd" << fd << endl;
+        kout[Warning] << "can't get_from_fd" << fd << endl;
         return -1;
     }
 
@@ -838,7 +891,6 @@ inline int Syscall_close(int fd)
     // 传入参数为要关闭的文件描述符
     // 成功执行返回0 失败返回-1
 
-    kout << Yellow << "syscall close " << fd << endl;
     Process* cur_proc = pm.getCurProc();
 
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
@@ -847,19 +899,6 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
-        PIPEFILE* fp = (PIPEFILE*)fo->file;
-        kout[DeBug] << "close pipefile writeRef" << fp->writeRef << endl;
-
-        fp->writeRef--;
-        if (fp->writeRef == 0) {
-            char* t = new char;
-            *t = 4;
-            // kout[Fault]<<"EOF "<<endl;
-            fom.write_fo(fo, t, 1);
-            delete t;
-        }
-    }
     kout[Info] << fo->file->name << endl;
     // vfsm.show_opened_file();
     // vfsm.close(fo->file);
@@ -870,6 +909,7 @@ inline int Syscall_close(int fd)
         kout << "close error" << endl;
         return -1;
     }
+
     kout << "close success" << endl;
     return 0;
 }
@@ -920,17 +960,21 @@ inline int Syscall_dup3(int old_fd, int new_fd)
     if (fo_tmp != nullptr) {
         // 指定的新的文件描述符已经存在
         // 将这个从文件描述符表中删除
+        vfsm.close(fo_tmp->file);
+
         fom.delete_flobj(cur_proc->fo_head, fo_tmp);
     }
 
+    kout[DeBug] << "dup3 old_fd " << old_fd << " new_fd " << new_fd << endl;
     // 没有串口 继续trick
-    if (old_fd == STDOUT_FILENO) {
-        fo_new->tk_fd = STDOUT_FILENO;
-    }
+    // if (old_fd == STjDOUT_FILENO) {
+    // fo_new->tk_fd = STDOUT_FILENO;
+    // }
 
     fom.set_fo_fd(fo_new, new_fd);
     // 再将这个新的fo插入进程的文件描述符表
     int rd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+    kout[DeBug] << " new_fd " << rd << endl;
     if (rd != new_fd) {
         return -1;
     }
@@ -1148,6 +1192,7 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
     Uint64 vmrProt = node != nullptr ? VirtualMemoryRegion::VM_File : 0;
     // if (prot&PROT_READ)
     vmrProt |= VirtualMemoryRegion::VM_RWX;
+    // vmrProt |= VirtualMemoryRegion::VM_MMAP;
     // vmrProt|=VirtualMemoryRegion::VM_KERNEL;
     //	if (prot&PROT_WRITE)
     // vmrProt|=VirtualMemoryRegion::VM_Write;
@@ -1188,7 +1233,7 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
         if (mfr == nullptr)
             goto ErrorReturn;
 
-        kout << Yellow << mfr->GetFlags() << endl;
+        // kout << Yellow << mfr->GetFlags() << endl;
         vms->InsertVMR(mfr);
         vms->show();
         // kout[Fault]<<endl;
@@ -1203,7 +1248,8 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
         }
     } else {
         VirtualMemoryRegion* vmr = KmallocT<VirtualMemoryRegion>();
-        vmr->Init(s, s + len, vmrProt);
+
+        vmr->Init(s, s + len, vmrProt | VirtualMemoryRegion::VM_Mmap);
         vms->InsertVMR(vmr);
     }
     // kout[Debug]<<"mmap 2"<<endl;
@@ -1306,7 +1352,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     fom.set_fo_pos_k(fo1, 0);
     fom.set_fo_flags(fo1, file_flags::RDONLY);
 
-    kout << Yellow << pipe << endl;
+    // kout << Yellow << pipe << endl;
     file_object* fo2 = (file_object*)kmalloc(sizeof(file_object));
     // kout << Yellow << "pipe5" << endl;
     fom.set_fo_file(fo2, pipe);
@@ -1327,6 +1373,8 @@ inline int Syscall_pipe2(int* fd, int flags)
     fo1->fd = -1;
     fo2->fd = -1;
 
+    fo1->next = nullptr;
+    fo2->next = nullptr;
     fom.add_fo_tolist(cur->getFoHead(), fo1);
     fom.add_fo_tolist(cur->getFoHead(), fo2);
 
@@ -1334,7 +1382,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     fd[0] = fo1->fd;
     fd[1] = fo2->fd;
     // kout << Yellow << "pipe7" << endl;
-    kout[Info] << "PIPE 2 " << fo1->fd << " " << fo2->fd << endl;
+    kout[DeBug] << "PIPE2 " << fo1->fd << " " << fo2->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
     return 0;
 }
@@ -1344,6 +1392,8 @@ int Syscall_sendfile(int out_fd, int in_fd, Uint64* offset, size_t count)
     Process* curProc = pm.getCurProc();
     file_object* outFo = fom.get_from_fd(curProc->getFoHead(), out_fd);
     file_object* inFo = fom.get_from_fd(curProc->getFoHead(), in_fd);
+
+    kout[DeBug] << "SYSCALL::sendfile out_fd " << out_fd << " in_fd " << in_fd << endl;
 
     ASSERTEX(outFo, "SYSCALL::sendfile outFo is nullptr");
     ASSERTEX(inFo, "SYSCALL::sendfile inFO is nullptr");
@@ -1361,16 +1411,16 @@ int Syscall_sendfile(int out_fd, int in_fd, Uint64* offset, size_t count)
         pos = *(offset);
     } else {
         pos = inFo->pos_k;
-        kout[DeBug] << "SYSCALL::sendfile pos_k " << pos << endl;
+        // kout[DeBug] << "SYSCALL::sendfile pos_k " << pos << endl;
     }
     VirtualMemorySpace::DisableAccessUser();
 
     char* buf = new char[4096];
     read_size = (count >= 4096 ? 4096 : count);
-    kout[DeBug] << "SYSCALL::sendfile count" << count << endl;
+    // kout[DeBug] << "SYSCALL::sendfile count" << count << endl;
     while (count != 0) {
 
-        kout[DeBug] << "SYSCALL::sendfile read_size:" << read_size << endl;
+        // kout[DeBug] << "SYSCALL::sendfile read_size:" << read_size << endl;
         read_size = (count >= 4096 ? 4096 : count);
 
         ac_size = inFile->read(buf, pos, read_size);
@@ -1652,7 +1702,8 @@ Sint64 Syscall_get_unsolve_id()
 
 int Syscall_skip_ok(int syscall_num)
 {
-    kout[Warning] << "syscall: " << syscall_num << "sikp ok  ";
+    kout[Warning] << "syscall: " << syscall_num << "sikp ok  " << endl;
+
     return 0;
 }
 struct winsize {
@@ -1686,12 +1737,13 @@ int Syscall_ioctl(int fd, int cmd, TrapFrame* tf)
 int Syscall_set_tid_address(int* tidptr)
 {
     *tidptr = pm.getCurProc()->id;
+    // kout[DeBug]<<"enter"<<endl;
     return 0;
 }
 
 bool TrapFunc_Syscall(TrapFrame* tf)
 {
-    kout <<Green << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << " pid " << pm.getCurProc()->getID() << endl;
+    kout << Green << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << " pid " << pm.getCurProc()->getID() << endl;
 
     // kout[Info]<<
     switch ((Sint64)tf->reg.a7) {
@@ -1750,6 +1802,11 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     // tf->reg.a0 = Syscall_madvise(void* addr, size_t length, int advice);
     // int madvise();
     // break;
+    //
+    case SYS_mprotect:
+
+        tf->reg.a0 = 0;
+        break;
     case SYS_gettimeofday:
         tf->reg.a0 = Syscall_gettimeofday((timeval*)tf->reg.a0, 0);
         break;
@@ -1887,19 +1944,28 @@ bool TrapFunc_Syscall(TrapFrame* tf)
     case SYS_connect:
     case SYS_accept:
         kout[Warning] << "Skipped syscall " << tf->reg.a7 << " " << SyscallName((long long)tf->reg.a7) << endl;
-
+        // tf->reg.a0=-1;
         break;
 
         // case 174:
         // case 175:
         // case 176:
 
-        tf->reg.a0 = 0;
+    default: {
+        Process* cur = pm.getCurProc();
+        if (cur->isKernel())
+            kout[Fault] << "TrapFunc_Syscall: Unknown syscall " << tf->reg.a7 << " from kernel process " << cur->getID() << "!" << endl;
+        else {
+            kout[Error] << "TrapFunc_Syscall: Unknown syscall " << tf->reg.a7 << " from user process " << cur->getID() << "!" << endl;
+            cur->exit(ExitType::Exit_BadSyscall);
+            pm.immSchedule();
+            // kout[Fault]<<"TrapFunc_Syscall: Reaced unreachable branch!"<<endl;
+        }
         break;
-
-    default:
-        kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
-        tf->reg.a0 = -1;
+    }
+        // kout[Fault] << "this syscall isn't solve" << tf->reg.a7 << endl;
+        // case SYS_futex:
+        // tf->reg.a0 = -1;
     }
 
     return true;

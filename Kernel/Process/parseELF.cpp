@@ -29,7 +29,7 @@ Process* CreateKernelThread(int (*func)(void*), char* name, void* arg, ProcFlag 
 Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
 {
     bool t = _interrupt_save();
-    kout[Info] << "CreateUserImgProcess" << (void*)start << (void*)end << endl;
+    // kout[Info] << "CreateUserImgProcess" << (void*)start << (void*)end << endl;
     if (start > end) {
         kout[Fault] << "CreateUserImgProcess:: start>end" << endl;
     }
@@ -99,7 +99,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     Uint16 phnum = proc_data->e_header.e_phnum; // 可执行文件中的需要解析的段数量
     Uint64 phoff = proc_data->e_header.e_phoff; // 段表在文件中的偏移量 需要通过段表访问到每个段
     Uint16 phentsize = proc_data->e_header.e_phentsize; // 段表中每个段表项的大小
-    kout[Info] << phnum << ' ' << phoff << ' ' << phentsize << endl;
+    // kout[Info] << phnum << ' ' << phoff << ' ' << phentsize << endl;
     for (int i = 0; i < phnum; i++) {
         // 解析每一个程序头 即段
         Elf_Phdr pgm_hdr { 0 };
@@ -260,6 +260,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vmr_str->Init(p, p + PAGESIZE, VirtualMemoryRegion::VM_RW);
     vms->InsertVMR(vmr_str);
 
+    kout[DeBug] << "new VMS " << endl;
     vms->show();
     vms->Enter();
     // kout << sp << endl;
@@ -342,7 +343,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     return 0;
 }
 
-Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, char** argv, ProcFlag proc_flags)
+Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, char** argv, ProcFlag proc_flags, Process* proc_)
 {
     bool t;
     IntrSave(t);
@@ -353,12 +354,12 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     // 信号量初始化
 
     Sint64 rd_size = 0;
-    kout << "read_fo start" << endl;
+    // kout << "read_fo start" << endl;
     rd_size = fom.read_fo(fo, &proc_data->e_header, sizeof(proc_data->e_header));
 
     // kout<<DataWithSize((void *)&proc_data->e_header,sizeof(proc_data->e_header))<<endl;
 
-    kout << "read_fo finish" << endl;
+    // kout << "read_fo finish" << endl;
 
     if (rd_size != sizeof(proc_data->e_header) || !proc_data->e_header.is_ELF()) {
         // kout[red] << "Create Process from ELF Error!" << endl;
@@ -371,30 +372,30 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     VirtualMemorySpace* vms = (VirtualMemorySpace*)kmalloc(sizeof(VirtualMemorySpace));
     vms->Init();
 
-    Process* proc = pm.allocProc();
+    //
+    Process* proc = proc_;
+    VirtualMemorySpace* vms_t = nullptr;
+    if (proc_ == nullptr) {
 
-    proc->init((ProcFlag)((Uint64)F_User | (Uint64)proc_flags));
-    proc->setStack(nullptr, PAGESIZE * 4);
-    proc->setVMS(vms);
-    proc->setFa(pm.getCurProc());
+        proc = pm.allocProc();
 
-    char* abs_cwd = new char[200];
+        proc->init((ProcFlag)((Uint64)F_User | (Uint64)proc_flags));
+        proc->setStack(nullptr, PAGESIZE * 4);
+        proc->setVMS(vms);
+        proc->setFa(pm.getCurProc());
 
-    // kout << Blue << "abs_cwd " << wk_dir << ' ' << pm.getCurProc()->getCWD() << endl;
-
-    unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
-    // kout<<abs_cwd
-    proc->setProcCWD(abs_cwd);
-    // kout << Blue << "abs_cwd " << abs_cwd << endl;
-    // pm.init_proc(proc, 2, proc_flags);
-    // pm.set_proc_kstk(proc, nullptr, KERNELSTACKSIZE * 4);
-    // pm.set_proc_vms(proc, vms);
-    // pm.set_proc_fa(proc, pm.get_cur_proc());
-
-    // 通过vfsm得到标准化的绝对路径
-    // char* abs_cwd = vfsm.unified_path(wk_dir, pm.getCurProc()->getCWD());
-
-    kfree(abs_cwd);
+        char* abs_cwd = new char[200];
+        unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
+        proc->setProcCWD(abs_cwd);
+        kfree(abs_cwd);
+    } else {
+        vms_t = proc->VMS;
+        kout[DeBug] << "old VMS " << endl;
+        vms_t->show();
+        proc->setVMS(vms);
+        kout[DeBug] << t << "  " << vms;
+        // memset(proc->stack, 0, proc->stacksize);
+    }
 
     // 填充userdata
     // 然后跳转执行指定的启动函数
@@ -408,6 +409,9 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     start_process_formELF(proc_data);
     // pm.start_user_proc(proc, start_process_formELF, proc_data, user_start_addr);
 
+    if (proc_) {
+        vms_t->Destroy();
+    }
     // 这里跳转到启动函数之后进程管理就会有其他进程参与轮转调度了
     // 为了确保新的进程能够顺利执行完启动函数这里再释放相关的资源
     // 这里让当前进程阻塞在这里

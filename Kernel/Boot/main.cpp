@@ -325,9 +325,13 @@ void final_test()
         fom.set_fo_pos_k(fo, 0);
 
         Process* task;
+
+        // if (strcmp(file->name, "runtest.exe") == 0) {
+        // if (strcmp(file->name, "pipe2") == 0) {
         if (strcmp(file->name, "busybox") == 0) {
-            char argvv[20][100] = { "busybox","sh","run-static.sh" };
-            // char argvv[20][100] = { "./busybox", "sh","\0","busybox_testcode.sh" };
+            // char argvv[20][100] = { "busybox","echo","\"##### sda \"" };
+            // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
+            char argvv[20][100] = { "./busybox", "sh","busybox_testcode.sh" };
             // char argvv[20][100] = { "./busybox", "sh","test_all.sh" };
             // char argvv[20][100] = {"pipe2", "\0" };
             char* argv[20];
@@ -633,7 +637,7 @@ int main()
     // VFSM_test1('a');
     // }
     // PreRun();
-    // mkdir();
+    mkdir();
     final_test();
     // test_final1();
     // VFSM_test1(10);

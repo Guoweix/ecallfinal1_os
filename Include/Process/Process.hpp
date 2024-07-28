@@ -60,7 +60,7 @@ enum ProcStatus : Uint32 {
 enum ProcFlag : Uint64 {
     F_User = 0,
     F_Kernel = 1ull << 0,
-    // F_AutoDestroy = 1ull << 1,
+    F_AutoDestroy = 1ull << 1,
     F_GeneratedStack = 1ull << 2,
     F_OutsideName = 1ull << 3,
 };
@@ -88,7 +88,7 @@ public:
 
     PID id; // 进程号pid 从0开始计数
     ProcessManager* pm; // 与之相关联的进程管理器
-    void* stack; // 进程的内核栈（保证更安全，用户态不会访问到它不该访问的）
+    void*  stack; // 进程的内核栈（保证更安全，用户态不会访问到它不该访问的）
     Uint32 stacksize;
     VirtualMemorySpace* VMS; // 虚拟内存管理，所有用一个
     file_object* fo_head; // 文件object拥有通过文件描述符管理文件，实际是一个打开文件的链表
@@ -133,6 +133,9 @@ public:
         fstChild = firstChild;
 
     }
+    
+    ProcFlag GetFlags(){return  (ProcFlag)flags;}
+    bool isKernel(){return flags&F_Kernel;}
     void setFa(Process* fa);
     inline void setID(Uint32 _id) { id = _id; }
     inline PID getID() { return id; }

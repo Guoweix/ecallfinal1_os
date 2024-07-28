@@ -103,7 +103,7 @@ void SigactionQueue::dequeue()
         kout[Fault] << "process queue is empty" << endl;
     }
     ListNode_siga* t = front->next;
-    kout[Info] << "dequeue" << (void*)t << ' ' << this << endl;
+    // kout[Info] << "dequeue" << (void*)t << ' ' << this << endl;
     front->next = t->next;
     if (rear == t) {
         // kout[Info] << "rear is t" << endl;

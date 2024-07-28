@@ -262,6 +262,8 @@ public:
         VM_Device = 1 << 7,
         VM_File = 1 << 8,
         VM_Dynamic = 1 << 9,
+        VM_Mmap=1<<10,
+        VM_MmapFile=1<<11,
 
         VM_RW = VM_Read | VM_Write,
         VM_RWX = VM_RW | VM_Exec,
@@ -583,8 +585,9 @@ public:
     {
         VirtualMemoryRegion* t;
         t = vmrHead.Nxt();
+        kout[Info];
         while (t) {
-            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << "||";
+            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << " || "<<(void *)t->Flags<<endline;
             t = t->Nxt();
         }
         kout << endl;

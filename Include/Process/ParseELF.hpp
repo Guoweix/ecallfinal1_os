@@ -150,9 +150,9 @@ enum class ELF_AT
 int start_process_formELF(procdata_fromELF * userdata);
 
 // 最终的从ELF文件创建进程的函数
-Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_User);
+Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
 // Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
 Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
-Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_User);
+Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_AutoDestroy,Process * proc=nullptr);
 
 #endif

@@ -77,7 +77,8 @@ public:
     bool free_pages(PAGE* t);
     PAGE* get_page_from_addr(void* addr);
     void show(); // 显示内容
-    bool insert_page(PAGE* src); // 更新线段树
+    bool insert_page(PAGE* src); // 更新线段树  
+    Uint64 getPageCount(){return PageCount;};
     // 实现malloc和free
     // 基于已经实现的页分配简单实现
     // 实现并非很精细 没有充分处理碎片等问题 要求分配的空间必须为整数页张
@@ -92,8 +93,10 @@ extern PMM pmm;
 // 声明作为标准库通用的内存分配函数
 inline void* kmalloc(Uint64 bytesize)
 {
-    // kout <<"Kmalloc " << bytesize << '\n';
+    // kout[Error] <<"Kmalloc " << pmm.getPageCount() << endl;
     void* re;
+    //暂时先将slab关闭
+   /*  
     if (bytesize < 4000) {
         void* p = slab.allocate(bytesize);
         // kout << "slab alloc addr" << p << endl;
@@ -102,9 +105,9 @@ inline void* kmalloc(Uint64 bytesize)
         }
         re = p;
     } else {
-        // kout << "pmm alloc addr" << endl;
+     */    // kout << "pmm alloc addr" << endl;
         re = pmm.malloc(bytesize, 1);
-    }
+    // }
 
     // kout <<  "Kmalloc " << (Uint64)re<<' '<<re << '\n';
     return re;
@@ -115,13 +118,13 @@ inline void kfree(void* freeaddress)
     // kout << "Kfree " << (Uint64)freeaddress <<' '<<freeaddress << '\n';
 
     if (freeaddress != nullptr) {
-        PAGE* cur = pmm.get_page_from_addr(freeaddress);
+        // PAGE* cur = pmm.get_page_from_addr(freeaddress);
 
-        if (cur->flags == 1) {
+        // if (cur->flags == 1) {
             pmm.free(freeaddress);
-        } else {
+   /*      } else {
             slab.free(freeaddress, cur->flags);
-        }
+        } */
     }
 }
 

@@ -2,7 +2,6 @@
 #include "Library/KoutSingle.hpp"
 #include "Types.hpp"
 #include <File/FileEx.hpp>
-
 PIPEFILE::PIPEFILE()
     : FileNode()
 {
@@ -34,21 +33,30 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 {
     unsigned char* buf = (unsigned char*)buf_;
 
-    // kout[Info] << "_PIPE READ " << this << endl;
+    // kout[Info] << "_PIPE READ " << size << endl;
     // kout[Info] << "pipe read didn't solved" << endl;
     for (int i = 0; i < size; i++) {
+        // if (i==fileSize) {
+            // kout[DeBug]<<"PIPEFILE::read return"<<fileSize<<endl;
+            // kout[Fault]<<endl;
+            // return i;
+        // } 
+
+
         full->wait();
         if (full->getValue() < 0) {
+            // kout[DeBug]<<"full wait "<<endl;
             pm.immSchedule();
         }
         file->wait();
         if (file->getValue() < 0) {
+            // kout[DeBug]<<"file wait "<<endl;
             pm.immSchedule();
         }
 
         buf[i] = data[out];
-        kout[Info] << (int)data[out] << endl;
-        if (data[out] == 4) {
+        // kout[Info] <<" read"<<out<<' ' <<(int)buf[i] << endl;
+        if (data[out] == 4){//||data[out]=='\n') {
             // file->SignalAll
             // file->printAllWaitProcess();
             // kout<<"______________________________"<<endl;
@@ -66,6 +74,8 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 
         file->signal();
         empty->signal();
+
+
     }
 
     return size;
@@ -73,26 +83,28 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 Sint64 PIPEFILE::write(void* src_, Uint64 size)
 {
 
-    // kout[Info] << "_PIPE READ " << this << endl;
+    kout[Info] << "_PIPE Write " << size << endl;
     unsigned char* src = (unsigned char*)src_;
     // kout[Info] << "pipe write didn't solved" << endl;
-
     for (int i = 0; i < size; i++) {
         empty->wait();
         if (empty->getValue() < 0) {
+            // kout[DeBug]<<"empty wait "<<endl;
             pm.immSchedule();
         }
         file->wait();
         if (file->getValue() < 0) {
+            // kout[DeBug]<<"filew wait "<<endl;
             pm.immSchedule();
         }
         data[in] = src[i];
-        // kout[Info] << "IN" << in << endl;
+        // kout[Info] << "IN" <<in<<" " <<(int)src[i] << endl;
         in = (in + 1) % FILESIZE;
 
         file->signal();
         full->signal();
     }
+    fileSize=size;
     return size;
 }
 

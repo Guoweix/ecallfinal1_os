@@ -18,7 +18,7 @@ void FileObjectManager::init_proc_fo_head(Process* proc)
     // 初始化进程的虚拟头节点
     // 使用场景下必须保证一定是空的
     if (proc->fo_head != nullptr) {
-        kout[Info] << "The Process's fo_head is not Empty!" << endl;
+        // kout[Info] << "The Process's fo_head is not Empty!" << endl;
         free_all_flobj(proc->fo_head);
         kfree(proc->fo_head);
     }
@@ -183,7 +183,7 @@ int FileObjectManager::add_fo_tolist(file_object* fo_head, file_object* fo_added
     }
 
     if (fo_added == nullptr) {
-        kout[Info] << "The fo_added is Empty!" << endl;
+        kout[Warning] << "The fo_added is Empty!" << endl;
         return -1;
     }
 
@@ -227,24 +227,27 @@ void FileObjectManager::delete_flobj(file_object* fo_head, file_object* del)
     }
 
     if (del == nullptr) {
-        kout[Info] << "The deleted fo is Empty!" << endl;
+        kout[Warning] << "The deleted fo is Empty!" << endl;
         return;
     }
 
     file_object* fo_ptr = fo_head->next;
     file_object* fo_pre = fo_head;
+    bool flag = false;
     while (fo_ptr != nullptr) {
         if (fo_ptr == del) {
             // 当前这个节点是需要被删除的
             // 理论上讲fo节点是唯一的 这里删除完了即可退出了
             // 出于维护链表结构的统一性模板
             fo_pre->next = fo_ptr->next;
+            flag = true;
             kfree(fo_ptr);
             fo_ptr = fo_pre;
         }
         fo_pre = fo_ptr;
         fo_ptr = fo_ptr->next;
     }
+    ASSERTEX(flag, "FileObject::delete_flobj  can't find del node");
     return;
 }
 
@@ -366,7 +369,7 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
     // if (file==STDIO) {
     // kout[Info]<<"file is STDIO"<<endl;
     // }
-    kout[Info]<<"FileObject::write file "<<file<<endl;
+    // kout[Info] << "FileObject::write file " << file << endl;
     wr_size = file->write((unsigned char*)src, fo->pos_k, size);
     file->fileSize = size;
     // }
@@ -391,8 +394,22 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
         return false;
     }
     if (fo == nullptr) {
-        kout[Info] << "The fo is Empty not need to be Closed!" << endl;
+        kout[Warning] << "The fo is Empty not need to be Closed!" << endl;
         return true;
+    }
+
+    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
+        PIPEFILE* fp = (PIPEFILE*)fo->file;
+        // kout[DeBug] << "close pipefile writeRef " << fp->writeRef << endl;
+
+        fp->writeRef--;
+        if (fp->writeRef == 0) {
+            char* t = new char;
+            *t = 4;
+            // kout[Fault]<<"EOF "<<endl;
+            fom.write_fo(fo, t, 1);
+            delete t;
+        }
     }
 
     // 关闭这个文件描述符
@@ -401,12 +418,12 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 进程完全不需要进行对文件的任何操作
     // 这就是这一层封装和隔离的妙处所在
     FileNode* file = fo->file;
-    kout[Info]<<"close_fo fd"<<fo->fd << " "<<fo->file<<fo->file->name<<endl;
-    
+    kout[Info] << "close_fo fd" << fo->fd << " " << fo->file << fo->file->name << endl;
+
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点
     file_object* fo_head = proc->fo_head;
-    file=nullptr;
+    file = nullptr;
     fom.delete_flobj(fo_head, fo);
     return true;
 }
@@ -427,17 +444,18 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
     dup_fo->next = nullptr;
     // 直接原地赋值 不调用函数了 节省开销
     dup_fo->fd = -1; // 这个fd在需要插入这个fo节点时再具体化
+                     //
+    // kout[DeBug]<<"duplicate "<<(void *)fo<<endl;
     dup_fo->file = fo->file; // 关键是file flags这些信息的拷贝
     fo->file->RefCount++;
 
-    if ((fo->file->TYPE&FileType::__PIPEFILE)&&(fo->canWrite())) 
-    {
+    if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
         // kout[Fault]<<"dup pipe"<<endl;
-        PIPEFILE * t=(PIPEFILE *)fo->file;
+        // kout[DeBug] << "should appear 2 times " << endl;
+        PIPEFILE* t = (PIPEFILE*)fo->file;
         t->writeRef++;
     }
 
-                             
     // char a[200];
     // dup_fo->file->read(a,200);
     // kout[DeBug]<<"duplicate "<<a<<endl;
@@ -447,5 +465,18 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
     return dup_fo;
 }
 
+/* file_object* FileObjectManager::duplicate_Link(file_object* fo_tar, file_object* fo_src)// 传入头节
+{
+
+    file_object * t;
+    t=fo_src->next;
+    file_object * new_node;     
+    while (t) {
+        new_node=fom.duplicate_fo(t);
+        t=t->next;
+    }
+
+}
+ */
 // 声明的全局变量实例化
 FileObjectManager fom;

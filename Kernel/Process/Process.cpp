@@ -31,17 +31,17 @@ void ProcessManager::init()
 void Process::show(int level)
 {
     kout[Info] << "proc pid : " << id << endline
-                << "proc name : " << name << endline
-                << "proc state : " << status << endline
-                << "proc flags : " << flags << endline
-                << "proc VMS : " << (void*)VMS << endline
-                << "proc kstack : " << (void*)stack << endline
-                << "proc kstacksize : " << stacksize << endl;
+               << "proc name : " << name << endline
+               << "proc state : " << status << endline
+               << "proc flags : " << flags << endline
+               << "proc VMS : " << (void*)VMS << endline
+               << "proc kstack : " << (void*)stack << endline
+               << "proc kstacksize : " << stacksize << endl;
     if (level == 1) {
         kout[Info] << "proc pid_fa : " << (void*)father << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_bro_pre : " << (void*)broPre << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_bro_next : " << (void*)broNext << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_fir_child : " << (void*)fstChild << ' ' << father - &pm->Proc[0] << endl;
+                   << "proc pid_bro_pre : " << (void*)broPre << ' ' << father - &pm->Proc[0] << endline
+                   << "proc pid_bro_next : " << (void*)broNext << ' ' << father - &pm->Proc[0] << endline
+                   << "proc pid_fir_child : " << (void*)fstChild << ' ' << father - &pm->Proc[0] << endl;
     }
     kout << endl;
 }
@@ -63,7 +63,7 @@ void ProcessManager::simpleShow()
             kout[Info] << "Cur====>";
         }
         if (Proc[i].status != S_None) {
-            kout[Info] << Proc[i].name <<" id " << Proc[i].id << endl;
+            kout[Info] << Proc[i].name << " id: " << Proc[i].id <<" status: "<<Proc[i].status<< endl;
         }
     }
 }
@@ -173,26 +173,26 @@ void Process::init(ProcFlag _flags)
 
     waitSem = new Semaphore(0);
     SemRef = 0;
-    memset(&context, 0, sizeof(context));
+    // memset(&context, 0, sizeof(context));
     flags = _flags;
     name[0] = 0;
 
-    kout[DeBug]<<"new process "<<id<<endl;
+    kout[DeBug] << "new process " << id << endl;
 }
 
 void Process::destroy()
 {
-    kout[Debug] << "Process destroy:" << id << endl;
+    // kout[Error] << "Process destroy:" << id << endl;
 
     if (status == S_None) {
         return;
     } else if (status != S_Initing || status != S_Terminated) {
         exit(Exit_Normal);
     }
-    
+
     // kout[Info] <<"process ::destroy his family father"<<father<<endline
-                                            // <<"broPre "<<broPre<<"broNext "<<broNext<<endline
-                                            // <<"fstChild "<<fstChild<<"myself "<<this<<endl;
+    // <<"broPre "<<broPre<<"broNext "<<broNext<<endline
+    // <<"fstChild "<<fstChild<<"myself "<<this<<endl;
     while (fstChild) {
         // kout[Debug]<<"loop here"<<endl;
         fstChild->destroy();
@@ -203,7 +203,7 @@ void Process::destroy()
         // kout[Debug]<<"loop here"<<endl;
         if (father) {
             father->fstChild = broNext;
-        // kout[Debug]<<"because not loop here"<<endl;
+            // kout[Debug]<<"because not loop here"<<endl;
         }
     }
     if (broNext) {
@@ -212,9 +212,18 @@ void Process::destroy()
     }
     setFa(nullptr);
 
-    // if (VMS!=nullptr) {
 
-    // }
+    if (VMS!=nullptr) {
+        VMS->Destroy();
+    }
+    file_object * del=fo_head->next;
+    while (del) {
+        fom.close_fo(this, del);
+        del=del->next;
+    } 
+
+    destroyFds();
+
     if (waitSem != nullptr) {
         delete waitSem;
         waitSem = nullptr;
@@ -238,13 +247,13 @@ void Process::destroy()
         stack = nullptr;
     }
     stacksize = 0;
-    pm->freeProc(this);
+    // pm->freeProc(this);
     return;
 }
 
 bool Process::exit(int re)
 {
-    kout[DeBug]<<"process::exit id"<<id<<re;
+    kout[DeBug] << "process::exit id" << id << re;
     switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
@@ -255,15 +264,15 @@ bool Process::exit(int re)
     exitCode = re;
     // VMS->Leave();
     // destroyFds();
-    while(waitSem->getValue()<1) {
+    while (waitSem->getValue() < 1) {
         waitSem->signal();
     }
-    if (father!=nullptr) {
-        kout[DeBug]<<"wake up it's father "<<endl;
+    if (father != nullptr) {
+        // kout[DeBug] << "wake up it's father " << endl;
         father->waitSem->signal();
     }
     // if (!(flags & F_AutoDestroy) && father != nullptr) {
-        // father->waitSem->signal();
+    // father->waitSem->signal();
     // }
     return true;
 }
@@ -288,7 +297,7 @@ bool Process::run()
 void Process::setFa(Process* fa)
 {
     if (fa == nullptr) {
-        kout[Error]<<"Process::setfa father is nullptr"<<endl;
+        // kout[Error] << "Process::setfa father is nullptr" << endl;
         return;
     }
 
@@ -323,7 +332,7 @@ void Process::setFa(Process* fa)
     if (broNext != nullptr) {
         broNext->broPre = this;
     }
-    broPre=nullptr;
+    broPre = nullptr;
 }
 
 bool Process::start(void* func, void* funcData, PtrUint useraddr, int argc, char** argv)
@@ -352,7 +361,7 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr, int argc, char
         context->status = (read_csr(sstatus) | SPIE) & (~SPP) & (~SIE); // 详见手册
         context->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
     }
-    kout[Info]<<"Process::start epc "<<(void *)context->epc<<" sp"<<context->reg.sp<<endl;
+    // kout[Info] << "Process::start epc " << (void*)context->epc << " sp" << context->reg.sp << endl;
 
     switchStatus(S_Ready);
 
@@ -388,23 +397,20 @@ void Process::switchStatus(ProcStatus tarStatus)
         break;
     }
 
-    if (id==4) {
-        kout[DeBug]<<" process 4 switch to "<<tarStatus<<endl;
-    }
-/* 
-    switch (tarStatus) {
-        case S_None:
-            kout[DeBug]<<this->id<<" status to S_None"<<endl;
-            break;
-        case S_Sleeping:
-            kout[DeBug]<<this->id<<" status to S_Sleep"<<endl;
-            break;
-        case S_Running:
-            kout[DeBug]<<this->id<<" status to S_Running"<<endl;
-            break;
-        default:
-            break; 
-    }  */
+    /*
+        switch (tarStatus) {
+            case S_None:
+                kout[DeBug]<<this->id<<" status to S_None"<<endl;
+                break;
+            case S_Sleeping:
+                kout[DeBug]<<this->id<<" status to S_Sleep"<<endl;
+                break;
+            case S_Running:
+                kout[DeBug]<<this->id<<" status to S_Running"<<endl;
+                break;
+            default:
+                break;
+        }  */
     status = tarStatus;
 }
 
@@ -434,7 +440,7 @@ Process* ProcessManager::getProc(PID _id)
 
 bool ProcessManager::freeProc(Process* proc)
 {
-    kout << Yellow << "freeProc " << proc->getID() << endl;
+    // kout << Yellow << "freeProc " << proc->getID() << endl;
     if (proc->getStatus() == S_None) {
         return true;
     }
@@ -464,7 +470,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     Process* tar;
 
     pm.simpleShow();
-    // kout[Debug] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
+    kout[Debug] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
     kout << Blue << procCount << endl;
     if (curProc != nullptr && procCount >= 2) {
@@ -474,12 +480,6 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
             tar = &Proc[(i + p) % MaxProcessCount];
 
-            // if (tar->getStatus()!=S_None) {
-            // kout[Info]<<" Process "<<tar->getID()<<" STATUS "<<tar->getStatus()<<endl;
-            // }
-            if (tar->getStatus() == S_Terminated) {
-                pm.freeProc(tar);
-            }
             // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {//Sleep的休眠时间管理，目前还未实现
             //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)
@@ -496,9 +496,16 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 // tar->getVMS()->DisableAccessUser();
 
                 return tar->context;
+            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
+            {
+                tar->destroy();
+                pm.freeProc(tar);
             } 
-            // else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
-                // tar->destroy();
+            // else if (tar->status==S_None) {
+
+            // } else {
+                // kout[DeBug]<<"unknown status "<<tar->id<<" status "<<tar->status<<endl;
+            // }
         }
     }
 
@@ -507,7 +514,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 
 void ProcessManager::immSchedule()
 {
-    kout[Info]<<"Schedule from Kernel "<<endl;
+    // kout[Info] << "Schedule from Kernel " << endl;
     RegisterData a7 = SYS_sched_yeild;
     asm volatile("ld a7,%0; ebreak" ::"m"(a7) : "memory");
     // kout<<"__________________"<<endl;
@@ -524,7 +531,7 @@ bool Process::initFds()
     // 必须保证初始化时这三个fd是新生成的
     // 即进程的fd表中没有其他fd表项
     if (fo_head->next != nullptr) {
-        kout[Info] << "The Process init FD TABLE has other fds!" << endl;
+        kout[Warning] << "The Process init FD TABLE has other fds!" << endl;
         // 那么就先释放掉所有的再新建头节点
         fom.init_proc_fo_head(this);
     }
@@ -541,10 +548,10 @@ bool Process::initFds()
         fom.set_fo_flags(tmp_fo, file_flags::RDONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDOUT_FILENO); // 标准输出
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo,file_flags::WRONLY);
+        fom.set_fo_flags(tmp_fo, file_flags::WRONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo,file_flags::WRONLY);
+        fom.set_fo_flags(tmp_fo, file_flags::WRONLY);
     }
     /*  else {
          // 暂时如下trick

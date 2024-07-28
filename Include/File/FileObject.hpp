@@ -80,7 +80,7 @@ enum file_ptr
 struct file_object
 {
     int fd;                     // 小的非负整数表示文件描述符fd 这里使用int 考虑-1的可用性
-    int tk_fd;
+    // int tk_fd;
     FileNode* file;            // 对应的具体的打开的文件的结构指针
     Uint64 pos_k;               // 进程对于每个打开的文件维护文件指针的当前位置信息 用于实现seek等操作
     file_flags flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
@@ -129,6 +129,8 @@ public:
         Sint32 base = Seek_beg);
     bool close_fo(Process* proc, file_object* fo);          // 关闭文件描述符 释放fd表项资源
     file_object* duplicate_fo(file_object* fo);                 // 从当前的fd复制一个新的fd表项
+                                                                //
+    // file_object* duplicate_Link(file_object* fo_tar,file_object * fo_src);                 // 复制file_object链表 
 };
 
 // 声明全局管理器进行调用

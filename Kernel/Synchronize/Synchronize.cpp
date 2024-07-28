@@ -142,7 +142,7 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-    kout[Debug] << "Signal " << this << " v " << value << endl;
+    // kout[Debug] << "Signal " << this << " v " << value << endl;
     value++;
     if (value == 0) {
         // kout[Info]<<(void *)&queue<<endl;

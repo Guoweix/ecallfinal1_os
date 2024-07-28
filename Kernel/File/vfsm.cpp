@@ -378,7 +378,7 @@ FileNode* VFSM::open(const char* path, const char* cwd)
     unified_path(pathsrc, cwd, path_);
     const char* path1 = (const char*)path_;
     // unified_file_path(pathsrc, path1);
-    kout[Info] << "VFSM::open1 " << path1<<endl;
+    // kout[Info] << "VFSM::open1 " << path1<<endl;
 
      if (path1[0] == '/' && path1[1] == 0) {
         root->RefCount++;
@@ -398,7 +398,7 @@ FileNode* VFSM::open(const char* path, const char* cwd)
         isFind = 0;
         child = t->child;
         while (child != nullptr) {
-            kout[DeBug]<<"sigleName "<<sigleName<<" child "<<child->get_name()<<endl;
+            // kout[DeBug]<<"sigleName "<<sigleName<<" child "<<child->get_name()<<endl;
             if (strcmp(child->get_name(), sigleName) == 0) {
                 isFind = true;
                 break;
@@ -436,7 +436,7 @@ FileNode* VFSM::open(const char* path, const char* cwd)
     delete[] path1;
     FileNode* r = t; // 如果能成功打开，则路径上的文件的引用计数都要+1
     while (r != get_root()) {
-        kout[Info] << "open " << r->name <<"parent"<<r->parent<< endl;
+        // kout[Info] << "open " << r->name <<"parent"<<r->parent<< endl;
         r->RefCount++;
         r = r->parent;
     }
@@ -451,7 +451,7 @@ void VFSM::close(FileNode* t)
         return;
     }
 
-    kout[DeBug]<<" VFSM::close "<<t->get_name()<<" sss "<<t->RefCount<<endl;
+    // kout[DeBug]<<" VFSM::close "<<t->get_name()<<" sss "<<t->RefCount<<endl;
 /*     if (t==root) {
     
     }
@@ -479,7 +479,7 @@ void VFSM::close(FileNode* t)
             if (tmp->next) {
                 tmp->next->pre = tmp->pre;
             }
-            kout[Info] << "close " << tmp->name << endl;
+            // kout[Info] << "close " << tmp->name << endl;
             delete tmp;
         }
     }

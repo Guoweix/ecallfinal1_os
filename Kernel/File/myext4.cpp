@@ -18,7 +18,7 @@ Sint64 ext4node::read(void* buf_, Uint64 pos, Uint64 size)
 
     // kout[EXT] << "ext4::read" << endl;
     if (size == 0 && pos + size > fp.fsize) {
-        kout[Info] << "There is nothing" << endl;
+        kout[Warning] << "There is nothing" << endl;
         return 0;
     }
     // kout[Debug] << "ext5::read1" << endl;
@@ -225,7 +225,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     char* path2 = new char[200];
     strcpy(path2, _path);
 
-    kout[Info] << "EXT4::open " << _path << " " << _parent << endl;
+    // kout[DeBug] << "EXT4::open " << _path << " " << _parent << endl;
     char* sigleName = new char[50];
 
     // 获取全部完整路径
