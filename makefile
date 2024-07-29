@@ -22,7 +22,7 @@ USERIMG := -initrd Img/User.img
 
 # echo:
 #	echo $(ELF_FILES)
-all:Build/Kernel.elf
+all:mkdir Build/Kernel.elf
 	cp Build/Kernel.elf ./kernel-qemu
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
