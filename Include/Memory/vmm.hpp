@@ -294,7 +294,7 @@ public:
             re |= PageTable::Entry::Mask<PageTable::Entry::U>();
         return re;
     }
-
+    VirtualMemoryRegion(){VMS=nullptr;}
     inline bool Intersect(PtrUint l, PtrUint r) const // r在中间
     {
         return r > StartAddress && EndAddress > l;
@@ -762,6 +762,10 @@ public:
             //<<destroy uneeded pages...
         }
         return ERR_None;
+    }
+    HeapMemoryRegion(PtrUint start, Uint64 len = PAGESIZE, Uint64 flags = VM_USERHEAP):VirtualMemoryRegion(start, start + len, flags)
+    {
+        BreakPointLength = len;
     }
 
     inline ErrorType Init(PtrUint start, Uint64 len = PAGESIZE, Uint64 flags = VM_USERHEAP)

@@ -78,7 +78,7 @@ Process* CreateUserImgProcess(PtrUint start, PtrUint end, ProcFlag Flag)
     //
 
     proc->start((void*)nullptr, nullptr, InnerUserProcessLoadAddr);
-    kout[Test] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
+    kout[Info] << "CreateUserImgProcess" << (void*)start << " " << (void*)end << "with  PID " << proc->getID() << endl;
 
     _interrupt_restore(t);
     return proc;
@@ -228,16 +228,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
     Uint64 vmr_user_stack_beign = InnerUserProcessStackAddr;
     Uint64 vmr_user_stack_size = InnerUserProcessStackSize;
     Uint64 vmr_user_stack_end = vmr_user_stack_beign + vmr_user_stack_size;
-    VirtualMemoryRegion* vmr_user_stack = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
-    vmr_user_stack->Init(vmr_user_stack_beign, vmr_user_stack_end, VirtualMemoryRegion::VM_USERSTACK);
+    VirtualMemoryRegion* vmr_user_stack = new VirtualMemoryRegion(vmr_user_stack_beign, vmr_user_stack_end, VirtualMemoryRegion::VM_USERSTACK);
     vms->InsertVMR(vmr_user_stack);
 
     memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
     // kout << "++++++++++hmr++++++++++++=" << endl;
     // kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
-    HeapMemoryRegion* hmr = (HeapMemoryRegion*)kmalloc(sizeof(HeapMemoryRegion));
-    hmr->Init(breakpoint);
+    HeapMemoryRegion* hmr = new HeapMemoryRegion(breakpoint);
     vms->InsertVMR(hmr);
     kout << (void*)hmr->GetStart();
     memset((char*)hmr->GetStart(), 0, hmr->GetLength());
@@ -252,15 +250,14 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // kout << "++++++++++argv++++++++++++=" << endl;
     PtrSint p = vms->GetUsableVMR(0x60000000, 0x70000000, PAGESIZE);
     // kout[Info]<<"start_process_formELF:: p " << (void*)p << endl;
-    VirtualMemoryRegion* vmr_str = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
 
     TrapFrame* tf = (TrapFrame*)((char*)proc->stack + proc->stacksize) - 1;
     tf->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
     Uint8* sp = (decltype(sp))tf->reg.sp;
+    VirtualMemoryRegion* vmr_str = (VirtualMemoryRegion*)kmalloc(sizeof(VirtualMemoryRegion));
     vmr_str->Init(p, p + PAGESIZE, VirtualMemoryRegion::VM_RW);
     vms->InsertVMR(vmr_str);
 
-    kout[DeBug] << "new VMS " << endl;
     vms->show();
     vms->Enter();
     // kout << sp << endl;
@@ -387,13 +384,11 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
         char* abs_cwd = new char[200];
         unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
         proc->setProcCWD(abs_cwd);
-        kfree(abs_cwd);
+        delete [] abs_cwd;
     } else {
         vms_t = proc->VMS;
-        kout[DeBug] << "old VMS " << endl;
         vms_t->show();
         proc->setVMS(vms);
-        kout[DeBug] << t << "  " << vms;
         // memset(proc->stack, 0, proc->stacksize);
     }
 

@@ -93,7 +93,6 @@ extern PMM pmm;
 // 声明作为标准库通用的内存分配函数
 inline void* kmalloc(Uint64 bytesize)
 {
-    // kout[Error] <<"Kmalloc " << pmm.getPageCount() << endl;
     void* re;
     //暂时先将slab关闭
    /*  
@@ -115,7 +114,6 @@ inline void* kmalloc(Uint64 bytesize)
 
 inline void kfree(void* freeaddress)
 {
-    // kout << "Kfree " << (Uint64)freeaddress <<' '<<freeaddress << '\n';
 
     if (freeaddress != nullptr) {
         // PAGE* cur = pmm.get_page_from_addr(freeaddress);

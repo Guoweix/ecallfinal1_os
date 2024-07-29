@@ -2,6 +2,8 @@
 #include "Driver/Virtio.hpp"
 #include "File/FAT32.hpp"
 #include "File/lwext4_include/ext4.h"
+#include "Library/DebugCounter.hpp"
+#include "Trap/Syscall/Syscall.hpp"
 // #include "File/lwext4_include/ext4.h"
 #include <Driver/VirtioDisk.hpp>
 #include <File/FileObject.hpp>
@@ -180,15 +182,15 @@ void Semaphore_test()
 void Driver_test()
 {
     int t;
-    kout[Info]<<"++++++++++++++++++="<<endl;
+    kout[Info] << "++++++++++++++++++=" << endl;
     Sector* sec = (Sector*)pmm.malloc(1468006, t);
-    Disk.readSector(527215, sec, 1468006/512);
+    Disk.readSector(527215, sec, 1468006 / 512);
     // kout << DataWithSizeUnited(sec, sizeof(Sector), 16);
     // memset(sec,0,512);
     // kout<<DataWithSizeUnited(sec,sizeof(Sector),16);
     // Disk.writeSector(0, sec);
     // Disk.readSector(0, sec);
-    kout << DataWithSizeUnited(sec, 1468006,32);
+    kout << DataWithSizeUnited(sec, 1468006, 32);
 }
 void new_test()
 {
@@ -202,42 +204,22 @@ void new_test()
 void VFSM_test()
 {
     ext4node* file = new ext4node;
+    // ext4node* file_next = new ext4node;
 
     vfsm.create_file("/", "/", "test_unlink");
-
-    kout[Debug] << "VFSM_test" << (EXT4*)vfsm.get_root() << endl;
 
     EXT4* t = (EXT4*)vfsm.get_root()->vfs;
     // ext4node * next=new ext4node;
     ASSERTEX(t, "vfs is nullptr");
-    kout[Debug] << "VFSM_test" << endl;
-    t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
 
+    // file->close();
+    t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
+    
     file_object* fo = new file_object();
     int i = 0;
     // kout.SetEnabledType(-1);
     while (file->offset != -1) {
-        // if (file->table.size == 0) {
-        // file = vfsm.get_next_file(vfsm.get_root(), file);
-        // continue;
-        // }
-        // kout << i++ << " " << file->name << endl;
         kout << i++ << " " << file->name << endl;
-        // kout << "sdad" << endl;
-        // if (file->TYPE & FileType::__DIR) {
-        // file = t->get_next_file((FAT32FILE *)vfsm.get_root(), file);
-
-        // t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
-        // continue;
-        // }
-        // fom.set_fo_file(fo, file);
-        // fom.set_fo_pos_k(fo, 0);
-        // kout[Info] << "____________________1___________________--" << endl;
-
-        // kout << "file name" << file << " " << file->name << endl;
-        // ;
-
-        // file = t->get_next_file((FAT32FILE *)vfsm.get_root(), file);
 
         t->get_next_file((ext4node*)vfsm.get_root(), file, file);
         kout[Info] << "VFSM_test" << endl;
@@ -281,13 +263,13 @@ bool VFSM_test1(char i)
     // kout<<DataWithSizeUnited(src,8192,32);
     f->write(src, 8292);
     f->show();
-    f->read(src1, 10,8292);
+    f->read(src1, 10, 8292);
     kout << DataWithSizeUnited(src1, 8292, 32);
-/* 
-    f->write(src, 11, 8292);
-    f->show();
-    f->read(src1, 8292);
-    kout << DataWithSizeUnited(src1, 8292, 32); */
+    /*
+        f->write(src, 11, 8292);
+        f->show();
+        f->read(src1, 8292);
+        kout << DataWithSizeUnited(src1, 8292, 32); */
 }
 
 bool VFSM_test2()
@@ -301,7 +283,7 @@ bool VFSM_test2()
 void final_test()
 {
 
-    file_object* fo = (file_object*)kmalloc(sizeof(file_object));
+    file_object* fo = new file_object;
     ext4node* file = new ext4node;
     Process* test;
     int test_cnt = 0;
@@ -309,8 +291,7 @@ void final_test()
     t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
 
     // kout << file;
-    while (file->offset!=-1) {
-        kout[Debug] << file->name << endl;
+    while (file->offset != -1) {
         if (file->fileSize == 0) {
             // file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             t->get_next_file((ext4node*)vfsm.get_root(), file, file);
@@ -329,9 +310,11 @@ void final_test()
         // if (strcmp(file->name, "runtest.exe") == 0) {
         // if (strcmp(file->name, "pipe2") == 0) {
         if (strcmp(file->name, "busybox") == 0) {
-            // char argvv[20][100] = { "busybox","echo","\"##### sda \"" };
+            // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
+            char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
             // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
-            char argvv[20][100] = { "./busybox", "sh","busybox_testcode.sh" };
+            // char argvv[20][100] = { "busybox", "cut","-c","3","test.txt" };
+            // char argvv[20][100] = { "./busybox", "du" };
             // char argvv[20][100] = { "./busybox", "sh","test_all.sh" };
             // char argvv[20][100] = {"pipe2", "\0" };
             char* argv[20];
@@ -370,10 +353,10 @@ FinalTestEnd:
 
     // VFSM_test();
 
-    while (1) {
-        delay(1e7);
-        Putchar('.');
-    }
+    // while (1) {
+        // delay(1e7);
+        // Putchar('.');
+    // }
 }
 
 void test_final1()
@@ -408,7 +391,6 @@ void test_final1()
 
         test = CreateProcessFromELF(fo, "/"); // 0b10的标志位表示不让调度器进行回收 在主函数手动回收
 
-        kout[Debug] << "errrorrrrrrrrrrrrrrrrr" << endl;
         if (test != nullptr) {
             while (1) {
                 if (test->getStatus() == S_Terminated) {
@@ -468,7 +450,7 @@ void test_vfs()
         return;
     }
 
-    ext4_cache_write_back("/", 1);
+    // ext4_cache_write_back("/", 1);
 
     ext4_dir ed;
     ext4_dir_open(&ed, "/");
@@ -526,48 +508,59 @@ unsigned EXT;
 
 extern int test_ext4();
 
-
-
 void PreRun()
 {
-    FileNode * t;
-    t=vfsm.open("/test_all.sh","/");
+    FileNode* t;
+    t = vfsm.open("/test_all.sh", "/");
     ASSERTEX(t, "t is nullptr");
-    char * buf=new char [4096];
-    char * re=new char [4096];
+    char* buf = new char[4096];
+    char* re = new char[4096];
     memset(re, 0, 4096);
-    char * buf1=new char [512];
-    int size,start=0;
-    size=t->read(buf,4096);
+    char* buf1 = new char[512];
+    int size, start = 0;
+    size = t->read(buf, 4096);
 
-    while ((start= readline(buf, buf1, size,  start))!=-1) {
-        kout[Debug]<<"line::"<<buf1<<endl;
-        if (buf1[0]=='#') {
+    while ((start = readline(buf, buf1, size, start)) != -1) {
+        if (buf1[0] == '#') {
             break;
         }
-        if (buf1[strlen(buf1)-1]=='h'&&buf1[strlen(buf1)-2]=='s') {
-           strcat(re,"busybox sh " ) ;
+        if (buf1[strlen(buf1) - 1] == 'h' && buf1[strlen(buf1) - 2] == 's') {
+            strcat(re, "busybox sh ");
         }
         strcat(re, buf1);
         strcat(re, "\n");
     }
 
-    kout[Error]<<"write back"<<re<<endl;
-    t->write(re,strlen(re));
+    kout[Error] << "write back" << re << endl;
+    t->write(re, strlen(re));
 
     vfsm.close(t);
-    delete [] buf;
-    delete [] buf1;
-    delete [] re;
+    delete[] buf;
+    delete[] buf1;
+    delete[] re;
 }
 
 void mkdir()
 {
     // FileNode * root=vfsm.get_root();
     // vfsm.create_file("/", "/","tmp1" );
-    vfsm.create_dir("/", "/","tmp" );
+    vfsm.create_dir("/", "/", "tmp");
 
     return;
+}
+
+int Syscall_newfstatat(int dirfd, const char* pathname, kstat* statbuf, int flags);
+void test_fstat()
+{
+    kstat* statbuf = new kstat;
+    // char * buf =new char[];
+    EXT4 * vfs=(EXT4 *)vfsm.get_root()->vfs; 
+    while (1) {
+        Syscall_newfstatat(-100,"./ltp/testcases/bin/data",statbuf,0x1000);
+        // ext4node * re = vfs->open("ltp/testcases/bin/data",vfsm.get_root() );
+        // vfsm.close(re);
+        kout[Debug] << pmm.getPageCount() << endl;
+    }
 }
 
 int main()
@@ -578,14 +571,17 @@ int main()
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
-    // kout.SetEnabledType(0);
+    kout.SetEnabledType(0);
     // kout.SwitchTypeOnoff(Info,true);
-    kout.SwitchTypeOnoff(Fault, true);
-    kout.SwitchTypeOnoff(Error, true);
-    kout.SwitchTypeOnoff(EXT, false);
+    // kout.SwitchTypeOnoff(Fault, true);
+    // kout.SwitchTypeOnoff(Test, true);
+    // kout.SwitchTypeOnoff(Error, true);
+    // kout.SwitchTypeOnoff(Debug, true);
+    // kout.SwitchTypeOnoff(Warning, true);
+    // kout.SwitchTypeOnoff(EXT, false);
+    // kout.SwitchTypeOnoff(Info, false);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
-
     TrapInit();
     ClockInit();
 
@@ -596,18 +592,20 @@ int main()
     // pmm_test();
     VirtualMemorySpace::InitStatic();
 
+    memCount = 0;
+
     pm.init();
     Disk.DiskInit();
 
     // A();
 
     kout[Info] << "Diskinit finish" << endl;
-    // test_ext4();
-    // #define RECOVER
-    #ifdef RECOVER
+// test_ext4();
+// #define RECOVER
+#ifdef RECOVER
     test_vfs();
     SBI_SHUTDOWN();
-    #endif
+#endif
 
     // test_ext4();
     // SBI_SHUTDOWN();
@@ -636,8 +634,9 @@ int main()
     // for (char ch='A';ch<'Z'+1;ch++) {
     // VFSM_test1('a');
     // }
+    // test_fstat();
     // PreRun();
-    mkdir();
+    // mkdir();
     final_test();
     // test_final1();
     // VFSM_test1(10);

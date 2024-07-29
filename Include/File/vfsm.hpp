@@ -33,10 +33,11 @@ enum FileType : Uint64 {
 };
 
 class FileNode {
+    DEBUG_CLASS_HEADER(FileNode);				
     friend class VFS;
 
-public:
     char* name = nullptr;
+public:
     VFS* vfs = nullptr;
     Uint64 TYPE;
     Uint64 flags;
@@ -67,7 +68,7 @@ public:
 
     virtual void show();
     // FileNode(VFS* _VFS, Uint64 _flags);
-    FileNode() { name=new char[100];};
+    FileNode() {};
     virtual ~FileNode();
 };
 

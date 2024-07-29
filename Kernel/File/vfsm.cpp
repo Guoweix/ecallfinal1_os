@@ -151,17 +151,18 @@ bool VFSM::init()
         return false;
     }
 
-    ext4_cache_write_back("/", 1);
+    // ext4_cache_write_back("/", 1);
 
     ext4_dir ed;
     ext4_dir_open(&ed, "/");
     kout << "ext4_dir_open: sucess:" << endl;
 
     ext4node* temp = new ext4node;
-    // temp->show();
+    kout[DeBug]<<(void *) temp->name<<endl;
     temp->RefCount++;
     EXT4* e1 = new EXT4;
-    temp->initdir(ed, (char*)".ROOT", e1);
+
+    temp->initdir(ed, ".ROOT", e1);
     temp->show();
     e1->root = temp;
     kout << "ready!" << endl;
@@ -272,6 +273,7 @@ bool VFSM::destory()
 
 void VFSM::get_file_path(FileNode* file, char* ret)
 {
+    // kout[DeBug]<<"file "<<file<<" ret "<<ret<<endl;
     if (file == root) {
         ret[1] = '\0';
         ret[0] = '/';
@@ -362,15 +364,16 @@ void FileNode::show()
 }
 FileNode* VFSM::open(const char* path, const char* cwd)
 {
-    bool a;
+    // bool a;
     // IntrSave(a);
 
     // kout[Info] << " VFSM::open0 " << path << " cwd " << cwd << endl;
     // IntrRestore(a);
 
     char* pathsrc = new char[512];
-    strcpy(pathsrc, path);
     char* path_ = new char[512];
+    char* sigleName = new char[100];
+    strcpy(pathsrc, path);
     path_[0] = 0;
     // IntrSave(a);
 
@@ -387,14 +390,13 @@ FileNode* VFSM::open(const char* path, const char* cwd)
 
    // IntrRestore(a);
 
-    char* sigleName = new char[100];
     FileNode* re;
     FileNode* t = get_root();
     FileNode* child = t->child;
     bool isFind = 0;
     // path1++;
     while ((path1 = split_path_name(path1, sigleName)) != nullptr) {
-        kout<<path1<<endl;
+        // kout<<path1<<endl;
         isFind = 0;
         child = t->child;
         while (child != nullptr) {
@@ -412,7 +414,8 @@ FileNode* VFSM::open(const char* path, const char* cwd)
             // kout[Info] << "find VFS" << endl;
             re = t->vfs->open(path1, t);
             delete[] sigleName;
-            delete[] path1;
+            delete[] path_;
+            delete[] pathsrc;
             // while (*path) {
             // kout[Info] <<(int)*path << endl;
             // path++;
@@ -426,14 +429,14 @@ FileNode* VFSM::open(const char* path, const char* cwd)
         } else {
             kout[Warning] << "can't find VFS" << endl;
             delete[] sigleName;
-            delete[] path1;
+            delete[] path_;
             delete[] pathsrc;
             return nullptr;
         }
     }
     delete[] sigleName;
     delete[] pathsrc;
-    delete[] path1;
+    delete[] path_;
     FileNode* r = t; // 如果能成功打开，则路径上的文件的引用计数都要+1
     while (r != get_root()) {
         // kout[Info] << "open " << r->name <<"parent"<<r->parent<< endl;

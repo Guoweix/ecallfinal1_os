@@ -1566,6 +1566,9 @@ int ext4_fopen(ext4_file *file, const char *path, const char *flags)
 
 	ext4_block_cache_write_back(mp->fs.bdev, 1);
 	r = ext4_generic_open(file, path, flags, true, 0, 0);
+
+	EXT4_Debug_u32(1,"EXT4_DEBUG filesize" , file->fsize);
+
 	ext4_block_cache_write_back(mp->fs.bdev, 0);
 
 	EXT4_MP_UNLOCK(mp);

@@ -79,6 +79,7 @@ enum file_ptr
 // 需要明确的一点是这个结构在具体场景中一定是附属于某个具体的进程而存在和使用的
 struct file_object
 {
+    DEBUG_CLASS_HEADER(file_object);				
     int fd;                     // 小的非负整数表示文件描述符fd 这里使用int 考虑-1的可用性
     // int tk_fd;
     FileNode* file;            // 对应的具体的打开的文件的结构指针

@@ -1,5 +1,6 @@
 #include "File/FAT32.hpp"
 #include "File/FileEx.hpp"
+#include "File/lwext4_include/ext4_types.h"
 #include "Library/KoutSingle.hpp"
 #include "Types.hpp"
 #include <File/FileObject.hpp>
@@ -20,9 +21,9 @@ void FileObjectManager::init_proc_fo_head(Process* proc)
     if (proc->fo_head != nullptr) {
         // kout[Info] << "The Process's fo_head is not Empty!" << endl;
         free_all_flobj(proc->fo_head);
-        kfree(proc->fo_head);
+        delete proc->fo_head;
     }
-    proc->fo_head = (file_object*)kmalloc(sizeof(file_object));
+    proc->fo_head = new file_object;
     if (proc->fo_head == nullptr) {
         kout[Fault] << "The fo_head malloc Fail!" << endl;
         return;
@@ -100,7 +101,7 @@ file_object* FileObjectManager::create_flobj(file_object* fo_head, int fd)
         return nullptr;
     }
 
-    file_object* new_fo = (file_object*)kmalloc(sizeof(file_object));
+    file_object* new_fo = new file_object;
     if (new_fo == nullptr) {
         kout[Fault] << "The fo_head malloc Fail!" << endl;
         return nullptr;
@@ -170,7 +171,7 @@ void FileObjectManager::free_all_flobj(file_object* fo_head)
         fo_del = fo_ptr->next;
         fo_ptr->next = fo_ptr->next->next;
         // kout<<"FileObjectManager::free_all_flobj"<<fo_del<<endl;
-        kfree(fo_del);
+        delete fo_del;
     }
     return;
 }
@@ -241,7 +242,7 @@ void FileObjectManager::delete_flobj(file_object* fo_head, file_object* del)
             // 出于维护链表结构的统一性模板
             fo_pre->next = fo_ptr->next;
             flag = true;
-            kfree(fo_ptr);
+            delete fo_ptr;
             fo_ptr = fo_pre;
         }
         fo_pre = fo_ptr;
@@ -340,6 +341,7 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
     Sint64 rd_size;
     // kout[Debug] << "read_fo1 "<<()dst<<endl;
     rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
+    fo->pos_k+=rd_size;
 
     return rd_size;
 }
@@ -436,7 +438,7 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
     }
 
     // 拷贝当前的fo并返回一个新的fo即可
-    file_object* dup_fo = (file_object*)kmalloc(sizeof(file_object));
+    file_object* dup_fo = new file_object;
     if (dup_fo == nullptr) {
         kout[Fault] << "The fo_head malloc Fail!" << endl;
         return nullptr;

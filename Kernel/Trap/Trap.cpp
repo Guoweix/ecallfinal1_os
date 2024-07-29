@@ -177,12 +177,12 @@ char regName[32][10] = { "zero", "ra", "sp", "gp", "tp",
 void TrapFramePrint(TrapFrame* tf)
 {
     for (int i = 0; i < 32; i++) {
-        kout[Debug] << regName[i] << ":\t" << (void*)tf->reg[i] << endl;
+        kout[Info] << regName[i] << ":\t" << (void*)tf->reg[i] << endl;
     }
-    kout[Debug] << "cause:\t" << (void*)tf->cause << endl;
-    kout[Debug] << "epc:\t" << (void*)tf->epc << endl;
-    kout[Debug] << "state:\t" << (void*)tf->status << endl;
-    kout[Debug] << "tcal:\t" << (void*)tf->tval << endl;
+    kout[Info] << "cause:\t" << (void*)tf->cause << endl;
+    kout[Info] << "epc:\t" << (void*)tf->epc << endl;
+    kout[Info] << "state:\t" << (void*)tf->status << endl;
+    kout[Info] << "tcal:\t" << (void*)tf->tval << endl;
 }
 
 void TrapInit()

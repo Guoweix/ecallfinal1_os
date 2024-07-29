@@ -148,7 +148,6 @@ void Semaphore::signal()
         // kout[Info]<<(void *)&queue<<endl;
         Process* proc = queue.getFront();
         proc->SemRef--;
-        kout[Debug] << "signal " << proc << ' ' << proc->name << " ref " << proc->SemRef << endl;
         if (proc->SemRef == 0) {
 
             queue.dequeue();

@@ -357,7 +357,7 @@ bool test_lwext4_mount(struct ext4_blockdev *bdev, struct ext4_bcache *bcache)
 		return false;
 	}
 
-	ext4_cache_write_back("/", 1);
+	// ext4_cache_write_back("/", 1);
     
     
 	return true;

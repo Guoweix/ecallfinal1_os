@@ -601,10 +601,15 @@ inline KOUT& endline(KOUT& o)
     return o << "\n";
 }
 
+void DebugCounterPrint();
+
 inline void KernelFaultSolver() // Remove this if you want to implement it by yourself.
 {
     kout << LightRed << "<KernelMonitor>: Kernel fault! Enter infinite loop..." << endline
          << "                 You can add you code in File:\"" << __FILE__ << "\" Line:" << __LINE__ << " to solve fault." << endl;
+    
+    
+    DebugCounterPrint();
     SBI_SHUTDOWN();
     while (1)
         ; // Replace your code here, such as shutdown...
@@ -627,5 +632,14 @@ using namespace POS; // Remove this if you want to use it by yourself.
 
 extern unsigned VMMINFO;
 extern unsigned NEWINFO;
+
+#include <Library/DebugCounter.hpp>
+
+
+inline void POS::DebugCounterPrint()
+{
+    DebugObjectClass::Print();
+
+}
 
 #endif

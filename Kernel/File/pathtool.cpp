@@ -205,7 +205,7 @@ char* get_k_path(int k,char*path){
     }
 
     int len = p - path;
-    result = (char*)kmalloc(len + 1); 
+    result = new char[len+1];
     if (!result) {
         return nullptr; 
     }
@@ -261,7 +261,7 @@ char* get_k_to_k1_path(int k, char* path) {
     }
 
     int len = end - start;
-    char* result = (char*)kmalloc(len + 1); 
+    char* result = new char[len+1];
     if (!result) {
         return nullptr;
     }
@@ -290,7 +290,7 @@ char* get_last_path_segment(char* path) {
     }
 
     int len = p - (lastSlash + 1);
-    char* result = (char*)kmalloc(len + 1); 
+    char* result = new char[len+1];
     if (!result) {
         return nullptr; 
     }

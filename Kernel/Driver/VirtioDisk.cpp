@@ -257,7 +257,7 @@ VirtioDisk VDisk;
 
 bool DISK::DiskInit()
 {
-    // kout[yellow] << "Disk init..." << endl;
+    // kout[Test] << "Disk init..." << endl;
     // kout[yellow] << "plic init..." << endl;
     // kout[red]<<Hex(f())<<endl;
     diskBuf = (void*)kmalloc(0x1000);

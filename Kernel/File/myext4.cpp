@@ -1,4 +1,5 @@
 #include "Driver/VirtioDisk.hpp"
+#include "File/lwext4_include/ext4.h"
 #include "File/vfsm.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Library/Pathtool.hpp"
@@ -37,14 +38,9 @@ Sint64 ext4node::read(void* buf_, Uint64 pos, Uint64 size)
     vfs->get_file_path(this, path);
     path[strlen(path) - 1] = 0;
 
-    // kout[Debug] << "ext7::read1" << endl;
     ext4_fopen(&fp, path, "r");
 
-    // kout[EXT] << "read1 path:" << path <<" file_name"<< endl;
     ext4_fseek(&fp, pos, SEEK_SET);
-
-    // kout[EXT]<<"ext4_fseek "<<fp.fpos<<" size "<<size <<endl;
-    // kout[Debug] << "ext8::read1" << endl;
     size_t* rcnt = new size_t;
     int r = ext4_fread(&fp, buf, size, rcnt);
     // kout[EXT]<<"read in buf:" << (void*)buf<<" size "<<(void *)size<<" pos " <<(void *)pos<<" rcnt "<<(void *)*rcnt << endl;
@@ -185,6 +181,7 @@ void ext4node::initlink(ext4_file tb, const char* Name, EXT4* fat_)
 {
     TYPE = __LINK;
     fp = tb;
+    ASSERTEX(name==nullptr, "name isn't nullptr "<<(void *)name);
     name = new char[strlen(Name) + 1];
     strcpy(name, Name);
 
@@ -196,17 +193,23 @@ void ext4node::initfile(ext4_file tb, const char* Name, EXT4* fat_)
 {
     TYPE = __FILE;
     fp = tb;
+
+    ASSERTEX(name==nullptr, "name isn't nullptr "<<(void *)name);
     name = new char[strlen(Name) + 1];
     strcpy(name, Name);
 
     vfs = fat_;
+
     fileSize = tb.fsize;
+    // ASSERTEX(fileSize==0, "file_size is 0"<<name);
 }
 
 void ext4node::initdir(ext4_dir tb, const char* Name, EXT4* fat_)
 {
     TYPE = __DIR;
     fd = tb;
+    ASSERTEX(name==nullptr, "name isn't nullptr "<<(void *)name);
+
     name = new char[strlen(Name) + 1];
     strcpy(name, Name);
 
@@ -241,6 +244,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     path[strlen(path) - 1] = 0;
     if (ext4_inode_exist(path, 2) != EOK && ext4_inode_exist(path, 1) != EOK && ext4_inode_exist(path, 7) != EOK) {
         kout[EXT] << "file type unknown: " << path << endl;
+        delete[] path;
         delete[] sigleName;
         return nullptr;
     }
@@ -255,18 +259,21 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
         pre1 = tb;
 
         char* temp_path = get_k_path(i, path);
-        // kout[EXT]<<i<<" level dir is:"<<temp_path<<endl;
+        // kout[Debug] << i << " level dir is:" << temp_path << endl;
         ext4_dir temp;
         ext4_dir_open(&temp, temp_path);
 
         ext4node* now = new ext4node;
         char* name = get_k_to_k1_path(i - 1, path);
-        // kout[EXT]<<i<<" level dir name is:"<<name<<endl;
+        // kout[Debug] << i << " level dir name is:" << name << endl;
         now->initdir(temp, name, this);
         ext4_dir_close(&temp);
         tb = now;
 
         if (tb == nullptr) {
+            delete[] name;
+            delete[] path;
+            delete[] temp_path;
             delete[] sigleName;
             return nullptr;
         }
@@ -279,8 +286,13 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
         tb->parent = pre1;
         tb->vfs = this;
         tb->RefCount++;
+
+        delete[] temp_path;
         // delete now;
+        delete[] name;
     }
+    
+    // kout[Debug]<<"AAA"<<endl;
 
     pre1 = tb;
 
@@ -297,6 +309,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
         tb = now;
     } else if (ext4_inode_exist(path, 1) == EOK) {
         ext4_fopen(&temp, path, "rb");
+
         now->initfile(temp, name, this);
         tb = now;
     } else if (ext4_inode_exist(path, 7) == EOK) {
@@ -308,6 +321,8 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     if (tb == nullptr) {
         kout[EXT] << "tb is nullptr" << endl;
         delete now;
+        delete [] name;
+        delete [] path;
         delete[] sigleName;
         return nullptr;
     }
@@ -321,7 +336,9 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     tb->vfs = this;
     tb->RefCount++;
 
+    delete [] path;
     delete[] sigleName;
+    delete[] name;
     // char ch[100];
     // tb->read(ch,100);
     return tb;
@@ -336,7 +353,7 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
         kout[Fault] << dir->name << "isn't a dir" << endl;
         return;
     }
-
+    
     char* path = new char[255];
 
     get_file_path(dir, path);
@@ -378,44 +395,25 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
 
     strcat(path, sss);
     kout[EXT] << "whole path:" << path << endl;
-
-    if (de->inode_type == 2) {
-        // kout[DeBug]<<"is_dir"<<endl;
-        // kout << "is_dir" << endl;
-        // tag->fd
-        // kout << "is_dir1"<<tag << endl;
-        ASSERTEX(&tag->fd, "dir is nullptr");
-        ext4_dir_open(&tag->fd, path);
-        // kout << "is_dir2" << endl;
-        tag->initdir(tag->fd, sss, (EXT4*)dir->vfs);
-        // kout << "is_dir3" << endl;
-    } else {
-        // kout[DeBug]<<"is_file"<<endl;
-        // ext4_file f;
-
-        // kout << "is_file" << endl;
-        r = ext4_fopen(&tag->fp, path, "r");
-        // kout << "is_file" << endl;
-        tag->initfile(tag->fp, sss, (EXT4*)dir->vfs);
-        // kout << "is_file" << endl;
+    if (cur==tag) {
+        cur->close();
     }
 
-    // kout << "ssss1" << endl;
-    // kout << "create file/dir success" << endl;
-    /*     int k = 0;
-        while (tag->name[k]!='\0') {
-            kout<<(int )tag->name[k]<<endl;
-            k++;
-        }
-     */
+    if (de->inode_type == 2) {
+        ASSERTEX(&tag->fd, "dir is nullptr");
+        ext4_dir_open(&tag->fd, path);
+        tag->initdir(tag->fd, sss, (EXT4*)dir->vfs);
+    } else {
+        r = ext4_fopen(&tag->fp, path, "r");
+
+        // kout[DeBug] <<"TMEP Fsize "<<tag->fp.fsize<<endl;
+        tag->initfile(tag->fp, sss, (EXT4*)dir->vfs);
+    }
 
     tag->offset = d.next_off;
     tag->parent = dir;
-    // kout << "finish 1" << endl;
     tag->RefCount++;
-    // kout[Info] << "EXT4::get_next_file  file"<< tag->offset << endl;
     delete[] path;
-    // kout << "finish 3" << endl;
     return;
 }
 
@@ -504,9 +502,7 @@ ext4node* EXT4::create_file(FileNode* dir_, const char* fileName, FileType type)
 
     unified_path(fileName, cwd, path);
     delete[] cwd;
-    path[strlen(path)-1]='\0';
-    kout[Error] << "New file Name is:" << path << endl;
-
+    path[strlen(path) - 1] = '\0';
 
     ext4_file temp;
     int r = ext4_fopen(&temp, path, "wb");
@@ -517,10 +513,12 @@ ext4node* EXT4::create_file(FileNode* dir_, const char* fileName, FileType type)
     // r = ext4_fwrite(&temp, "Hello World !\n", strlen("Hello World !\n"), 0);
     kout[EXT] << "fopen is sucess:" << endl;
     // r = ext4_fwrite(&temp, "Hello World !\n", strlen("Hello World !\n"), 0);
-    ext4_fclose(&temp);
 
     ext4node* p = new ext4node;
+    
+    kout[DeBug] <<"TMEP Fsize "<<temp<<endl;
     p->initfile(temp, fileName, this);
+    ext4_fclose(&temp);
     /*
         ext4node* dir = (ext4node*)dir_;
         ext4node* c = (ext4node*)dir->child;
@@ -572,5 +570,7 @@ bool EXT4::del(FileNode* file)
     ext4_dir_rm(path);
 
     file->~FileNode();
+     
+
     delete[] path;
 }

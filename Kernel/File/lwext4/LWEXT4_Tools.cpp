@@ -182,15 +182,24 @@ char* strncpy(char* dest, const char* src, size_t n)
     return dest;
 }
 
+extern long long memCount;
 // free: 释放动态分配的内存
-void free(void *ptr)
+void free(void* ptr)
 {
+    if (ptr == nullptr) {
+        return;
+    }
+    memCount--;
     kfree(ptr);
 }
 
 // malloc: 动态分配内存
 void* malloc(size_t size)
 {
+    // if (size >= 256 * 1024) {
+        // kout[DeBug] << "big mem malloc" << size << endl;
+    // }
+    memCount++;
     void* memory = kmalloc(size);
     return memory;
 }
@@ -198,8 +207,13 @@ void* malloc(size_t size)
 // calloc: 分配并清零内存
 void* calloc(size_t nitems, size_t size)
 {
-    void* memory = kmalloc(size);
-    memset(memory, 0, size);
+
+    // if (nitems * size>=256*1024) {
+        // kout[DeBug] << "big mem malloc" << size * nitems << endl;
+    // }
+    memCount++;
+    void* memory = kmalloc(size * nitems);
+    memset(memory, 0, size * nitems);
     return memory;
 }
 

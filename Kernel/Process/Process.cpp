@@ -177,7 +177,6 @@ void Process::init(ProcFlag _flags)
     flags = _flags;
     name[0] = 0;
 
-    kout[DeBug] << "new process " << id << endl;
 }
 
 void Process::destroy()
@@ -229,17 +228,17 @@ void Process::destroy()
         waitSem = nullptr;
     }
     if (curWorkDir != nullptr) {
-        kfree(curWorkDir);
+        delete [] curWorkDir;
         curWorkDir = nullptr;
     }
     setName(nullptr);
     if (fo_head != nullptr) {
         destroyFds();
-        kfree(fo_head);
+        delete fo_head;
         fo_head = nullptr;
     }
     if (Heap != nullptr) {
-        kfree(Heap);
+        delete Heap;
         Heap = nullptr;
     }
     if (stack != nullptr) {
@@ -253,7 +252,6 @@ void Process::destroy()
 
 bool Process::exit(int re)
 {
-    kout[DeBug] << "process::exit id" << id << re;
     switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
@@ -470,7 +468,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     Process* tar;
 
     pm.simpleShow();
-    kout[Debug] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
+    kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
     kout << Blue << procCount << endl;
     if (curProc != nullptr && procCount >= 2) {
@@ -632,11 +630,11 @@ bool Process::setProcCWD(const char* cwd_path)
 
     if (curWorkDir != nullptr) {
         // 已经存在了则直接释放字符串分配的资源
-        kfree(curWorkDir);
+        delete [] curWorkDir;
     }
     // 由于是字符指针
     // 不能忘记分配空间
-    curWorkDir = (char*)kmalloc(strlen(cwd_path) + 5);
+    curWorkDir = new char[strlen(cwd_path)+1];
     strcpy(curWorkDir, cwd_path);
     kout[Warning] << "set Proc CWD___________________________________" << curWorkDir << endl;
 
