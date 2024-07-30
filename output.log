@@ -44,36 +44,74 @@ Boot HART MHPM Count      : 16
 Boot HART MIDELEG         : 0x0000000000001666
 Boot HART MEDELEG         : 0x0000000000f0b509
 run time-test
-time-test: time/iteration: 0.000ns total time: 1451034291269ms
-run busybox_testcode
-#### independent command test
-sh: "####: unknown operand
-testcase busybox echo "#### independent command test" success
-sh: -c: unknown operand
-testcase busybox ash -c exit success
-sh: -c: unknown operand
-testcase busybox sh -c exit success
-bbb
-sh: /aaa/bbb: unknown operand
-testcase busybox basename /aaa/bbb success
- January 231512315
-Su Mo Tu We Th Fr Sa
-                1  2
- 3  4  5  6  7  8  9
-10 11 12 13 14 15 16
-17 18 19 20 21 22 23
-24 25 26 27 28 29 30
-31
-testcase busybox cal success
-[H[Jtestcase busybox clear success
-Fri Oct 13 05:26:27 UTC +1249181572
-testcase busybox date success
-Filesystem           1K-blocks      Used Available Use% Mounted on
-df: /proc/mounts: Operation not permitted
-testcase busybox df fail
-/aaa
-sh: /aaa/bbb: unknown operand
-testcase busybox dirname /aaa/bbb success
-testcase busybox dmesg success
-QEMU: Terminated
-
+time-test: time/iteration: 0.000ns total time: 16251270041692ms
+run libc-bench
+========== START entry-static.exe argv ==========
+Pass!
+========== END entry-static.exe argv ==========
+========== START entry-static.exe basename ==========
+Pass!
+========== END entry-static.exe basename ==========
+========== START entry-static.exe clocale_mbfuncs ==========
+Pass!
+========== END entry-static.exe clocale_mbfuncs ==========
+========== START entry-static.exe clock_gettime ==========
+Pass!
+========== END entry-static.exe clock_gettime ==========
+========== START entry-static.exe crypt ==========
+Pass!
+========== END entry-static.exe crypt ==========
+========== START entry-static.exe dirname ==========
+Pass!
+========== END entry-static.exe dirname ==========
+========== START entry-static.exe env ==========
+Pass!
+========== END entry-static.exe env ==========
+========== START entry-static.exe fdopen ==========
+src/functional/fdopen.c:25: ftello(f)==6 failed (errno = 1)
+src/functional/fdopen.c:26: fseeko(f, 0, SEEK_SET)==0 failed (errno = 1)
+FAIL fdopen [status 1]
+========== END entry-static.exe fdopen ==========
+========== START entry-static.exe fnmatch ==========
+Pass!
+========== END entry-static.exe fnmatch ==========
+========== START entry-static.exe fscanf ==========
+FAIL fscanf [status 1]
+========== END entry-static.exe fscanf ==========
+========== START entry-static.exe fwscanf ==========
+src/functional/fwscanf.c:28: lseek: Operation not permitted
+src/functional/fwscanf.c:42: !!(f=writetemp("      42")) failed (failed to make temp file)
+src/functional/fwscanf.c:28: lseek: Operation not permitted
+src/functional/fwscanf.c:53: !!(f=writetemp("[abc123]....x")) failed (failed to make temp file)
+src/functional/fwscanf.c:28: lseek: Operation not permitted
+src/functional/fwscanf.c:67: !!(f=writetemp("0x1p 12")) failed (failed to make temp file)
+src/functional/fwscanf.c:28: lseek: Operation not permitted
+src/functional/fwscanf.c:91: !!(f=writetemp("0x.1p4    012")) failed (failed to make temp file)
+src/functional/fwscanf.c:28: lseek: Operation not permitted
+src/functional/fwscanf.c:104: !!(f=writetemp("0xx")) failed (failed to make temp file)
+FAIL fwscanf [status 1]
+========== END entry-static.exe fwscanf ==========
+========== START entry-static.exe iconv_open ==========
+Pass!
+========== END entry-static.exe iconv_open ==========
+========== START entry-static.exe inet_pton ==========
+Pass!
+========== END entry-static.exe inet_pton ==========
+========== START entry-static.exe mbc ==========
+Pass!
+========== END entry-static.exe mbc ==========
+========== START entry-static.exe memstream ==========
+Pass!
+========== END entry-static.exe memstream ==========
+========== START entry-static.exe pthread_cancel_points ==========
+FAIL pthread_cancel_points [status 1]
+========== END entry-static.exe pthread_cancel_points ==========
+========== START entry-static.exe pthread_cancel ==========
+FAIL pthread_cancel [status 1]
+========== END entry-static.exe pthread_cancel ==========
+========== START entry-static.exe pthread_cond ==========
+FAIL pthread_cond [status 1]
+========== END entry-static.exe pthread_cond ==========
+========== START entry-static.exe pthread_tsd ==========
+FAIL pthread_tsd [status 1]
+========== END entry-static.exe pthread_tsd ==========

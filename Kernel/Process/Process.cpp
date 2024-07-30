@@ -63,7 +63,7 @@ void ProcessManager::simpleShow()
             kout[Info] << "Cur====>";
         }
         if (Proc[i].status != S_None) {
-            kout[Info] << Proc[i].name << " id: " << Proc[i].id <<" status: "<<Proc[i].status<< endl;
+            kout[Info] << Proc[i].name << " id: " << Proc[i].id << " status: " << Proc[i].status << endl;
         }
     }
 }
@@ -176,7 +176,6 @@ void Process::init(ProcFlag _flags)
     // memset(&context, 0, sizeof(context));
     flags = _flags;
     name[0] = 0;
-
 }
 
 void Process::destroy()
@@ -209,19 +208,19 @@ void Process::destroy()
     }
     setFa(nullptr);
 
-    broNext=nullptr;
-    broPre=nullptr;
+    broNext = nullptr;
+    broPre = nullptr;
 
-    if (VMS!=nullptr) {
+    if (VMS != nullptr) {
         VMS->Destroy();
     }
-    VMS=nullptr;
-    file_object * del=fo_head->next;
+    VMS = nullptr;
+    file_object* del = fo_head->next;
     while (del) {
         fom.close_fo(this, del);
-        del=del->next;
+        del = del->next;
         // ASSERTEX(del!=del->next, "DeadLoop");
-    } 
+    }
 
     destroyFds();
 
@@ -230,7 +229,7 @@ void Process::destroy()
         waitSem = nullptr;
     }
     if (curWorkDir != nullptr) {
-        delete [] curWorkDir;
+        delete[] curWorkDir;
         curWorkDir = nullptr;
     }
     setName(nullptr);
@@ -254,6 +253,12 @@ void Process::destroy()
 
 bool Process::exit(int re)
 {
+
+    kout[DeBug] << "EXit " << id << endl;
+    if (status == S_Terminated || status == S_None) {
+        kout[DeBug] << "already exit" << endl;
+        return true;
+    }
     switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
@@ -262,17 +267,22 @@ bool Process::exit(int re)
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
     }
     exitCode = re;
-    
-    kout[DeBug]<<"exit1 "<<endl;
+
     while (waitSem->getValue() < 1) {
-    kout[DeBug]<<"exit1 "<<endl;
+        kout[DeBug] << "exit1 " << endl;
         waitSem->signal();
     }
+
+    // if(fstChild==nullptr)
+    // {
+        // kout[Fault]
+    // }
+
     if (father != nullptr) {
-    kout[DeBug]<<"exit1 "<<endl;
+        kout[DeBug] << "exit1 " << endl;
         father->waitSem->signal();
     }
-    kout[DeBug]<<"exit1 "<<endl;
+    kout[DeBug] << "exit1 " << endl;
     return true;
 }
 
@@ -468,6 +478,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
     Process* tar;
 
+    kout[DeBug] << "Schedule " << endl;
     pm.simpleShow();
     // kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
@@ -493,18 +504,18 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
-                kout[DeBug]<<"into "<<tar->name<<" id "<<tar->getID()<<endl;
+                kout[DeBug] << "into " << tar->name << " id " << tar->getID() << endl;
 
                 return tar->context;
             } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
             {
                 tar->destroy();
                 pm.freeProc(tar);
-            } 
+            }
             // else if (tar->status==S_None) {
 
             // } else {
-                // kout[DeBug]<<"unknown status "<<tar->id<<" status "<<tar->status<<endl;
+            // kout[DeBug]<<"unknown status "<<tar->id<<" status "<<tar->status<<endl;
             // }
         }
     }
@@ -633,11 +644,11 @@ bool Process::setProcCWD(const char* cwd_path)
 
     if (curWorkDir != nullptr) {
         // 已经存在了则直接释放字符串分配的资源
-        delete [] curWorkDir;
+        delete[] curWorkDir;
     }
     // 由于是字符指针
     // 不能忘记分配空间
-    curWorkDir = new char[strlen(cwd_path)+1];
+    curWorkDir = new char[strlen(cwd_path) + 1];
     strcpy(curWorkDir, cwd_path);
     kout[Warning] << "set Proc CWD___________________________________" << curWorkDir << endl;
 

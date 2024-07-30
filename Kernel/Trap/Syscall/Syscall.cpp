@@ -312,7 +312,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     }
     // 顺利执行了execve并回收了子进程
     // 当前进程就执行完毕了 直接退出
-    VirtualMemorySpace::DisableAccessUser();
+    // VirtualMemorySpace::DisableAccessUser();
     // pm.exit_proc(cur_proc, exit_value);
     cur_proc->exit(exit_value);
     kfree(fo);
@@ -689,6 +689,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
+    kout[DeBug]<<"write "<<fd<<endl;
     // if (fd == STDOUT_FILENO) {
     // VirtualMemorySpace::EnableAccessUser();
     // kout << Yellow << buf << endl;
@@ -747,6 +748,7 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲e区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
+    kout[DeBug]<<"read "<<fd<<endl;
     if (buf == nullptr) {
         return -1;
     }
@@ -891,7 +893,7 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    kout << "close success" << endl;
+    kout[Debug] << "close success "<<fd << endl;
     return 0;
 }
 
@@ -903,7 +905,7 @@ inline int Syscall_dup(int fd)
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr) {
+    if (fo == nullptr||fom.get_count_fdt(fo)>1000) {
         // 当前文件描述符不存在
         return -1;
     }
@@ -972,7 +974,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
     // kout << Red << "OpenedFile" << endl;
-    // kout[DeBug] << "SYSCALL__openat fd " << fd << " file_name " << (filename ? filename : "nullptr") << " flags " << flags << " mode " << mode << endl;
+    kout[DeBug] << "openat fd " << fd << " file_name " << filename <<endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = new char[200];
@@ -1355,6 +1357,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     fd[1] = fo2->fd;
     // kout << Yellow << "pipe7" << endl;
     VirtualMemorySpace::DisableAccessUser();
+    kout[DeBug]<<"PIPE open "<<fo1->fd<<" "<<fo2->fd;
     return 0;
 }
 
@@ -1879,9 +1882,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_nanosleep((timespec*)tf->reg.a0, (timespec*)tf->reg.a1);
         break;
 
-    case SYS_pipe2:
-        tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
-        break;
+    // case SYS_pipe2:
+        // tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
+        // break;
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;

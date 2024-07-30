@@ -701,12 +701,14 @@ int main()
     busybox_execve(argvv1);
     char argvv2 [20][50] ={"time-test","\0"};
     busybox_execve(argvv2);
-    // char argvv5 [20][50] ={"busybox","echo","run libc-bench","\0"};
-    // busybox_execve(argvv5);
+    char argvv5 [20][50] ={"busybox","echo","run libc-bench","\0"};
+    busybox_execve(argvv5);
+    char argvv6 [20][50] ={"busybox","sh","run-static.sh","\0"};
+    busybox_execve(argvv6);
     char argvv3 [20][50] ={"busybox","echo","run busybox_testcode","\0"};
     busybox_execve(argvv3);
-    char argvv4 [20][50] ={"busybox","sh","busybox_testcode.sh","\0"};
-    busybox_execve(argvv4);
+    // char argvv4 [20][50] ={"busybox","sh","busybox_testcode.sh","\0"};
+    // busybox_execve(argvv4);
     // final_test();
     // test_final1();
     // VFSM_test1(10);
