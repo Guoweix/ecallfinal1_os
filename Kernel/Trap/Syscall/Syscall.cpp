@@ -26,18 +26,8 @@ void Syscall_Exit(TrapFrame* tf, int re)
 {
     Process* cur = pm.getCurProc();
     cur->exit(re);
-    // Process* child = cur;
-    // kout[DeBug]<<"father is "<<cur->father->id<<" cur status "<<cur->getStatus()<<endl;
-    // kout[Fault]<<"SDAD"<<re<<endl;
-    // cur->destroy();
-    // while (cur) {
-    // kout[Fault]<<cur<<endl;
-    // cur->exit(re);
-    // pm.freeProc(cur);
-    // cur=child->broNext;
-    // }
+    kout[DeBug]<<"EXit"<<endl;
     needSchedule = true;
-    // kout[Fault] << "Syscall_Exit: Reached unreachable branch" << endl;
 }
 
 PtrSint Syscall_brk(PtrSint pos)
@@ -278,7 +268,9 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
     }
 
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
+
     new_proc->destroyFds();
+
     new_proc->copyFds(cur_proc);
 
     // kout[Info] << "execve 4 " << endl;
@@ -312,7 +304,6 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
                 VirtualMemorySpace::EnableAccessUser();
                 exit_value = child->getExitCode();
                 VirtualMemorySpace::DisableAccessUser();
-                kout << cur_proc->getName() << "execve free" << child->getName() << endl;
                 child->destroy();
                 pm.freeProc(child);
                 break;
@@ -756,7 +747,6 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲e区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
-    kout[DeBug]<<"read"<<fd<<endl;
     if (buf == nullptr) {
         return -1;
     }
@@ -1077,7 +1067,6 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
         kout << Red << "OpenedFile15" << endl;
     }
     // kfree(path);
-    kout[DeBug]<< "Open Success filenode " << file->name << " fd " << fo->fd << endl;
 
     // file->show();
     // kout << Green << "Open Success1" << endl;
@@ -1185,7 +1174,6 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
 
-    kout << vmrProt << endl;
 
     constexpr Uint64 MAP_FIXED = 0x10;
     if (flags & MAP_FIXED) // Need improve...
@@ -1280,7 +1268,6 @@ int Syscall_nanosleep(timespec* req, timespec* rem)
 template <ModeRW rw>
 inline RegisterData Syscall_ReadWriteVector(int fd, iovec* iov, int iovcnt, Uint64 off = -1)
 {
-    kout[DeBug] << "Syscall_ReadWriteVector fd is " << fd << "iovcnt " << iovcnt << endl;
     file_object* fo = pm.getCurProc()->getFoHead();
     file_object* fh = fom.get_from_fd(fo, fd);
     if (fh == nullptr)
@@ -1511,7 +1498,7 @@ int Syscall_ppoll(void* _fds, Uint64 nfds, void* _tmo_p, void* _sigmask)
 
     VirtualMemorySpace::EnableAccessUser();
     for (int i = 0; i < nfds; ++i)
-        kout << fds[i].fd << " " << fds[i].events << endline;
+        kout[DeBug] << fds[i].fd << " " << fds[i].events << endline;
     kout << endout;
 
     if (nfds == 1 && fds[0].fd == 0 && fds[0].events == POLLIN) {
@@ -1617,7 +1604,6 @@ int Syscall_newfstatat(int dirfd, const char* pathname, kstat* statbuf, int flag
         AT_EMPTY_PATH = 0x1000,
     };
 
-    kout[DeBug] << "SYS_newfstatat " << pathname << endl;
     if (flags) {
         switch (flags) {
         case AT_EMPTY_PATH:

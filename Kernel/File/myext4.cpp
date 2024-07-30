@@ -438,7 +438,7 @@ void EXT4::show_all_file_in_dir(ext4node* dir, Uint32 level)
     t->parent = dir;
     while (t->offset != -1) {
         show_space(level);
-        kout << t->name << endl;
+        kout[Debug] << t->name << endl;
 
         if ((t->TYPE & FileType::__DIR) && !(t->TYPE & FileType::__SPECICAL)) {
             show_all_file_in_dir(t);
@@ -516,7 +516,6 @@ ext4node* EXT4::create_file(FileNode* dir_, const char* fileName, FileType type)
 
     ext4node* p = new ext4node;
     
-    kout[DeBug] <<"TMEP Fsize "<<temp<<endl;
     p->initfile(temp, fileName, this);
     ext4_fclose(&temp);
     /*

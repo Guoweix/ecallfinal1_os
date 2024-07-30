@@ -92,7 +92,7 @@ Sint64 FileNode::size()
 
 FileNode::~FileNode()
 {
-    kout[Warning]<<"FileNode:: Delete  filenode "<<name<<endl;
+    // kout[Warning]<<"FileNode:: Delete  filenode "<<name<<endl;
     delete[] name;
     while (child != nullptr) {
         delete child;
@@ -100,9 +100,9 @@ FileNode::~FileNode()
     if (pre != nullptr) {
         pre->next = next;
     }
-    if (next != nullptr) {
-        kout << "next:" << next->name << endl;
-    }
+    // if (next != nullptr) {
+        // kout << "next:" << next->name << endl;
+    // }
     if (parent != nullptr) {
         if (parent->child == this)
             parent->child = next;
@@ -158,7 +158,6 @@ bool VFSM::init()
     kout << "ext4_dir_open: sucess:" << endl;
 
     ext4node* temp = new ext4node;
-    kout[DeBug]<<(void *) temp->name<<endl;
     temp->RefCount++;
     EXT4* e1 = new EXT4;
 
@@ -485,6 +484,7 @@ void VFSM::close(FileNode* t)
             // kout[Info] << "close " << tmp->name << endl;
             delete tmp;
         }
+        // kout[Info]<<"loop detecte"<<endl;
     }
     root->RefCount--;
 }

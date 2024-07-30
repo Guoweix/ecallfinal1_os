@@ -123,7 +123,6 @@ int Semaphore::wait(Process* proc)
     // kout[Info] << "Wait " << this << " v " << value << endl;
     value--;
     if (value < 0) {
-        // kout[DeBug] << "Wait " << proc << ' ' << proc->name << endl;
         if (!queue.check(proc)) {
             queue.enqueue(proc);
         }
@@ -142,7 +141,6 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-    // kout[Debug] << "Signal " << this << " v " << value << endl;
     value++;
     if (value == 0) {
         // kout[Info]<<(void *)&queue<<endl;
@@ -166,5 +164,5 @@ int Semaphore::getValue()
     int re = value;
     unlockProcess();
     IntrRestore(intr_flag);
-    return value;
+    return re;
 }

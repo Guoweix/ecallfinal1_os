@@ -711,7 +711,7 @@ public:
     }
     ErrorType showVMRCount()
     {
-        kout << VmrCount << endl;
+        kout[Info] << VmrCount << endl;
     }
 
     ErrorType CreateFrom(VirtualMemorySpace* src)

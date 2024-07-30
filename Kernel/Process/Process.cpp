@@ -193,7 +193,6 @@ void Process::destroy()
     // <<"broPre "<<broPre<<"broNext "<<broNext<<endline
     // <<"fstChild "<<fstChild<<"myself "<<this<<endl;
     while (fstChild) {
-        // kout[Debug]<<"loop here"<<endl;
         fstChild->destroy();
     }
     if (broPre) {
@@ -206,19 +205,22 @@ void Process::destroy()
         }
     }
     if (broNext) {
-
         broNext->broPre = broPre;
     }
     setFa(nullptr);
 
+    broNext=nullptr;
+    broPre=nullptr;
 
     if (VMS!=nullptr) {
         VMS->Destroy();
     }
+    VMS=nullptr;
     file_object * del=fo_head->next;
     while (del) {
         fom.close_fo(this, del);
         del=del->next;
+        // ASSERTEX(del!=del->next, "DeadLoop");
     } 
 
     destroyFds();
@@ -260,18 +262,17 @@ bool Process::exit(int re)
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
     }
     exitCode = re;
-    // VMS->Leave();
-    // destroyFds();
+    
+    kout[DeBug]<<"exit1 "<<endl;
     while (waitSem->getValue() < 1) {
+    kout[DeBug]<<"exit1 "<<endl;
         waitSem->signal();
     }
     if (father != nullptr) {
-        // kout[DeBug] << "wake up it's father " << endl;
+    kout[DeBug]<<"exit1 "<<endl;
         father->waitSem->signal();
     }
-    // if (!(flags & F_AutoDestroy) && father != nullptr) {
-    // father->waitSem->signal();
-    // }
+    kout[DeBug]<<"exit1 "<<endl;
     return true;
 }
 
@@ -468,9 +469,9 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
     Process* tar;
 
     pm.simpleShow();
-    kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
+    // kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
-    kout << Blue << procCount << endl;
+    // kout << Blue << procCount << endl;
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
         ClockTime minWaitingTarget = -1;
@@ -492,6 +493,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
+                kout[DeBug]<<"into "<<tar->name<<" id "<<tar->getID()<<endl;
 
                 return tar->context;
             } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
@@ -616,6 +618,7 @@ bool Process::copyFds(Process* src)
         }
         dst_fo_ptr->next = new_fo;
         dst_fo_ptr = dst_fo_ptr->next;
+        // kout[Info]<<"loop detecte "<<endl;
     }
     return true;
 }

@@ -170,7 +170,6 @@ void pm_test()
 void Semaphore_test()
 {
     Semaphore* SemTest(0);
-    kout << "2" << endl;
     SemTest->wait();
     kout << "3" << endl;
     kout << "wait OK" << endl;
@@ -280,7 +279,8 @@ bool VFSM_test2()
     f->show_all_file_in_dir(file);
 }
 
-void final_test()
+
+void busybox_execve(char (* argvv)[50])
 {
 
     file_object* fo = new file_object;
@@ -293,25 +293,22 @@ void final_test()
     // kout << file;
     while (file->offset != -1) {
         if (file->fileSize == 0) {
-            // file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             t->get_next_file((ext4node*)vfsm.get_root(), file, file);
             continue;
         }
         if (file->TYPE == FileType::__DIR) {
-            // file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
             t->get_next_file((ext4node*)vfsm.get_root(), file, file);
             continue;
         }
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
-
         Process* task;
-
         // if (strcmp(file->name, "runtest.exe") == 0) {
         // if (strcmp(file->name, "pipe2") == 0) {
-        if (strcmp(file->name, "busybox") == 0) {
+        if (strcmp(file->name, argvv[0]) == 0) {
             // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
-            char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
+            // char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
+            // char argvv[20][100] = { "busybox","expr","1","+","1","\0" };
             // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
             // char argvv[20][100] = { "busybox", "cut","-c","3","test.txt" };
             // char argvv[20][100] = { "./busybox", "du" };
@@ -343,21 +340,83 @@ void final_test()
             }
             kout << "END" << endl;
         }
-        // file = t->get_next_file((FAT32FILE*)vfsm.get_root(), (FAT32FILE*)file);
         t->get_next_file((ext4node*)vfsm.get_root(), file, file);
-        // kout << file;
     }
 
 FinalTestEnd:
     kout << "finish test" << endl;
-
-    // VFSM_test();
-
-    // while (1) {
-        // delay(1e7);
-        // Putchar('.');
-    // }
 }
+
+
+
+void final_test()
+{
+
+    file_object* fo = new file_object;
+    ext4node* file = new ext4node;
+    Process* test;
+    int test_cnt = 0;
+    EXT4* t = (EXT4*)vfsm.get_root()->vfs;
+    t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
+
+    // kout << file;
+    while (file->offset != -1) {
+        if (file->fileSize == 0) {
+            t->get_next_file((ext4node*)vfsm.get_root(), file, file);
+            continue;
+        }
+        if (file->TYPE == FileType::__DIR) {
+            t->get_next_file((ext4node*)vfsm.get_root(), file, file);
+            continue;
+        }
+        fom.set_fo_file(fo, file);
+        fom.set_fo_pos_k(fo, 0);
+        Process* task;
+        // if (strcmp(file->name, "runtest.exe") == 0) {
+        // if (strcmp(file->name, "pipe2") == 0) {
+        if (strcmp(file->name, "busybox") == 0) {
+            // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
+            char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
+            // char argvv[20][100] = { "busybox","expr","1","+","1","\0" };
+            // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
+            // char argvv[20][100] = { "busybox", "cut","-c","3","test.txt" };
+            // char argvv[20][100] = { "./busybox", "du" };
+            // char argvv[20][100] = { "./busybox", "sh","test_all.sh" };
+            // char argvv[20][100] = {"pipe2", "\0" };
+            char* argv[20];
+            int j = 0;
+            while (argvv[j][0] != '\0') {
+                argv[j] = argvv[j];
+                j++;
+            }
+            argv[j] = nullptr;
+
+            int argc = 0;
+            while (argv[argc] != nullptr)
+                argc++;
+            // kout[Info] << "argc" << argc << endl;
+            char** argv1 = new char*[argc];
+            for (int i = 0; i < argc; i++) {
+                // kout[Info] << "argv[" << i << "]" << argv[i] << endl;
+                argv1[i] = strdump(argv[i]);
+            }
+
+            task = CreateProcessFromELF(fo, "/", argc, argv1);
+            while (1) {
+                if (task->getStatus() == S_Terminated) {
+                    goto FinalTestEnd;
+                }
+            }
+            kout << "END" << endl;
+        }
+        t->get_next_file((ext4node*)vfsm.get_root(), file, file);
+    }
+
+FinalTestEnd:
+    kout << "finish test" << endl;
+}
+
+
 
 void test_final1()
 {
@@ -572,13 +631,14 @@ int main()
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     kout.SetEnabledType(0);
-    // kout.SwitchTypeOnoff(Info,true);
+    kout.SwitchTypeOnoff(Info,false);
+    kout.SwitchTypeOnoff(Warning,false);
     // kout.SwitchTypeOnoff(Fault, true);
     // kout.SwitchTypeOnoff(Test, true);
     // kout.SwitchTypeOnoff(Error, true);
     // kout.SwitchTypeOnoff(Debug, true);
     // kout.SwitchTypeOnoff(Warning, true);
-    // kout.SwitchTypeOnoff(EXT, false);
+    kout.SwitchTypeOnoff(EXT, false);
     // kout.SwitchTypeOnoff(Info, false);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
@@ -637,7 +697,17 @@ int main()
     // test_fstat();
     // PreRun();
     // mkdir();
-    final_test();
+    char argvv1 [20][50] ={"busybox","echo","run time-test","\0"};
+    busybox_execve(argvv1);
+    char argvv2 [20][50] ={"time-test","\0"};
+    busybox_execve(argvv2);
+    // char argvv5 [20][50] ={"busybox","echo","run libc-bench","\0"};
+    // busybox_execve(argvv5);
+    char argvv3 [20][50] ={"busybox","echo","run busybox_testcode","\0"};
+    busybox_execve(argvv3);
+    char argvv4 [20][50] ={"busybox","sh","busybox_testcode.sh","\0"};
+    busybox_execve(argvv4);
+    // final_test();
     // test_final1();
     // VFSM_test1(10);
     // pm_test();

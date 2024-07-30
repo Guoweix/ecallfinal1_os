@@ -43,176 +43,37 @@ Boot HART PMP Address Bits: 54
 Boot HART MHPM Count      : 16
 Boot HART MIDELEG         : 0x0000000000001666
 Boot HART MEDELEG         : 0x0000000000f0b509
-touch: test.txt: Network is down
-sh: test.txt: unknown operand
-testcase busybox touch test.txt success
-test27
-sh: "test27": unknown operand
-testcase busybox echo "test27" success
-sh: "hello: unknown operand
-testcase busybox echo "hello world" > test.txt success
-test28
-sh: "test28": unknown operand
-testcase busybox echo "test28" success
-hello world
-sh: test.txt: unknown operand
-testcase busybox cat test.txt success
-test29
-sh: "test29": unknown operand
-testcase busybox echo "test29" success
-l
+run time-test
+time-test: time/iteration: 0.000ns total time: 1451034291269ms
+run busybox_testcode
+#### independent command test
+sh: "####: unknown operand
+testcase busybox echo "#### independent command test" success
 sh: -c: unknown operand
-testcase busybox cut -c 3 test.txt success
-test30
-sh: "test30": unknown operand
-testcase busybox echo "test30" success
-0000000 062550 066154 020157 067567 066162 005144
-0000014
-sh: test.txt: unknown operand
-testcase busybox od test.txt success
-test31
-sh: "test31": unknown operand
-testcase busybox echo "test31" success
-hello world
-head: test.txt: I/O error
-sh: test.txt: unknown operand
-testcase busybox head test.txt success
-test32
-sh: "test32": unknown operand
-testcase busybox echo "test32" success
-tail: read error: Operation not permitted
-sh: test.txt: unknown operand
-testcase busybox tail test.txt success
-test33
-sh: "test33": unknown operand
-testcase busybox echo "test33" success
-00000000  68 65 6c 6c 6f 20 77 6f  72 6c 64 0a              |hello world.|
-0000000c
-sh: -C: unknown operand
-testcase busybox hexdump -C test.txt success
-test34
-sh: "test34": unknown operand
-testcase busybox echo "test34" success
-md5sum: can't read 'test.txt': Operation not permitted
-sh: test.txt: unknown operand
-testcase busybox md5sum test.txt success
-test35
-sh: "test35": unknown operand
-testcase busybox echo "test35" success
-sh: "ccccccc": unknown operand
-testcase busybox echo "ccccccc" >> test.txt success
-test36
-sh: "test36": unknown operand
-testcase busybox echo "test36" success
-sh: "bbbbbbb": unknown operand
-testcase busybox echo "bbbbbbb" >> test.txt success
-test37
-sh: "test37": unknown operand
-testcase busybox echo "test37" success
-sh: "aaaaaaa": unknown operand
-testcase busybox echo "aaaaaaa" >> test.txt success
-test38
-sh: "test38": unknown operand
-testcase busybox echo "test38" success
-sh: "2222222": unknown operand
-testcase busybox echo "2222222" >> test.txt success
-test39
-sh: "test39": unknown operand
-testcase busybox echo "test39" success
-sh: "1111111": unknown operand
-testcase busybox echo "1111111" >> test.txt success
-test40
-sh: "test40": unknown operand
-testcase busybox echo "test40" success
-sh: "bbbbbbb": unknown operand
-testcase busybox echo "bbbbbbb" >> test.txt success
-test41
-sh: "test41": unknown operand
-testcase busybox echo "test41" success
-[0m[31m[Error] Syscall_read rd_size is 0
-[0muniq: (null): I/O error
-sh: test.txt: unknown operand
-testcase busybox sort test.txt | ./busybox uniq success
-test42
-sh: "test42": unknown operand
-testcase busybox echo "test42" success
-  File: test.txt
-  Size: 8         	Blocks: 0          IO Block: 0      regular file
-Device: 0h/0d	Inode: 0           Links: 1
-Access: (0700/-rwx------)  Uid: (    0/ UNKNOWN)   Gid: (    0/ UNKNOWN)
-Access: 1970-01-01 00:00:00.000000000 +0000
-Modify: 1970-01-01 00:00:00.000000000 +0000
-Change: 1970-01-01 00:00:00.000000000 +0000
-sh: test.txt: unknown operand
-testcase busybox stat test.txt success
-test43
-sh: "test43": unknown operand
-testcase busybox echo "test43" success
-bbbbbbb
-sh: test.txt: unknown operand
-testcase busybox strings test.txt success
-test44
-sh: "test44": unknown operand
-testcase busybox echo "test44" success
-wc: test.txt: Operation not permitted
-        1         1         8 test.txt
-sh: test.txt: unknown operand
-testcase busybox wc test.txt success
-test45
-sh: "test45": unknown operand
-testcase busybox echo "test45" success
-sh: -f: unknown operand
-testcase busybox [ -f test.txt ] success
-test46
-sh: "test46": unknown operand
-testcase busybox echo "test46" success
-bbbbbbb
-sh: test.txt: unknown operand
-testcase busybox more test.txt success
-test47
-sh: "test47": unknown operand
-testcase busybox echo "test47" success
-[0m[31m[Error] TrapFunc_Syscall: Unknown syscall 48 from user process 4!
-[0msh: test.txt: unknown operand
-testcase busybox rm test.txt success
-test48
-sh: "test48": unknown operand
-testcase busybox echo "test48" success
-sh: test_dir: unknown operand
-testcase busybox mkdir test_dir success
-test49
-sh: "test49": unknown operand
-testcase busybox echo "test49" success
-mv: can't stat 'test': Operation not permitted
-sh: test_dir: unknown operand
-testcase busybox mv test_dir test success
-test50
-sh: "test50": unknown operand
-testcase busybox echo "test50" success
-sh: test: unknown operand
-testcase busybox rmdir test success
-test51
-sh: "test51": unknown operand
-testcase busybox echo "test51" success
-echo "hello world" > test.txt
-grep hello busybox_cmd.txt
-sh: hello: unknown operand
-testcase busybox grep hello busybox_cmd.txt success
-test52
-sh: "test52": unknown operand
-testcase busybox echo "test52" success
-cp: can't stat 'busybox_cmd.bak': Operation not permitted
-sh: busybox_cmd.txt: unknown operand
-testcase busybox cp busybox_cmd.txt busybox_cmd.bak success
-test53
-sh: "test53": unknown operand
-testcase busybox echo "test53" success
-rm: can't stat 'busybox_cmd.bak': Operation not permitted
-sh: busybox_cmd.bak: unknown operand
-testcase busybox rm busybox_cmd.bak success
-test54
-sh: "test54": unknown operand
-testcase busybox echo "test54" success
-./busybox_cmd.txt
+testcase busybox ash -c exit success
+sh: -c: unknown operand
+testcase busybox sh -c exit success
+bbb
+sh: /aaa/bbb: unknown operand
+testcase busybox basename /aaa/bbb success
+ January 231512315
+Su Mo Tu We Th Fr Sa
+                1  2
+ 3  4  5  6  7  8  9
+10 11 12 13 14 15 16
+17 18 19 20 21 22 23
+24 25 26 27 28 29 30
+31
+testcase busybox cal success
+[H[Jtestcase busybox clear success
+Fri Oct 13 05:26:27 UTC +1249181572
+testcase busybox date success
+Filesystem           1K-blocks      Used Available Use% Mounted on
+df: /proc/mounts: Operation not permitted
+testcase busybox df fail
+/aaa
+sh: /aaa/bbb: unknown operand
+testcase busybox dirname /aaa/bbb success
+testcase busybox dmesg success
 QEMU: Terminated
 
