@@ -25,7 +25,6 @@
  
   
   
-#include <stddef.h>
 
 #if CONFIG_EXTENTS_ENABLE
 /*

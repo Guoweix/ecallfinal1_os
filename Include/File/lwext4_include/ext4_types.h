@@ -50,6 +50,7 @@ extern "C" {
 #include "ext4_config.h"
 #include "ext4_blockdev.h"
 #include "misc/tree.h"
+#include "LWEXT4_Tools.h"
 
 // #include <stddef.h>
 
@@ -61,9 +62,9 @@ typedef unsigned short int uint16_t;
 typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef signed long int int64_t;
-typedef unsigned long int uint64_t;
+typedef unsigned long int uint64_t; 
 
-typedef uint64_t size_t;
+// typedef uint64_t size_t;
 
 typedef uint32_t ext4_lblk_t;
 typedef uint64_t ext4_fsblk_t;

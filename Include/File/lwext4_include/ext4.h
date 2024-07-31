@@ -49,8 +49,8 @@ extern "C" {
 #include <File/lwext4_include/ext4_types.h>
 #include <File/lwext4_include/ext4_errno.h>
 #include <File/lwext4_include/ext4_oflags.h>
-#include <File/lwext4_include/ext4_debug.h>
 
+#include <File/lwext4_include/ext4_debug.h>
 #include <File/lwext4_include/ext4_blockdev.h>
 
 /********************************OS LOCK INFERFACE***************************/

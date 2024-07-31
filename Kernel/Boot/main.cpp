@@ -1,10 +1,9 @@
 #include "Arch/Riscv.hpp"
-#include "Driver/Virtio.hpp"
 #include "File/FAT32.hpp"
 #include "File/lwext4_include/ext4.h"
 #include "Library/DebugCounter.hpp"
 #include "Trap/Syscall/Syscall.hpp"
-// #include "File/lwext4_include/ext4.h"
+#include "Trap/Syscall/SyscallID.hpp"
 #include <Driver/VirtioDisk.hpp>
 #include <File/FileObject.hpp>
 #include <File/myext4.hpp>
@@ -20,6 +19,7 @@
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
 #include <Trap/Trap.hpp>
+#include <Trap/Syscall/Syscall.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -155,16 +155,6 @@ void pm_test()
     CreateKernelThread(hello, "Hello");
     kout << "__________________________----" << endl;
     // CreateUserImgProcess(0xffffffff88200000, 0xffffffff88200076, F_User);
-
-    // pm.show();
-    // delay(5e8);
-    // pm.getProc(1)->getSemaphore()->wait(pm.getProc(1));
-    // kout<<"VMS"<<(void *)pm.getCurProc()->getVMS()<<endl;
-
-    // delay(4e8);
-    // kout<<(void *)pm.getProc(1)->getSemaphore()<<endl;
-    // kout<<"VMS"<<(void *)pm.getCurProc()->getVMS()<<endl;
-    // pm.getProc(1)->getSemaphore()->signal();
 }
 
 void Semaphore_test()
@@ -671,21 +661,16 @@ int main()
 #endif
     // new_test();
     // pm_test();
-  InterruptEnable();
- 
+    InterruptEnable();
+
+       
+  
+    Banned_Syscall[SYS_pipe2]=1;
+
     char argvv1 [5][20] ={"busybox","echo","run time-test","\0"};
     busybox_execve(argvv1);
     char argvv2 [5][20] ={"time-test","\0"};
     busybox_execve(argvv2); 
-    
-
-    // ./runtest.exe -w entry-dynamic.exe fnmatch
-    // char argvv16 [5][20] ={"runtest.exe","-w","entry-dynamic.exe","fnmatch","\0"};
-    // busybox_execve(argvv16);
-
-    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
-    busybox_execve(argvv16);
-
     char argvv5 [5][20] ={"busybox","echo","run lua_testcode.sh","\0"};
     busybox_execve(argvv5);
     char argvv6 [5][20] ={"busybox","sh","test.sh","date.lua","\0"};
@@ -708,10 +693,15 @@ int main()
     busybox_execve(argvv14);
     char argvv15 [5][20] ={"busybox","sh","run-static.sh","\0"};
     busybox_execve(argvv15);
-    
+    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
+    busybox_execve(argvv16);
+
+
+    Banned_Syscall[SYS_pipe2]=0;
     char argvv17 [5][20] ={"busybox","sh","busybox_testcode.sh","\0"};
     busybox_execve(argvv17);
-    
+   
+   
     vfsm.destory();
     SBI_SHUTDOWN();
 

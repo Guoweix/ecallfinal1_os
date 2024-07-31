@@ -633,4 +633,5 @@ bool EXT4::del(FileNode* file)
     file->~FileNode();
 
     delete[] path;
+    return true;
 }

@@ -22,11 +22,13 @@
 
 extern bool needSchedule;
 
+bool Banned_Syscall[300];
+
 void Syscall_Exit(TrapFrame* tf, int re)
 {
     Process* cur = pm.getCurProc();
     cur->exit(re);
-    kout[DeBug]<<"EXit"<<endl;
+    kout[DeBug] << "EXit" << endl;
     needSchedule = true;
 }
 
@@ -267,9 +269,9 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
         argv1[i] = strdump(argv[i]);
     }
 
-    kout[DeBug]<<"creaet_Process ELF"<<endl;
+    kout[DeBug] << "creaet_Process ELF" << endl;
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
-    kout[DeBug]<<"creaet_Process ELF finish"<<endl;
+    kout[DeBug] << "creaet_Process ELF finish" << endl;
 
     new_proc->destroyFds();
 
@@ -289,7 +291,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
             // 当前场景的执行逻辑上只会有一个子进程
             Process* pptr = nullptr;
             for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
-                if (pptr->getStatus() == S_Terminated&&pptr==new_proc) {
+                if (pptr->getStatus() == S_Terminated && pptr == new_proc) {
                     // kout[DeBug]<<" find death child "<<pptr->id<<endl;
                     child = pptr;
                     break;
@@ -691,7 +693,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
-    kout[DeBug]<<"write "<<fd<<endl;
+    kout[DeBug] << "write " << fd << endl;
     // if (fd == STDOUT_FILENO) {
     // VirtualMemorySpace::EnableAccessUser();
     // kout << Yellow << buf << endl;
@@ -750,7 +752,7 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲e区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
-    kout[DeBug]<<"read "<<fd<<endl;
+    kout[DeBug] << "read " << fd << endl;
     if (buf == nullptr) {
         return -1;
     }
@@ -895,7 +897,7 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    kout[Debug] << "close success "<<fd << endl;
+    kout[Debug] << "close success " << fd << endl;
     return 0;
 }
 
@@ -907,7 +909,7 @@ inline int Syscall_dup(int fd)
 
     Process* cur_proc = pm.getCurProc();
     file_object* fo = fom.get_from_fd(cur_proc->fo_head, fd);
-    if (fo == nullptr||fom.get_count_fdt(fo)>1000) {
+    if (fo == nullptr || fom.get_count_fdt(fo) > 1000) {
         // 当前文件描述符不存在
         return -1;
     }
@@ -976,7 +978,7 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
     // kout << Red << "OpenedFile" << endl;
-    kout[DeBug] << "openat fd " << fd << " file_name " << filename <<endl;
+    kout[DeBug] << "openat fd " << fd << " file_name " << filename << endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = new char[200];
@@ -1074,7 +1076,6 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
 
     // file->show();
     // kout << Green << "Open Success1" << endl;
-
 
     kout << Green << "Syscall_open fd is " << fo->fd << endl;
     VirtualMemorySpace::DisableAccessUser();
@@ -1177,7 +1178,6 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
     //	if (prot&PROT_EXEC)
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
     // vmrProt|=VirtualMemoryRegion::VM_Exec;
-
 
     constexpr Uint64 MAP_FIXED = 0x10;
     if (flags & MAP_FIXED) // Need improve...
@@ -1359,7 +1359,7 @@ inline int Syscall_pipe2(int* fd, int flags)
     fd[1] = fo2->fd;
     // kout << Yellow << "pipe7" << endl;
     VirtualMemorySpace::DisableAccessUser();
-    kout[DeBug]<<"PIPE open "<<fo1->fd<<" "<<fo2->fd;
+    kout[DeBug] << "PIPE open " << fo1->fd << " " << fo2->fd;
     return 0;
 }
 
@@ -1648,8 +1648,6 @@ int Syscall_newfstatat(int dirfd, const char* pathname, kstat* statbuf, int flag
     int re = Syscall_fstat(fd->fd, statbuf);
     fom.delete_flobj(pm.getCurProc()->getFoHead(), fd);
     vfsm.close(file);
-    
-
 
     // if (buf != nullptr) {
     delete[] buf;
@@ -1714,33 +1712,33 @@ int Syscall_set_tid_address(int* tidptr)
     // kout[DeBug]<<"enter"<<endl;
     return 0;
 }
-int Syscall_syslog(int type, char *bufp, int len)
+int Syscall_syslog(int type, char* bufp, int len)
 {
-    kout[Test]<<"TYPE"<<type<<" bufp "<<bufp<<" len "<<len<<endl;
+    kout[Test] << "TYPE" << type << " bufp " << bufp << " len " << len << endl;
 
     return 0;
 }
 
 struct sysinfo {
-    long uptime;             /* Seconds since boot */
-    unsigned long loads[3];  /* 1, 5, and 15 minute load averages */
-    unsigned long totalram;  /* Total usable main memory size */
-    unsigned long freeram;   /* Available memory size */
+    long uptime; /* Seconds since boot */
+    unsigned long loads[3]; /* 1, 5, and 15 minute load averages */
+    unsigned long totalram; /* Total usable main memory size */
+    unsigned long freeram; /* Available memory size */
     unsigned long sharedram; /* Amount of shared memory */
     unsigned long bufferram; /* Memory used by buffers */
     unsigned long totalswap; /* Total swap space size */
-    unsigned long freeswap;  /* Swap space still available */
-    unsigned short procs;    /* Number of current processes */
-    unsigned short pad;      /* Padding to 64 bits */
-    unsigned long long totalhigh;   /* Total high memory size */
-    unsigned long long freehigh;    /* Available high memory size */
-    unsigned int mem_unit;   /* Memory unit size in bytes */
-    char _f[20-2*sizeof(long long)-sizeof(int)]; /* Padding to 64 bytes */
+    unsigned long freeswap; /* Swap space still available */
+    unsigned short procs; /* Number of current processes */
+    unsigned short pad; /* Padding to 64 bits */
+    unsigned long long totalhigh; /* Total high memory size */
+    unsigned long long freehigh; /* Available high memory size */
+    unsigned int mem_unit; /* Memory unit size in bytes */
+    char _f[20 - 2 * sizeof(long long) - sizeof(int)]; /* Padding to 64 bytes */
 };
 
-int Syscall_sysinfo(sysinfo * info)
+int Syscall_sysinfo(sysinfo* info)
 {
-    info->uptime=GetClockTime();
+    info->uptime = GetClockTime();
 
     return 0;
 }
@@ -1749,7 +1747,12 @@ bool TrapFunc_Syscall(TrapFrame* tf)
 {
     kout << Green << tf->reg.a7 << " " << SyscallName(tf->reg.a7) << " pid " << pm.getCurProc()->getID() << endl;
 
-    // kout[Info]<<
+    if (Banned_Syscall[tf->reg.a7]) {
+        pm.getCurProc()->exit(ExitType::Exit_BadSyscall);
+        pm.immSchedule();
+        return true;
+    }
+
     switch ((Sint64)tf->reg.a7) {
 
     case 1:
@@ -1772,15 +1775,15 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_linkat(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2, (char*)tf->reg.a3, tf->reg.a4);
         break;
     case SYS_syslog:
-        tf->reg.a0 = Syscall_syslog(tf->reg.a0, (char *)tf->reg.a1, tf->reg.a2);
+        tf->reg.a0 = Syscall_syslog(tf->reg.a0, (char*)tf->reg.a1, tf->reg.a2);
         break;
     case SYS_Exit:
     case SYS_exit:
         Syscall_Exit(tf, tf->reg.a0);
         break;
-        
+
     case SYS_sysinfo:
-        tf->reg.a0 = Syscall_sysinfo((sysinfo *)tf->reg.a0);
+        tf->reg.a0 = Syscall_sysinfo((sysinfo*)tf->reg.a0);
         break;
     case SYS_brk:
         tf->reg.a0 = Syscall_brk(tf->reg.a0);
@@ -1884,9 +1887,9 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         tf->reg.a0 = Syscall_nanosleep((timespec*)tf->reg.a0, (timespec*)tf->reg.a1);
         break;
 
-    // case SYS_pipe2:
-        // tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
-        // break;
+    case SYS_pipe2:
+    tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
+    break;
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;

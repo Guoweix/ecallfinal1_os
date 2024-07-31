@@ -93,7 +93,6 @@ void EXT4_AssertFailed(const char* file, int line, const char* info)
     kout[Fault] << "EXT4_AssertFailed in file " << file << " line " << line << " with info " << info << endl;
 }
 
-#include <stddef.h>
 
 // memset: 将指针str指向的内存块的前n个字节设置为指定的值c
 /* 

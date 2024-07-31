@@ -4,7 +4,6 @@
 #include "Trap/Interrupt.hpp"
 #include "Types.hpp"
 #include <File/FAT32.hpp>
-// #include <File/lwext4_include/ext4.h>
 #include <File/myext4.hpp>
 #include <File/vfsm.hpp>
 
@@ -137,21 +136,6 @@ bool VFSM::init()
         return false;
     }
 
-    // kout << "ext4_recover: start:" << endl;
-    // r = ext4_recover("/");
-    // if (r != EOK && r != ENOTSUP) {
-        // kout << "ext4_recover: rc =" << r << endl;
-        // return false;
-    // }
-
-    // kout << "ext4_journal_start: start:" << endl;
-    // r = ext4_journal_start("/");
-    // if (r != EOK) {
-        // kout << "ext4_journal_start: rc = " << r << endl;
-        // return false;
-    // }
-
-    // ext4_cache_write_back("/", 1);
 
     ext4_dir ed;
     ext4_dir_open(&ed, "/");

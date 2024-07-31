@@ -39,7 +39,7 @@ slabB* SlabB::allocslabB(Uint64 nums)
 {
     slabB* p = head.nxt; // 从可分配的页开始
     while (p) {
-        insert_page(p);
+        // insert_page(p);
         if (nums < p->num) { // 数量够了就分配
             slabB* np = p + nums; // 指向最前面没用的页
             int num = p->num;

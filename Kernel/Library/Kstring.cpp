@@ -94,14 +94,14 @@ void* memset(void* s, char ch, Uint64 size)
     return s;
 }
 
-void* memcpy(void* dst, const char* src, Uint64 size)
+void memcpy(void* dst, const void * src, Uint64 size)
 {
-    const char* s = src;
+    const char* s = (const char *)src;
     char* d = (char*)dst;
     while (size-- > 0) {
         *d++ = *s++;
     }
-    return dst;
+    // return dst;
 }
 
 Sint64 readline(const char * src,char * buf,Uint64 srcSize,Uint64 start)

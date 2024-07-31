@@ -124,7 +124,7 @@ struct procdata_fromELF
 
 enum class ELF_AT
 {
-	NULL	=0,
+	NULL_AT	=0,
 	IGNORE	=1,
 	EXECFD	=2,
 	PHDR	=3,

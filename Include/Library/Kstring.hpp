@@ -114,7 +114,7 @@ void strcat(char* dst, const char* src);
 
 void* memset(void* s, char ch, Uint64 size);
 
-void* memcpy(void* dst, const char* src, Uint64 size);
+void memcpy(void* dst, const void* src, Uint64 size);
 
 char* strDump(const char* src);
 
