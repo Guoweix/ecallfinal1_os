@@ -13,7 +13,9 @@ extern "C"
 // 做一个简单的封装
 inline void putchar(char ch)
 {
+    if ((ch<127&&ch>=32)||ch=='\n'||ch==10) {
     sbi_putchar(ch);
+    }
 }
 
 inline void puts(const char* str)
