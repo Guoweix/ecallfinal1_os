@@ -1022,7 +1022,10 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
             kout << Red << "OpenedFile6 FILE" << endl;
             kout[Info] << "creaet_file " << rela_wd << " " << cwd << " " << filename << endl;
             if (!vfsm.create_file(rela_wd, cwd, (char*)filename))
-                kout[Fault] << "create" << endl;
+            {
+                // kout[Fault] << "create file" << endl;
+                return -1;
+            }
         }
     }
 

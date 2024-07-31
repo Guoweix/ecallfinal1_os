@@ -18,8 +18,8 @@
 #include <Process/Process.hpp>
 #include <Trap/Clock.hpp>
 #include <Trap/Interrupt.hpp>
-#include <Trap/Trap.hpp>
 #include <Trap/Syscall/Syscall.hpp>
+#include <Trap/Trap.hpp>
 
 extern "C" {
 void Putchar(char ch)
@@ -201,7 +201,7 @@ void VFSM_test()
 
     // file->close();
     t->get_next_file((ext4node*)vfsm.get_root(), nullptr, file);
-    
+
     file_object* fo = new file_object();
     int i = 0;
     // kout.SetEnabledType(-1);
@@ -267,8 +267,7 @@ bool VFSM_test2()
     f->show_all_file_in_dir(file);
 }
 
-
-void busybox_execve(char (* argvv)[20])
+void busybox_execve(char (*argvv)[20])
 {
 
     file_object* fo = new file_object;
@@ -335,8 +334,6 @@ FinalTestEnd:
     kout << "finish test" << endl;
 }
 
-
-
 void final_test()
 {
 
@@ -364,7 +361,7 @@ void final_test()
         // if (strcmp(file->name, "pipe2") == 0) {
         if (strcmp(file->name, "pipe2") == 0) {
             // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
-            char argvv[20][100] = { "pipe2","\0","busybox_testcode.sh","\0" };
+            char argvv[20][100] = { "pipe2", "\0", "busybox_testcode.sh", "\0" };
             // char argvv[20][100] = { "busybox","expr","1","+","1","\0" };
             // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
             // char argvv[20][100] = { "busybox", "cut","-c","3","test.txt" };
@@ -403,8 +400,6 @@ void final_test()
 FinalTestEnd:
     kout << "finish test" << endl;
 }
-
-
 
 void test_final1()
 {
@@ -601,9 +596,9 @@ void test_fstat()
 {
     kstat* statbuf = new kstat;
     // char * buf =new char[];
-    EXT4 * vfs=(EXT4 *)vfsm.get_root()->vfs; 
+    EXT4* vfs = (EXT4*)vfsm.get_root()->vfs;
     while (1) {
-        Syscall_newfstatat(-100,"./ltp/testcases/bin/data",statbuf,0x1000);
+        Syscall_newfstatat(-100, "./ltp/testcases/bin/data", statbuf, 0x1000);
         // ext4node * re = vfs->open("ltp/testcases/bin/data",vfsm.get_root() );
         // vfsm.close(re);
         kout[Debug] << pmm.getPageCount() << endl;
@@ -619,8 +614,8 @@ int main()
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     kout.SetEnabledType(0);
-    kout.SwitchTypeOnoff(Info,false);
-    kout.SwitchTypeOnoff(Warning,false);
+    kout.SwitchTypeOnoff(Info, false);
+    kout.SwitchTypeOnoff(Warning, false);
     kout.SwitchTypeOnoff(Fault, true);
     // kout.SwitchTypeOnoff(Test, true);
     // kout.SwitchTypeOnoff(Error, true);
@@ -646,7 +641,6 @@ int main()
     vfsm.init();
     kout[Info] << "vfsm finish" << endl;
 
-
     pm.init();
 
     // A();
@@ -661,54 +655,52 @@ int main()
     // pm_test();
     InterruptEnable();
 
-       
-  
-    Banned_Syscall[SYS_pipe2]=0;
+
+    // Banned_Syscall[SYS_pipe2]= 1;
 
     mkdir();
-// ./runtest.exe -w entry-dynamic.exe fdopen
+    // ./runtest.exe -w entry-dynamic.exe fdopen
     // char argvv1 [5][20] ={"runtest.exe","-w","entry-dynamic.exe","fscanf","\0"};
     // char argvv1 [5][20] ={"./pipe2","\0"};
     // char argvv1 [5][20] ={"busybox","sh","\0"};
     // busybox_execve(argvv1);
 
-    char argvv1 [5][20] ={"busybox","echo","run time-test","\0"};
+    char argvv1[5][20] = { "busybox", "echo", "run time-test", "\0" };
     busybox_execve(argvv1);
-    char argvv2 [5][20] ={"time-test","\0"};
-    busybox_execve(argvv2); 
-    char argvv5 [5][20] ={"busybox","echo","run lua_testcode.sh","\0"};
+    char argvv2[5][20] = { "time-test", "\0" };
+    busybox_execve(argvv2);
+    char argvv5[5][20] = { "busybox", "echo", "run lua_testcode.sh", "\0" };
     busybox_execve(argvv5);
-     
 
-    char argvv6 [5][20] ={"busybox","sh","test.sh","date.lua","\0"};
+    char argvv6[5][20] = { "busybox", "sh", "test.sh", "date.lua", "\0" };
     busybox_execve(argvv6);
-    char argvv7 [5][20] ={"busybox","sh","test.sh","max_min.lua","\0"};
+    char argvv20[5][20] = { "busybox", "sh", "test.sh", "file_io.lua", "\0" };
+    busybox_execve(argvv20);
+    char argvv7[5][20] = { "busybox", "sh", "test.sh", "max_min.lua", "\0" };
     busybox_execve(argvv7);
-    char argvv8 [5][20] ={"busybox","sh","test.sh","random.lua","\0"};
+    char argvv8[5][20] = { "busybox", "sh", "test.sh", "random.lua", "\0" };
     busybox_execve(argvv8);
-    char argvv11 [5][20] ={"busybox","sh","test.sh","sin30.lua","\0"};
+    char argvv11[5][20] = { "busybox", "sh", "test.sh", "sin30.lua", "\0" };
     busybox_execve(argvv11);
-    char argvv9 [5][20] ={"busybox","sh","test.sh","remove.lua","\0"};
+    char argvv9[5][20] = { "busybox", "sh", "test.sh", "remove.lua", "\0" };
     busybox_execve(argvv9);
-    char argvv10 [5][20] ={"busybox","sh","test.sh","round_num.lua","\0"};
+    char argvv10[5][20] = { "busybox", "sh", "test.sh", "round_num.lua", "\0" };
     busybox_execve(argvv10);
-    char argvv12 [5][20] ={"busybox","sh","test.sh","sort.lua","\0"};
+    char argvv12[5][20] = { "busybox", "sh", "test.sh", "sort.lua", "\0" };
     busybox_execve(argvv12);
-    char argvv13 [5][20] ={"busybox","sh","test.sh","strings.lua","\0"};
+    char argvv13[5][20] = { "busybox", "sh", "test.sh", "strings.lua", "\0" };
     busybox_execve(argvv13);
-    char argvv14 [5][20] ={"busybox","echo","run libc-bench","\0"};
+    char argvv14[5][20] = { "busybox", "echo", "run libc-bench", "\0" };
     busybox_execve(argvv14);
-    char argvv15 [5][20] ={"busybox","sh","run-static.sh","\0"};
+    char argvv15[5][20] = { "busybox", "sh", "run-static.sh", "\0" };
     busybox_execve(argvv15);
-    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
+    char argvv16[5][20] = { "busybox", "sh", "run-dynamic.sh", "\0" };
     busybox_execve(argvv16);
 
-
-    Banned_Syscall[SYS_pipe2]=0;
-    char argvv17 [5][20] ={"busybox","sh","busybox_testcode.sh","\0"};
+    Banned_Syscall[SYS_pipe2] = 0;
+    char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
     busybox_execve(argvv17);
-   
-   
+
     vfsm.destory();
     SBI_SHUTDOWN();
 

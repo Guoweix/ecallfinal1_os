@@ -379,8 +379,8 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
     // }
     // kout[Info] << "FileObject::write file " << file << endl;
     wr_size = file->write((unsigned char*)src, fo->pos_k, size);
-    if (wr_size>=0) {
-    fo->pos_k += wr_size;
+    if (wr_size >= 0) {
+        fo->pos_k += wr_size;
     }
 
     file->fileSize = size; // 有问题，但是也许是trick
@@ -415,15 +415,13 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
         // kout[DeBug] << "close pipefile writeRef " << fp->writeRef << endl;
 
         fp->writeRef--;
-        /*
-                if (fp->writeRef == 0) {
-                    char* t = new char;
-                    *t = 4;
-                    // kout[Fault]<<"EOF "<<endl;
-                    fom.write_fo(fo, t, 1);
-                    delete t;
-                }
-         */
+        if (fp->writeRef == 0) {
+            char* t = new char;
+            *t = 4;
+            // kout[Fault]<<"EOF "<<endl;
+            fom.write_fo(fo, t, 1);
+            delete t;
+        }
     }
     // 关闭这个文件描述符
     // 首先通过vfsm的接口直接对于fo对于的file类调用close函数

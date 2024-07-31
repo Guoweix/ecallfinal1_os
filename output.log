@@ -44,10 +44,781 @@ Boot HART MHPM Count      : 16
 Boot HART MIDELEG         : 0x0000000000001666
 Boot HART MEDELEG         : 0x0000000000f0b509
 run time-test
-time-test: time/iteration: 0.000ns total time: 7877488440596ms
+time-test: time/iteration: 0.000ns total time: 5559891652081ms
 run lua_testcode.sh
 testcase lua date.lua success
+testcase lua file_io.lua success
 testcase lua max_min.lua success
 testcase lua random.lua success
-QEMU: Terminated
-
+testcase lua sin30.lua success
+testcase lua remove.lua success
+testcase lua round_num.lua success
+testcase lua sort.lua success
+testcase lua strings.lua success
+run libc-bench
+========== START entry-static.exe argv ==========
+Pass!
+========== END entry-static.exe argv ==========
+========== START entry-static.exe basename ==========
+Pass!
+========== END entry-static.exe basename ==========
+========== START entry-static.exe clocale_mbfuncs ==========
+Pass!
+========== END entry-static.exe clocale_mbfuncs ==========
+========== START entry-static.exe clock_gettime ==========
+Pass!
+========== END entry-static.exe clock_gettime ==========
+========== START entry-static.exe crypt ==========
+Pass!
+========== END entry-static.exe crypt ==========
+========== START entry-static.exe dirname ==========
+Pass!
+========== END entry-static.exe dirname ==========
+========== START entry-static.exe env ==========
+Pass!
+========== END entry-static.exe env ==========
+========== START entry-static.exe fdopen ==========
+Pass!
+========== END entry-static.exe fdopen ==========
+========== START entry-static.exe fnmatch ==========
+Pass!
+========== END entry-static.exe fnmatch ==========
+========== START entry-static.exe fscanf ==========
+Pass!
+========== END entry-static.exe fscanf ==========
+========== START entry-static.exe fwscanf ==========
+Pass!
+========== END entry-static.exe fwscanf ==========
+========== START entry-static.exe iconv_open ==========
+Pass!
+========== END entry-static.exe iconv_open ==========
+========== START entry-static.exe inet_pton ==========
+Pass!
+========== END entry-static.exe inet_pton ==========
+========== START entry-static.exe mbc ==========
+Pass!
+========== END entry-static.exe mbc ==========
+========== START entry-static.exe memstream ==========
+Pass!
+========== END entry-static.exe memstream ==========
+========== START entry-static.exe pthread_cancel_points ==========
+FAIL pthread_cancel_points [status 1]
+========== END entry-static.exe pthread_cancel_points ==========
+========== START entry-static.exe pthread_cancel ==========
+FAIL pthread_cancel [status 1]
+========== END entry-static.exe pthread_cancel ==========
+========== START entry-static.exe pthread_cond ==========
+FAIL pthread_cond [status 1]
+========== END entry-static.exe pthread_cond ==========
+========== START entry-static.exe pthread_tsd ==========
+FAIL pthread_tsd [status 1]
+========== END entry-static.exe pthread_tsd ==========
+========== START entry-static.exe qsort ==========
+Pass!
+========== END entry-static.exe qsort ==========
+========== START entry-static.exe random ==========
+Pass!
+========== END entry-static.exe random ==========
+========== START entry-static.exe search_hsearch ==========
+Pass!
+========== END entry-static.exe search_hsearch ==========
+========== START entry-static.exe search_insque ==========
+Pass!
+========== END entry-static.exe search_insque ==========
+========== START entry-static.exe search_lsearch ==========
+Pass!
+========== END entry-static.exe search_lsearch ==========
+========== START entry-static.exe search_tsearch ==========
+Pass!
+========== END entry-static.exe search_tsearch ==========
+========== START entry-static.exe setjmp ==========
+src/functional/setjmp.c:62: sigismember(&set2, SIGUSR1)==1 failed: siglongjmp incorrectly restored mask
+FAIL setjmp [status 1]
+========== END entry-static.exe setjmp ==========
+========== START entry-static.exe snprintf ==========
+Pass!
+========== END entry-static.exe snprintf ==========
+========== START entry-static.exe socket ==========
+src/functional/socket.c:21: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:22: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:24: setsockopt(s, 1, 20, &(struct timeval){.tv_usec=1}, sizeof(struct timeval))==0 failed: errno = No error information
+src/functional/socket.c:29: sendto(c, "x", 1, 0, (void *)&sa, sizeof sa)==1 failed: errno = No error information
+src/functional/socket.c:30: recvfrom(s, buf, sizeof buf, 0, (void *)&sa, (socklen_t[]){sizeof sa})==1 failed: errno = No error information
+src/functional/socket.c:31: buf[0]=='x' failed: ''
+src/functional/socket.c:40: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:41: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:44: listen(s, 1)==0 failed: errno = No error information
+src/functional/socket.c:49: connect(c, (void *)&sa, sizeof sa)==0 || (*__errno_location())==115 failed: errno = No error information
+FAIL socket [status 1]
+========== END entry-static.exe socket ==========
+========== START entry-static.exe sscanf ==========
+Pass!
+========== END entry-static.exe sscanf ==========
+========== START entry-static.exe sscanf_long ==========
+FAIL sscanf_long [status 1]
+========== END entry-static.exe sscanf_long ==========
+========== START entry-static.exe stat ==========
+src/functional/stat.c:27: stat("/dev/null",&st)==0 failed: errno = Operation not permitted
+FAIL stat [status 1]
+========== END entry-static.exe stat ==========
+========== START entry-static.exe strftime ==========
+Pass!
+========== END entry-static.exe strftime ==========
+========== START entry-static.exe string ==========
+Pass!
+========== END entry-static.exe string ==========
+========== START entry-static.exe string_memcpy ==========
+Pass!
+========== END entry-static.exe string_memcpy ==========
+========== START entry-static.exe string_memmem ==========
+Pass!
+========== END entry-static.exe string_memmem ==========
+========== START entry-static.exe string_memset ==========
+Pass!
+========== END entry-static.exe string_memset ==========
+========== START entry-static.exe string_strchr ==========
+Pass!
+========== END entry-static.exe string_strchr ==========
+========== START entry-static.exe string_strcspn ==========
+Pass!
+========== END entry-static.exe string_strcspn ==========
+========== START entry-static.exe string_strstr ==========
+Pass!
+========== END entry-static.exe string_strstr ==========
+========== START entry-static.exe strptime ==========
+Pass!
+========== END entry-static.exe strptime ==========
+========== START entry-static.exe strtod ==========
+Pass!
+========== END entry-static.exe strtod ==========
+========== START entry-static.exe strtod_simple ==========
+Pass!
+========== END entry-static.exe strtod_simple ==========
+========== START entry-static.exe strtof ==========
+Pass!
+========== END entry-static.exe strtof ==========
+========== START entry-static.exe strtol ==========
+Pass!
+========== END entry-static.exe strtol ==========
+========== START entry-static.exe strtold ==========
+Pass!
+========== END entry-static.exe strtold ==========
+========== START entry-static.exe swprintf ==========
+Pass!
+========== END entry-static.exe swprintf ==========
+========== START entry-static.exe tgmath ==========
+Pass!
+========== END entry-static.exe tgmath ==========
+========== START entry-static.exe time ==========
+Pass!
+========== END entry-static.exe time ==========
+========== START entry-static.exe tls_align ==========
+Pass!
+========== END entry-static.exe tls_align ==========
+========== START entry-static.exe udiv ==========
+Pass!
+========== END entry-static.exe udiv ==========
+========== START entry-static.exe ungetc ==========
+Pass!
+========== END entry-static.exe ungetc ==========
+========== START entry-static.exe utime ==========
+src/functional/utime.c:21: utimensat(AT_FDCWD, "/dev/null/invalid", ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_OMIT}}), 0)==0 || errno==ENOTDIR failed: Network is down
+src/functional/utime.c:23: futimens(-1, ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_OMIT}}))==0 || errno==EBADF failed: Operation not permitted
+src/functional/utime.c:29: futimens(fd, (struct timespec[2]){0}) == 0 failed: 
+src/functional/utime.c:36: futimens(fd, ((struct timespec[2]){{.tv_sec=1,.tv_nsec=UTIME_OMIT},{.tv_sec=1,.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:45: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_NOW},{.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:47: st.st_atim.tv_sec >= t failed: 0
+src/functional/utime.c:51: futimens(fd, (struct timespec[2]){0}) == 0 failed: 
+src/functional/utime.c:52: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_NOW}})) == 0 failed: 
+src/functional/utime.c:55: st.st_mtim.tv_sec >= t failed: 0
+src/functional/utime.c:57: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_NOW},{.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:59: st.st_atim.tv_sec >= t failed: 0
+src/functional/utime.c:60: st.st_mtim.tv_sec >= t failed: 0
+src/functional/utime.c:63: futimens(fd, ((struct timespec[2]){{.tv_sec=1LL<<32},{.tv_sec=1LL<<32}})) == 0 failed: Operation not permitted
+FAIL utime [status 1]
+========== END entry-static.exe utime ==========
+========== START entry-static.exe wcsstr ==========
+Pass!
+========== END entry-static.exe wcsstr ==========
+========== START entry-static.exe wcstol ==========
+Pass!
+========== END entry-static.exe wcstol ==========
+========== START entry-static.exe pleval ==========
+Pass!
+========== END entry-static.exe pleval ==========
+========== START entry-static.exe daemon_failure ==========
+src/regression/daemon-failure.c:52: daemon should have failed with 24 [EMFILE] got 1 [Operation not permitted]
+src/regression/daemon-failure.c:66: child exited with 1
+src/regression/daemon-failure.c:73: child failed
+FAIL daemon_failure [status 1]
+========== END entry-static.exe daemon_failure ==========
+========== START entry-static.exe dn_expand_empty ==========
+Pass!
+========== END entry-static.exe dn_expand_empty ==========
+========== START entry-static.exe dn_expand_ptr_0 ==========
+Pass!
+========== END entry-static.exe dn_expand_ptr_0 ==========
+========== START entry-static.exe fflush_exit ==========
+FAIL fflush_exit [status 1]
+========== END entry-static.exe fflush_exit ==========
+========== START entry-static.exe fgets_eof ==========
+Pass!
+========== END entry-static.exe fgets_eof ==========
+========== START entry-static.exe fgetwc_buffering ==========
+Pass!
+========== END entry-static.exe fgetwc_buffering ==========
+========== START entry-static.exe fpclassify_invalid_ld80 ==========
+Pass!
+========== END entry-static.exe fpclassify_invalid_ld80 ==========
+========== START entry-static.exe ftello_unflushed_append ==========
+Pass!
+========== END entry-static.exe ftello_unflushed_append ==========
+========== START entry-static.exe getpwnam_r_crash ==========
+Pass!
+========== END entry-static.exe getpwnam_r_crash ==========
+========== START entry-static.exe getpwnam_r_errno ==========
+Pass!
+========== END entry-static.exe getpwnam_r_errno ==========
+========== START entry-static.exe iconv_roundtrips ==========
+Pass!
+========== END entry-static.exe iconv_roundtrips ==========
+========== START entry-static.exe inet_ntop_v4mapped ==========
+Pass!
+========== END entry-static.exe inet_ntop_v4mapped ==========
+========== START entry-static.exe inet_pton_empty_last_field ==========
+Pass!
+========== END entry-static.exe inet_pton_empty_last_field ==========
+========== START entry-static.exe iswspace_null ==========
+Pass!
+========== END entry-static.exe iswspace_null ==========
+========== START entry-static.exe lrand48_signextend ==========
+Pass!
+========== END entry-static.exe lrand48_signextend ==========
+========== START entry-static.exe lseek_large ==========
+Pass!
+========== END entry-static.exe lseek_large ==========
+========== START entry-static.exe malloc_0 ==========
+Pass!
+========== END entry-static.exe malloc_0 ==========
+========== START entry-static.exe mbsrtowcs_overflow ==========
+Pass!
+========== END entry-static.exe mbsrtowcs_overflow ==========
+========== START entry-static.exe memmem_oob_read ==========
+Pass!
+========== END entry-static.exe memmem_oob_read ==========
+========== START entry-static.exe memmem_oob ==========
+Pass!
+========== END entry-static.exe memmem_oob ==========
+========== START entry-static.exe mkdtemp_failure ==========
+Pass!
+========== END entry-static.exe mkdtemp_failure ==========
+========== START entry-static.exe mkstemp_failure ==========
+Pass!
+========== END entry-static.exe mkstemp_failure ==========
+========== START entry-static.exe printf_1e9_oob ==========
+Pass!
+========== END entry-static.exe printf_1e9_oob ==========
+========== START entry-static.exe printf_fmt_g_round ==========
+Pass!
+========== END entry-static.exe printf_fmt_g_round ==========
+========== START entry-static.exe printf_fmt_g_zeros ==========
+Pass!
+========== END entry-static.exe printf_fmt_g_zeros ==========
+========== START entry-static.exe printf_fmt_n ==========
+Pass!
+========== END entry-static.exe printf_fmt_n ==========
+========== START entry-static.exe pthread_robust_detach ==========
+FAIL pthread_robust_detach [status 1]
+========== END entry-static.exe pthread_robust_detach ==========
+========== START entry-static.exe pthread_cancel_sem_wait ==========
+FAIL pthread_cancel_sem_wait [status 1]
+========== END entry-static.exe pthread_cancel_sem_wait ==========
+========== START entry-static.exe pthread_cond_smasher ==========
+FAIL pthread_cond_smasher [status 1]
+========== END entry-static.exe pthread_cond_smasher ==========
+========== START entry-static.exe pthread_condattr_setclock ==========
+Pass!
+========== END entry-static.exe pthread_condattr_setclock ==========
+========== START entry-static.exe pthread_exit_cancel ==========
+FAIL pthread_exit_cancel [status 1]
+========== END entry-static.exe pthread_exit_cancel ==========
+========== START entry-static.exe pthread_once_deadlock ==========
+FAIL pthread_once_deadlock [status 1]
+========== END entry-static.exe pthread_once_deadlock ==========
+========== START entry-static.exe pthread_rwlock_ebusy ==========
+FAIL pthread_rwlock_ebusy [status 1]
+========== END entry-static.exe pthread_rwlock_ebusy ==========
+========== START entry-static.exe putenv_doublefree ==========
+Pass!
+========== END entry-static.exe putenv_doublefree ==========
+========== START entry-static.exe regex_backref_0 ==========
+Pass!
+========== END entry-static.exe regex_backref_0 ==========
+========== START entry-static.exe regex_bracket_icase ==========
+Pass!
+========== END entry-static.exe regex_bracket_icase ==========
+========== START entry-static.exe regex_ere_backref ==========
+Pass!
+========== END entry-static.exe regex_ere_backref ==========
+========== START entry-static.exe regex_escaped_high_byte ==========
+Pass!
+========== END entry-static.exe regex_escaped_high_byte ==========
+========== START entry-static.exe regex_negated_range ==========
+Pass!
+========== END entry-static.exe regex_negated_range ==========
+========== START entry-static.exe regexec_nosub ==========
+Pass!
+========== END entry-static.exe regexec_nosub ==========
+========== START entry-static.exe rewind_clear_error ==========
+Pass!
+========== END entry-static.exe rewind_clear_error ==========
+========== START entry-static.exe rlimit_open_files ==========
+FAIL rlimit_open_files [status 1]
+========== END entry-static.exe rlimit_open_files ==========
+========== START entry-static.exe scanf_bytes_consumed ==========
+Pass!
+========== END entry-static.exe scanf_bytes_consumed ==========
+========== START entry-static.exe scanf_match_literal_eof ==========
+Pass!
+========== END entry-static.exe scanf_match_literal_eof ==========
+========== START entry-static.exe scanf_nullbyte_char ==========
+Pass!
+========== END entry-static.exe scanf_nullbyte_char ==========
+========== START entry-static.exe setvbuf_unget ==========
+Pass!
+========== END entry-static.exe setvbuf_unget ==========
+========== START entry-static.exe sigprocmask_internal ==========
+Pass!
+========== END entry-static.exe sigprocmask_internal ==========
+========== START entry-static.exe sscanf_eof ==========
+Pass!
+========== END entry-static.exe sscanf_eof ==========
+========== START entry-static.exe statvfs ==========
+FAIL statvfs [status 1]
+========== END entry-static.exe statvfs ==========
+========== START entry-static.exe strverscmp ==========
+Pass!
+========== END entry-static.exe strverscmp ==========
+========== START entry-static.exe syscall_sign_extend ==========
+src/regression/syscall-sign-extend.c:20: (fd = open("/dev/zero", O_RDONLY)) >= 0 failed: Operation not permitted
+src/regression/syscall-sign-extend.c:21: (r = syscall(SYS_read, fd, buf, 1)) == 1 failed: Operation not permitted
+src/regression/syscall-sign-extend.c:23: read 1 instead of 0
+FAIL syscall_sign_extend [status 1]
+========== END entry-static.exe syscall_sign_extend ==========
+========== START entry-static.exe uselocale_0 ==========
+Pass!
+========== END entry-static.exe uselocale_0 ==========
+========== START entry-static.exe wcsncpy_read_overflow ==========
+Pass!
+========== END entry-static.exe wcsncpy_read_overflow ==========
+========== START entry-static.exe wcsstr_false_negative ==========
+Pass!
+========== END entry-static.exe wcsstr_false_negative ==========
+========== START entry-dynamic.exe argv ==========
+Pass!
+========== END entry-dynamic.exe argv ==========
+========== START entry-dynamic.exe basename ==========
+Pass!
+========== END entry-dynamic.exe basename ==========
+========== START entry-dynamic.exe clocale_mbfuncs ==========
+Pass!
+========== END entry-dynamic.exe clocale_mbfuncs ==========
+========== START entry-dynamic.exe clock_gettime ==========
+Pass!
+========== END entry-dynamic.exe clock_gettime ==========
+========== START entry-dynamic.exe crypt ==========
+Pass!
+========== END entry-dynamic.exe crypt ==========
+========== START entry-dynamic.exe dirname ==========
+Pass!
+========== END entry-dynamic.exe dirname ==========
+========== START entry-dynamic.exe dlopen ==========
+src/functional/dlopen.c:18: dlopen ./dlopen_dso.so failed: Error loading shared library ./dlopen_dso.so: Operation not permitted
+src/functional/dlopen.c:21: dlsym i failed: Symbol not found: i
+FAIL dlopen [status 255]
+========== END entry-dynamic.exe dlopen ==========
+========== START entry-dynamic.exe env ==========
+Pass!
+========== END entry-dynamic.exe env ==========
+========== START entry-dynamic.exe fdopen ==========
+Pass!
+========== END entry-dynamic.exe fdopen ==========
+========== START entry-dynamic.exe fnmatch ==========
+Pass!
+========== END entry-dynamic.exe fnmatch ==========
+========== START entry-dynamic.exe fscanf ==========
+src/functional/fscanf.c:59: !!(f=writetemp("      42")) failed (failed to make temp file)
+src/functional/fscanf.c:70: !!(f=writetemp("[abc123]....x")) failed (failed to make temp file)
+src/functional/fscanf.c:84: !!(f=writetemp("0x1p 12")) failed (failed to make temp file)
+src/functional/fscanf.c:108: !!(f=writetemp("0x.1p4    012")) failed (failed to make temp file)
+src/functional/fscanf.c:121: !!(f=writetemp("0xx")) failed (failed to make temp file)
+FAIL fscanf [status 1]
+========== END entry-dynamic.exe fscanf ==========
+========== START entry-dynamic.exe fwscanf ==========
+Pass!
+========== END entry-dynamic.exe fwscanf ==========
+========== START entry-dynamic.exe iconv_open ==========
+Pass!
+========== END entry-dynamic.exe iconv_open ==========
+========== START entry-dynamic.exe inet_pton ==========
+Pass!
+========== END entry-dynamic.exe inet_pton ==========
+========== START entry-dynamic.exe mbc ==========
+Pass!
+========== END entry-dynamic.exe mbc ==========
+========== START entry-dynamic.exe memstream ==========
+Pass!
+========== END entry-dynamic.exe memstream ==========
+========== START entry-dynamic.exe pthread_cancel_points ==========
+FAIL pthread_cancel_points [status 1]
+========== END entry-dynamic.exe pthread_cancel_points ==========
+========== START entry-dynamic.exe pthread_cancel ==========
+FAIL pthread_cancel [status 1]
+========== END entry-dynamic.exe pthread_cancel ==========
+========== START entry-dynamic.exe pthread_cond ==========
+FAIL pthread_cond [status 1]
+========== END entry-dynamic.exe pthread_cond ==========
+========== START entry-dynamic.exe pthread_tsd ==========
+FAIL pthread_tsd [status 1]
+========== END entry-dynamic.exe pthread_tsd ==========
+========== START entry-dynamic.exe qsort ==========
+Pass!
+========== END entry-dynamic.exe qsort ==========
+========== START entry-dynamic.exe random ==========
+Pass!
+========== END entry-dynamic.exe random ==========
+========== START entry-dynamic.exe search_hsearch ==========
+Pass!
+========== END entry-dynamic.exe search_hsearch ==========
+========== START entry-dynamic.exe search_insque ==========
+Pass!
+========== END entry-dynamic.exe search_insque ==========
+========== START entry-dynamic.exe search_lsearch ==========
+Pass!
+========== END entry-dynamic.exe search_lsearch ==========
+========== START entry-dynamic.exe search_tsearch ==========
+Pass!
+========== END entry-dynamic.exe search_tsearch ==========
+========== START entry-dynamic.exe sem_init ==========
+FAIL sem_init [status 1]
+========== END entry-dynamic.exe sem_init ==========
+========== START entry-dynamic.exe setjmp ==========
+src/functional/setjmp.c:62: sigismember(&set2, SIGUSR1)==1 failed: siglongjmp incorrectly restored mask
+FAIL setjmp [status 1]
+========== END entry-dynamic.exe setjmp ==========
+========== START entry-dynamic.exe snprintf ==========
+Pass!
+========== END entry-dynamic.exe snprintf ==========
+========== START entry-dynamic.exe socket ==========
+src/functional/socket.c:21: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:22: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:24: setsockopt(s, 1, 20, &(struct timeval){.tv_usec=1}, sizeof(struct timeval))==0 failed: errno = No error information
+src/functional/socket.c:29: sendto(c, "x", 1, 0, (void *)&sa, sizeof sa)==1 failed: errno = No error information
+src/functional/socket.c:30: recvfrom(s, buf, sizeof buf, 0, (void *)&sa, (socklen_t[]){sizeof sa})==1 failed: errno = No error information
+src/functional/socket.c:31: buf[0]=='x' failed: ''
+src/functional/socket.c:40: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:41: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:44: listen(s, 1)==0 failed: errno = No error information
+src/functional/socket.c:49: connect(c, (void *)&sa, sizeof sa)==0 || (*__errno_location())==115 failed: errno = No error information
+FAIL socket [status 1]
+========== END entry-dynamic.exe socket ==========
+========== START entry-dynamic.exe sscanf ==========
+Pass!
+========== END entry-dynamic.exe sscanf ==========
+========== START entry-dynamic.exe sscanf_long ==========
+FAIL sscanf_long [status 1]
+========== END entry-dynamic.exe sscanf_long ==========
+========== START entry-dynamic.exe stat ==========
+src/functional/stat.c:27: stat("/dev/null",&st)==0 failed: errno = Operation not permitted
+FAIL stat [status 1]
+========== END entry-dynamic.exe stat ==========
+========== START entry-dynamic.exe strftime ==========
+Pass!
+========== END entry-dynamic.exe strftime ==========
+========== START entry-dynamic.exe string ==========
+Pass!
+========== END entry-dynamic.exe string ==========
+========== START entry-dynamic.exe string_memcpy ==========
+Pass!
+========== END entry-dynamic.exe string_memcpy ==========
+========== START entry-dynamic.exe string_memmem ==========
+Pass!
+========== END entry-dynamic.exe string_memmem ==========
+========== START entry-dynamic.exe string_memset ==========
+Pass!
+========== END entry-dynamic.exe string_memset ==========
+========== START entry-dynamic.exe string_strchr ==========
+Pass!
+========== END entry-dynamic.exe string_strchr ==========
+========== START entry-dynamic.exe string_strcspn ==========
+Pass!
+========== END entry-dynamic.exe string_strcspn ==========
+========== START entry-dynamic.exe string_strstr ==========
+Pass!
+========== END entry-dynamic.exe string_strstr ==========
+========== START entry-dynamic.exe strptime ==========
+Pass!
+========== END entry-dynamic.exe strptime ==========
+========== START entry-dynamic.exe strtod ==========
+Pass!
+========== END entry-dynamic.exe strtod ==========
+========== START entry-dynamic.exe strtod_simple ==========
+Pass!
+========== END entry-dynamic.exe strtod_simple ==========
+========== START entry-dynamic.exe strtof ==========
+Pass!
+========== END entry-dynamic.exe strtof ==========
+========== START entry-dynamic.exe strtol ==========
+Pass!
+========== END entry-dynamic.exe strtol ==========
+========== START entry-dynamic.exe strtold ==========
+Pass!
+========== END entry-dynamic.exe strtold ==========
+========== START entry-dynamic.exe swprintf ==========
+Pass!
+========== END entry-dynamic.exe swprintf ==========
+========== START entry-dynamic.exe tgmath ==========
+Pass!
+========== END entry-dynamic.exe tgmath ==========
+========== START entry-dynamic.exe time ==========
+Pass!
+========== END entry-dynamic.exe time ==========
+========== START entry-dynamic.exe tls_init ==========
+FAIL tls_init [status 1]
+========== END entry-dynamic.exe tls_init ==========
+========== START entry-dynamic.exe tls_local_exec ==========
+FAIL tls_local_exec [status 1]
+========== END entry-dynamic.exe tls_local_exec ==========
+========== START entry-dynamic.exe udiv ==========
+Pass!
+========== END entry-dynamic.exe udiv ==========
+========== START entry-dynamic.exe ungetc ==========
+Pass!
+========== END entry-dynamic.exe ungetc ==========
+========== START entry-dynamic.exe utime ==========
+src/functional/utime.c:21: utimensat(AT_FDCWD, "/dev/null/invalid", ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_OMIT}}), 0)==0 || errno==ENOTDIR failed: Network is down
+src/functional/utime.c:23: futimens(-1, ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_OMIT}}))==0 || errno==EBADF failed: Operation not permitted
+src/functional/utime.c:29: futimens(fd, (struct timespec[2]){0}) == 0 failed: 
+src/functional/utime.c:36: futimens(fd, ((struct timespec[2]){{.tv_sec=1,.tv_nsec=UTIME_OMIT},{.tv_sec=1,.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:45: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_NOW},{.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:47: st.st_atim.tv_sec >= t failed: 0
+src/functional/utime.c:51: futimens(fd, (struct timespec[2]){0}) == 0 failed: 
+src/functional/utime.c:52: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_OMIT},{.tv_nsec=UTIME_NOW}})) == 0 failed: 
+src/functional/utime.c:55: st.st_mtim.tv_sec >= t failed: 0
+src/functional/utime.c:57: futimens(fd, ((struct timespec[2]){{.tv_nsec=UTIME_NOW},{.tv_nsec=UTIME_OMIT}})) == 0 failed: 
+src/functional/utime.c:59: st.st_atim.tv_sec >= t failed: 0
+src/functional/utime.c:60: st.st_mtim.tv_sec >= t failed: 0
+src/functional/utime.c:63: futimens(fd, ((struct timespec[2]){{.tv_sec=1LL<<32},{.tv_sec=1LL<<32}})) == 0 failed: Operation not permitted
+FAIL utime [status 1]
+========== END entry-dynamic.exe utime ==========
+========== START entry-dynamic.exe wcsstr ==========
+Pass!
+========== END entry-dynamic.exe wcsstr ==========
+========== START entry-dynamic.exe wcstol ==========
+Pass!
+========== END entry-dynamic.exe wcstol ==========
+========== START entry-dynamic.exe daemon_failure ==========
+src/regression/daemon-failure.c:52: daemon should have failed with 24 [EMFILE] got 1 [Operation not permitted]
+src/regression/daemon-failure.c:66: child exited with 1
+src/regression/daemon-failure.c:73: child failed
+FAIL daemon_failure [status 1]
+========== END entry-dynamic.exe daemon_failure ==========
+========== START entry-dynamic.exe dn_expand_empty ==========
+Pass!
+========== END entry-dynamic.exe dn_expand_empty ==========
+========== START entry-dynamic.exe dn_expand_ptr_0 ==========
+Pass!
+========== END entry-dynamic.exe dn_expand_ptr_0 ==========
+========== START entry-dynamic.exe fflush_exit ==========
+FAIL fflush_exit [status 1]
+========== END entry-dynamic.exe fflush_exit ==========
+========== START entry-dynamic.exe fgets_eof ==========
+Pass!
+========== END entry-dynamic.exe fgets_eof ==========
+========== START entry-dynamic.exe fgetwc_buffering ==========
+Pass!
+========== END entry-dynamic.exe fgetwc_buffering ==========
+========== START entry-dynamic.exe fpclassify_invalid_ld80 ==========
+Pass!
+========== END entry-dynamic.exe fpclassify_invalid_ld80 ==========
+========== START entry-dynamic.exe ftello_unflushed_append ==========
+Pass!
+========== END entry-dynamic.exe ftello_unflushed_append ==========
+========== START entry-dynamic.exe getpwnam_r_crash ==========
+Pass!
+========== END entry-dynamic.exe getpwnam_r_crash ==========
+========== START entry-dynamic.exe getpwnam_r_errno ==========
+Pass!
+========== END entry-dynamic.exe getpwnam_r_errno ==========
+========== START entry-dynamic.exe iconv_roundtrips ==========
+Pass!
+========== END entry-dynamic.exe iconv_roundtrips ==========
+========== START entry-dynamic.exe inet_ntop_v4mapped ==========
+Pass!
+========== END entry-dynamic.exe inet_ntop_v4mapped ==========
+========== START entry-dynamic.exe inet_pton_empty_last_field ==========
+Pass!
+========== END entry-dynamic.exe inet_pton_empty_last_field ==========
+========== START entry-dynamic.exe iswspace_null ==========
+Pass!
+========== END entry-dynamic.exe iswspace_null ==========
+========== START entry-dynamic.exe lrand48_signextend ==========
+Pass!
+========== END entry-dynamic.exe lrand48_signextend ==========
+========== START entry-dynamic.exe lseek_large ==========
+Pass!
+========== END entry-dynamic.exe lseek_large ==========
+========== START entry-dynamic.exe malloc_0 ==========
+Pass!
+========== END entry-dynamic.exe malloc_0 ==========
+========== START entry-dynamic.exe mbsrtowcs_overflow ==========
+Pass!
+========== END entry-dynamic.exe mbsrtowcs_overflow ==========
+========== START entry-dynamic.exe memmem_oob_read ==========
+Pass!
+========== END entry-dynamic.exe memmem_oob_read ==========
+========== START entry-dynamic.exe memmem_oob ==========
+Pass!
+========== END entry-dynamic.exe memmem_oob ==========
+========== START entry-dynamic.exe mkdtemp_failure ==========
+Pass!
+========== END entry-dynamic.exe mkdtemp_failure ==========
+========== START entry-dynamic.exe mkstemp_failure ==========
+Pass!
+========== END entry-dynamic.exe mkstemp_failure ==========
+========== START entry-dynamic.exe printf_1e9_oob ==========
+Pass!
+========== END entry-dynamic.exe printf_1e9_oob ==========
+========== START entry-dynamic.exe printf_fmt_g_round ==========
+Pass!
+========== END entry-dynamic.exe printf_fmt_g_round ==========
+========== START entry-dynamic.exe printf_fmt_g_zeros ==========
+Pass!
+========== END entry-dynamic.exe printf_fmt_g_zeros ==========
+========== START entry-dynamic.exe printf_fmt_n ==========
+Pass!
+========== END entry-dynamic.exe printf_fmt_n ==========
+========== START entry-dynamic.exe pthread_robust_detach ==========
+FAIL pthread_robust_detach [status 1]
+========== END entry-dynamic.exe pthread_robust_detach ==========
+========== START entry-dynamic.exe pthread_cond_smasher ==========
+FAIL pthread_cond_smasher [status 1]
+========== END entry-dynamic.exe pthread_cond_smasher ==========
+========== START entry-dynamic.exe pthread_condattr_setclock ==========
+Pass!
+========== END entry-dynamic.exe pthread_condattr_setclock ==========
+========== START entry-dynamic.exe pthread_exit_cancel ==========
+FAIL pthread_exit_cancel [status 1]
+========== END entry-dynamic.exe pthread_exit_cancel ==========
+========== START entry-dynamic.exe pthread_once_deadlock ==========
+FAIL pthread_once_deadlock [status 1]
+========== END entry-dynamic.exe pthread_once_deadlock ==========
+========== START entry-dynamic.exe pthread_rwlock_ebusy ==========
+FAIL pthread_rwlock_ebusy [status 1]
+========== END entry-dynamic.exe pthread_rwlock_ebusy ==========
+========== START entry-dynamic.exe putenv_doublefree ==========
+Pass!
+========== END entry-dynamic.exe putenv_doublefree ==========
+========== START entry-dynamic.exe regex_backref_0 ==========
+Pass!
+========== END entry-dynamic.exe regex_backref_0 ==========
+========== START entry-dynamic.exe regex_bracket_icase ==========
+Pass!
+========== END entry-dynamic.exe regex_bracket_icase ==========
+========== START entry-dynamic.exe regex_ere_backref ==========
+Pass!
+========== END entry-dynamic.exe regex_ere_backref ==========
+========== START entry-dynamic.exe regex_escaped_high_byte ==========
+Pass!
+========== END entry-dynamic.exe regex_escaped_high_byte ==========
+========== START entry-dynamic.exe regex_negated_range ==========
+Pass!
+========== END entry-dynamic.exe regex_negated_range ==========
+========== START entry-dynamic.exe regexec_nosub ==========
+Pass!
+========== END entry-dynamic.exe regexec_nosub ==========
+========== START entry-dynamic.exe rewind_clear_error ==========
+Pass!
+========== END entry-dynamic.exe rewind_clear_error ==========
+========== START entry-dynamic.exe rlimit_open_files ==========
+FAIL rlimit_open_files [status 1]
+========== END entry-dynamic.exe rlimit_open_files ==========
+========== START entry-dynamic.exe scanf_bytes_consumed ==========
+Pass!
+========== END entry-dynamic.exe scanf_bytes_consumed ==========
+========== START entry-dynamic.exe scanf_match_literal_eof ==========
+Pass!
+========== END entry-dynamic.exe scanf_match_literal_eof ==========
+========== START entry-dynamic.exe scanf_nullbyte_char ==========
+Pass!
+========== END entry-dynamic.exe scanf_nullbyte_char ==========
+========== START entry-dynamic.exe setvbuf_unget ==========
+Pass!
+========== END entry-dynamic.exe setvbuf_unget ==========
+========== START entry-dynamic.exe sigprocmask_internal ==========
+Pass!
+========== END entry-dynamic.exe sigprocmask_internal ==========
+========== START entry-dynamic.exe sscanf_eof ==========
+Pass!
+========== END entry-dynamic.exe sscanf_eof ==========
+========== START entry-dynamic.exe statvfs ==========
+FAIL statvfs [status 1]
+========== END entry-dynamic.exe statvfs ==========
+========== START entry-dynamic.exe strverscmp ==========
+Pass!
+========== END entry-dynamic.exe strverscmp ==========
+========== START entry-dynamic.exe syscall_sign_extend ==========
+src/regression/syscall-sign-extend.c:20: (fd = open("/dev/zero", O_RDONLY)) >= 0 failed: Operation not permitted
+src/regression/syscall-sign-extend.c:21: (r = syscall(SYS_read, fd, buf, 1)) == 1 failed: Operation not permitted
+src/regression/syscall-sign-extend.c:23: read 1 instead of 0
+FAIL syscall_sign_extend [status 1]
+========== END entry-dynamic.exe syscall_sign_extend ==========
+========== START entry-dynamic.exe tls_get_new_dtv ==========
+FAIL tls_get_new_dtv [status 1]
+========== END entry-dynamic.exe tls_get_new_dtv ==========
+========== START entry-dynamic.exe uselocale_0 ==========
+Pass!
+========== END entry-dynamic.exe uselocale_0 ==========
+========== START entry-dynamic.exe wcsncpy_read_overflow ==========
+Pass!
+========== END entry-dynamic.exe wcsncpy_read_overflow ==========
+========== START entry-dynamic.exe wcsstr_false_negative ==========
+Pass!
+========== END entry-dynamic.exe wcsstr_false_negative ==========
+#### independent command test
+sh: "####: unknown operand
+testcase busybox echo "#### independent command test" success
+sh: -c: unknown operand
+testcase busybox ash -c exit success
+sh: -c: unknown operand
+testcase busybox sh -c exit success
+bbb
+sh: /aaa/bbb: unknown operand
+testcase busybox basename /aaa/bbb success
+ January 1238162611
+Su Mo Tu We Th Fr Sa
+       1  2  3  4  5
+ 6  7  8  9 10 11 12
+13 14 15 16 17 18 19
+20 21 22 23 24 25 26
+27 28 29 30 31
+                     
+testcase busybox cal success
+[H[Jtestcase busybox clear success
+Thu Jun 17 17:34:34 UTC +60635317
+testcase busybox date success
+Filesystem           1K-blocks      Used Available Use% Mounted on
+df: /proc/mounts: Operation not permitted
+testcase busybox df fail
+/aaa
+sh: /aaa/bbb: unknown operand
+testcase busybox dirname /aaa/bbb success
+testcase busybox dmesg success
+0	./lost+found
+0	./bin
+0	./lib/musl
+0	./lib
+0	./ltp/bin
+0	./ltp/runtest
+0	./ltp/scenario_groups
+0	./ltp/testscripts
