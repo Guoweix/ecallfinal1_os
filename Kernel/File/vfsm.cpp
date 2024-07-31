@@ -137,19 +137,19 @@ bool VFSM::init()
         return false;
     }
 
-    kout << "ext4_recover: start:" << endl;
-    r = ext4_recover("/");
-    if (r != EOK && r != ENOTSUP) {
-        kout << "ext4_recover: rc =" << r << endl;
-        return false;
-    }
+    // kout << "ext4_recover: start:" << endl;
+    // r = ext4_recover("/");
+    // if (r != EOK && r != ENOTSUP) {
+        // kout << "ext4_recover: rc =" << r << endl;
+        // return false;
+    // }
 
-    kout << "ext4_journal_start: start:" << endl;
-    r = ext4_journal_start("/");
-    if (r != EOK) {
-        kout << "ext4_journal_start: rc = " << r << endl;
-        return false;
-    }
+    // kout << "ext4_journal_start: start:" << endl;
+    // r = ext4_journal_start("/");
+    // if (r != EOK) {
+        // kout << "ext4_journal_start: rc = " << r << endl;
+        // return false;
+    // }
 
     // ext4_cache_write_back("/", 1);
 
@@ -257,14 +257,14 @@ FileNode* VFSM::get_root()
 bool VFSM::destory()
 {
 
-    ext4_cache_write_back("/", 0);
+    // ext4_cache_write_back("/", 0);
 
-    int r = ext4_journal_stop("/");
-    if (r != EOK) {
-        kout << "ext4_journal_stop: fail " << r << endl;
-    }
+    // int r = ext4_journal_stop("/");
+    // if (r != EOK) {
+        // kout << "ext4_journal_stop: fail " << r << endl;
+    // }
 
-    r = ext4_umount("/");
+   int r = ext4_umount("/");
     if (r != EOK) {
         kout << "ext4_umount: fail " << r << endl;
     }

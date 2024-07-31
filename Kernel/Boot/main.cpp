@@ -280,7 +280,7 @@ bool VFSM_test2()
 }
 
 
-void busybox_execve(char (* argvv)[50])
+void busybox_execve(char (* argvv)[20])
 {
 
     file_object* fo = new file_object;
@@ -654,65 +654,56 @@ int main()
 
     memCount = 0;
 
-    pm.init();
     Disk.DiskInit();
+    vfsm.init();
+    kout[Info] << "vfsm finish" << endl;
+
+
+    pm.init();
 
     // A();
 
     kout[Info] << "Diskinit finish" << endl;
-// test_ext4();
 // #define RECOVER
 #ifdef RECOVER
     test_vfs();
     SBI_SHUTDOWN();
 #endif
-
-    // test_ext4();
-    // SBI_SHUTDOWN();
-    // kout[Fault]<<"test_ext4 end"<<endl;
-    vfsm.init();
-    kout[Info] << "vfsm finish" << endl;
-
     // new_test();
     // pm_test();
 
     InterruptEnable();
 
-    // Driver_test();
-    // VFSM_test1(1);
-    // char * a="/";
-    // char * b="/";
-    // char * c="test_unlink";
-    // vfsm.create_file(a, b, c);
-    // FAT32FILE* f = vfsm.open(c, a);
-    // if (f) {
-    //     kout << "test_unlink find:" << f->name << endl;
-    // } else {
-    //     kout << "can't open" << endl;
-    // }
-
-    // for (char ch='A';ch<'Z'+1;ch++) {
-    // VFSM_test1('a');
-    // }
-    // test_fstat();
-    // PreRun();
-    // mkdir();
-    char argvv1 [20][50] ={"busybox","echo","run time-test","\0"};
+    char argvv1 [5][20] ={"busybox","echo","run time-test","\0"};
     busybox_execve(argvv1);
-    char argvv2 [20][50] ={"time-test","\0"};
+    char argvv2 [5][20] ={"time-test","\0"};
     busybox_execve(argvv2);
-    char argvv5 [20][50] ={"busybox","echo","run libc-bench","\0"};
+    char argvv5 [5][20] ={"busybox","echo","run lua_testcode.sh","\0"};
     busybox_execve(argvv5);
-    char argvv6 [20][50] ={"busybox","sh","run-static.sh","\0"};
+    char argvv6 [5][20] ={"busybox","sh","test.sh","date.lua","\0"};
     busybox_execve(argvv6);
-    char argvv3 [20][50] ={"busybox","echo","run busybox_testcode","\0"};
-    busybox_execve(argvv3);
-    // char argvv4 [20][50] ={"busybox","sh","busybox_testcode.sh","\0"};
-    // busybox_execve(argvv4);
-    // final_test();
-    // test_final1();
-    // VFSM_test1(10);
-    // pm_test();
+    char argvv7 [5][20] ={"busybox","sh","test.sh","max_min.lua","\0"};
+    busybox_execve(argvv7);
+    char argvv8 [5][20] ={"busybox","sh","test.sh","random.lua","\0"};
+    busybox_execve(argvv8);
+    char argvv11 [5][20] ={"busybox","sh","test.sh","sin30.lua","\0"};
+    busybox_execve(argvv11);
+    char argvv9 [5][20] ={"busybox","sh","test.sh","remove.lua","\0"};
+    busybox_execve(argvv9);
+    char argvv10 [5][20] ={"busybox","sh","test.sh","round_num.lua","\0"};
+    busybox_execve(argvv10);
+    char argvv12 [5][20] ={"busybox","sh","test.sh","sort.lua","\0"};
+    busybox_execve(argvv12);
+    char argvv13 [5][20] ={"busybox","sh","test.sh","strings.lua","\0"};
+    busybox_execve(argvv13);
+    char argvv14 [5][20] ={"busybox","echo","run libc-bench","\0"};
+    busybox_execve(argvv14);
+    char argvv15 [5][20] ={"busybox","sh","run-static.sh","\0"};
+    busybox_execve(argvv15);
+    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
+    busybox_execve(argvv16);
+    
+
     vfsm.destory();
     SBI_SHUTDOWN();
 
