@@ -28,7 +28,6 @@ void Syscall_Exit(TrapFrame* tf, int re)
 {
     Process* cur = pm.getCurProc();
     cur->exit(re);
-    kout[DeBug] << "EXit" << endl;
     needSchedule = true;
 }
 
@@ -269,9 +268,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
         argv1[i] = strdump(argv[i]);
     }
 
-    kout[DeBug] << "creaet_Process ELF" << endl;
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
-    kout[DeBug] << "creaet_Process ELF finish" << endl;
 
     new_proc->destroyFds();
 
@@ -694,7 +691,6 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     }
 
     VirtualMemorySpace::EnableAccessUser();
-    kout[DeBug] << "write " << fd <<" count "<<count<<" buf "<<(char *)buf<< endl;
     // if (fd == STDOUT_FILENO) {
     // VirtualMemorySpace::EnableAccessUser();
     // kout << Yellow << buf << endl;
@@ -774,7 +770,6 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
      kout<<Red<<a<<endl;
       */
     rd_size = fom.read_fo(fo, buf1, count);
-    kout[DeBug] << "read " << fd <<" count "<<count<< " read_se "<<rd_size<<endl;
     if (rd_size == 0) {
         kout[Error] << "Syscall_read rd_size is 0" << endl;
         return 0;
@@ -900,7 +895,6 @@ inline int Syscall_close(int fd)
         return -1;
     }
 
-    kout[Debug] << "close success " << fd << endl;
     return 0;
 }
 
@@ -924,7 +918,6 @@ inline int Syscall_dup(int fd)
     // 将复制的新的文件描述符直接插入当前的进程的文件描述符表
     ret_fd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
 
-    kout[Debug]<<"dup "<<fd<<" return "<<ret_fd<<endl;
     // if (ret_fd==4) {//trick
         // return 0; 
     // }
@@ -986,7 +979,6 @@ int Syscall_openat(int fd, const char* filename, int flags, int mode)
     // mode为文件的所有权描述
     // 成功返回新的文件描述符 失败返回-1
     // kout << Red << "OpenedFile" << endl;
-    kout[DeBug] << "openat fd " << fd << " file_name " << filename << endl;
 
     VirtualMemorySpace::EnableAccessUser();
     char* rela_wd = new char[200];
@@ -1147,7 +1139,6 @@ Sint64 Syscall_lseek(int fd, Sint64 off, int whence)
     ErrorType err = fom.set_fo_pos_k(fh, base + off);
     Sint64 re =( err ? fh->pos_k : -1);
 
-    kout[DeBug]<<"return "<<re<<" off "<<off<<" whence "<<whence <<endl;
     return re;
 }
 
@@ -1370,7 +1361,6 @@ inline int Syscall_pipe2(int* fd, int flags)
     fd[1] = fo2->fd;
     // kout << Yellow << "pipe7" << endl;
     VirtualMemorySpace::DisableAccessUser();
-    kout[DeBug] << "PIPE open " << fo1->fd << " " << fo2->fd;
     return 0;
 }
 

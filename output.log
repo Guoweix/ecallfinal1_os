@@ -44,7 +44,7 @@ Boot HART MHPM Count      : 16
 Boot HART MIDELEG         : 0x0000000000001666
 Boot HART MEDELEG         : 0x0000000000f0b509
 run time-test
-time-test: time/iteration: 0.000ns total time: 5559891652081ms
+time-test: time/iteration: 0.000ns total time: 492392093243ms
 run lua_testcode.sh
 testcase lua date.lua success
 testcase lua file_io.lua success
@@ -795,17 +795,17 @@ testcase busybox sh -c exit success
 bbb
 sh: /aaa/bbb: unknown operand
 testcase busybox basename /aaa/bbb success
- January 1238162611
+ August 1019687988
 Su Mo Tu We Th Fr Sa
-       1  2  3  4  5
- 6  7  8  9 10 11 12
-13 14 15 16 17 18 19
-20 21 22 23 24 25 26
-27 28 29 30 31
+    1  2  3  4  5  6
+ 7  8  9 10 11 12 13
+14 15 16 17 18 19 20
+21 22 23 24 25 26 27
+28 29 30 31
                      
 testcase busybox cal success
 [H[Jtestcase busybox clear success
-Thu Jun 17 17:34:34 UTC +60635317
+Wed Dec 14 13:25:06 UTC +1222245470
 testcase busybox date success
 Filesystem           1K-blocks      Used Available Use% Mounted on
 df: /proc/mounts: Operation not permitted

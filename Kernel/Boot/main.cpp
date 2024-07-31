@@ -47,7 +47,6 @@ void pmm_test()
         kout[Info] << "Allocated 4KB memory successfully!" << (void*)memory64B << endl;
     else
         kout[Error] << "Failed to allocate 4KB memory!" << endl;
-    pmm.show();
 
     kfree(memory64B);
 
@@ -56,14 +55,12 @@ void pmm_test()
         kout[Info] << "Allocated 4KB memory successfully!" << (void*)memory64B2 << endl;
     else
         kout[Error] << "Failed to allocate 4KB memory!" << endl;
-    pmm.show();
 
     /*void* memory512B = slab.allocate(512);
     if (memory512B)
         kout[Info] << "Allocated 4KB memory successfully!" << endl;
     else
         kout[Error] << "Failed to allocate 4KB memory!" << endl;
-    pmm.show();
 
     void* memory4KB = slab.allocate(4096);
     if (memory4KB)
@@ -601,7 +598,7 @@ void test_fstat()
         Syscall_newfstatat(-100, "./ltp/testcases/bin/data", statbuf, 0x1000);
         // ext4node * re = vfs->open("ltp/testcases/bin/data",vfsm.get_root() );
         // vfsm.close(re);
-        kout[Debug] << pmm.getPageCount() << endl;
+        // kout[Debug] << pmm.getPageCount() << endl;
     }
 }
 
@@ -630,7 +627,6 @@ int main()
 
     kout[Info] << "System start success!" << endl;
     pmm.Init();
-    // pmm.show();
     slab.Init();
     // pmm_test();
     VirtualMemorySpace::InitStatic();
@@ -700,9 +696,13 @@ int main()
     Banned_Syscall[SYS_pipe2] = 0;
     char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
     busybox_execve(argvv17);
+    char argvv18[5][20] = { "libc-bench", "\0" };
+    busybox_execve(argvv18);
+    char argvv19[5][20] = { "busybox", "sh", "lmbench_testcode.sh", "\0" };
+    busybox_execve(argvv19);
 
-    vfsm.destory();
     SBI_SHUTDOWN();
+    vfsm.destory();
 
     // kout << "1" << endl;
 

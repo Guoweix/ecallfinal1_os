@@ -315,7 +315,6 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // 接下来更新进程需要的相关信息即可
     // 首先是为用户进程开辟一块用户栈空间
     // 
-    // pmm.show(Debug);
     vms->Enter();
     Uint64 vmr_user_stack_beign = InnerUserProcessStackAddr;
     Uint64 vmr_user_stack_size = InnerUserProcessStackSize;
@@ -334,7 +333,6 @@ int start_process_formELF(procdata_fromELF* proc_data)
 
     // kout[DeBug] << (void*)hmr->GetStart()<<"flag "<<;
     // kout[DeBug] << " flag "<<hmr<<endl;
-    vms->show(Debug);
 
     MemsetT<char>((char*)hmr->GetStart(), 0, hmr->GetLength());
     // kout<<DataWithSize((void *)0x800020,1000);
