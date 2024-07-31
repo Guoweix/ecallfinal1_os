@@ -267,7 +267,9 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
         argv1[i] = strdump(argv[i]);
     }
 
+    kout[DeBug]<<"creaet_Process ELF"<<endl;
     Process* new_proc = CreateProcessFromELF(fo, cur_proc->getCWD(), argc, argv1);
+    kout[DeBug]<<"creaet_Process ELF finish"<<endl;
 
     new_proc->destroyFds();
 
@@ -287,7 +289,7 @@ int Syscall_execve(const char* path, char* const argv[], char* const envp[])
             // 当前场景的执行逻辑上只会有一个子进程
             Process* pptr = nullptr;
             for (pptr = cur_proc->fstChild; pptr != nullptr; pptr = pptr->broNext) {
-                if (pptr->getStatus() == S_Terminated) {
+                if (pptr->getStatus() == S_Terminated&&pptr==new_proc) {
                     // kout[DeBug]<<" find death child "<<pptr->id<<endl;
                     child = pptr;
                     break;
@@ -1209,7 +1211,7 @@ PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int o
 
         // kout << Yellow << mfr->GetFlags() << endl;
         vms->InsertVMR(mfr);
-        vms->show();
+        // vms->show();
         // kout[Fault]<<endl;
 
         ErrorType err = mfr->Load();

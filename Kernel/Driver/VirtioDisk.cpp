@@ -60,7 +60,7 @@ void VirtioDisk::init()
     if (max < NUM)
         kout[Fault] << "VirtIO Disk max queue too short!" << endl;
     *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;
-    memset(pages, 0, sizeof(pages));
+    MemsetT<char>(pages, 0, sizeof(pages));
     *R(VIRTIO_MMIO_QUEUE_PFN) = ((Uint64)pages - 0xffffffff00000000) >> 12;
 
     // kout[Debug] << (void*)this << endl;

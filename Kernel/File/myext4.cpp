@@ -47,9 +47,9 @@ Sint64 ext4node::read(void* buf_, Uint64 pos, Uint64 size)
         char* buf1 = new char[200];
         char* buf2 = new char[200];
         char* buf3 = new char[200];
-        memset(buf3, 0, 200);
-        memset(buf1, 0, 200);
-        memset(buf2, 0, 200);
+        MemsetT<char>(buf3, 0, 200);
+        MemsetT<char>(buf1, 0, 200);
+        MemsetT<char>(buf2, 0, 200);
 
         ext4_readlink(path, buf1, 200, rcnt);
         vfs->get_file_path(parent, buf2);
@@ -144,9 +144,9 @@ Sint64 ext4node::write(void* src_, Uint64 pos, Uint64 size)
         char* buf1 = new char[200];
         char* buf2 = new char[200];
         char* buf3 = new char[200];
-        memset(buf3, 0, 200);
-        memset(buf1, 0, 200);
-        memset(buf2, 0, 200);
+        MemsetT<char>(buf3, 0, 200);
+        MemsetT<char>(buf1, 0, 200);
+        MemsetT<char>(buf2, 0, 200);
 
         ext4_readlink(path, buf1, 200, rcnt);
         vfs->get_file_path(parent, buf2);
@@ -398,16 +398,19 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
 
 void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
 {
-    ASSERTEX(dir->RefCount, "dir is close");
+    
+    kout[DeBug] << "dir name"<<dir->name<<endl;
     ASSERTEX(dir != nullptr, "dir is nullptr");
+    ASSERTEX(dir->RefCount, "dir is close");
 
     if (!(dir->TYPE & FileType::__DIR)) {
         kout[Fault] << dir->name << "isn't a dir" << endl;
         return;
     }
 
+    pmm.show(Debug);
     char* path = new char[255];
-
+    kout[DeBug]<<"new "<<(void *)path<<endl;
     get_file_path(dir, path);
 
     // kout[Info] << "path:" << path << endl;
@@ -437,6 +440,7 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
             // kout[EXT] << "dao tou le" << endl;
             tag->offset = -1;
             // tag=nullptr;
+             
             delete[] path;
             return;
         }
@@ -465,7 +469,13 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
     tag->offset = d.next_off;
     tag->parent = dir;
     tag->RefCount++;
+
+
+
+    pmm.show(Debug);
+    // kout[DeBug]<<"delete "<<(void *)path<<endl;
     delete[] path;
+    // kout[DeBug]<<"delete "<<(void *)path<<endl;
     return;
 }
 

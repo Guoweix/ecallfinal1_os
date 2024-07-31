@@ -88,7 +88,7 @@ void Process::setStack(void* _stack, Uint32 _stacksize)
             kout[Fault] << "ERR_Kmalloc stack" << endl;
         }
     }
-    memset(_stack, 0, _stacksize);
+    MemsetT<char>((char *)_stack, 0, _stacksize);
     stack = _stack, stacksize = _stacksize;
 }
 
@@ -254,9 +254,9 @@ void Process::destroy()
 bool Process::exit(int re)
 {
 
-    kout[DeBug] << "EXit " << id << endl;
+    // kout[DeBug] << "EXit " << id << endl;
     if (status == S_Terminated || status == S_None) {
-        kout[DeBug] << "already exit" << endl;
+        kout[Info] << "already exit" << endl;
         return true;
     }
     switchStatus(S_Terminated);
@@ -269,7 +269,7 @@ bool Process::exit(int re)
     exitCode = re;
 
     while (waitSem->getValue() < 1) {
-        kout[DeBug] << "exit1 " << endl;
+        // kout[DeBug] << "exit1 " << endl;
         waitSem->signal();
     }
 
@@ -279,10 +279,8 @@ bool Process::exit(int re)
     // }
 
     if (father != nullptr) {
-        kout[DeBug] << "exit1 " << endl;
         father->waitSem->signal();
     }
-    kout[DeBug] << "exit1 " << endl;
     return true;
 }
 
@@ -406,20 +404,6 @@ void Process::switchStatus(ProcStatus tarStatus)
         break;
     }
 
-    /*
-        switch (tarStatus) {
-            case S_None:
-                kout[DeBug]<<this->id<<" status to S_None"<<endl;
-                break;
-            case S_Sleeping:
-                kout[DeBug]<<this->id<<" status to S_Sleep"<<endl;
-                break;
-            case S_Running:
-                kout[DeBug]<<this->id<<" status to S_Running"<<endl;
-                break;
-            default:
-                break;
-        }  */
     status = tarStatus;
 }
 
@@ -478,7 +462,7 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
     Process* tar;
 
-    kout[DeBug] << "Schedule " << endl;
+    // kout[DeBug] << "Schedule " << endl;
     pm.simpleShow();
     // kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
     curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
@@ -498,13 +482,13 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
             // kout<<p<<"P+i "<<(p+i)%MaxProcessCount<<tar->status<<endl;
             // pm.show();
             if (tar->status == S_Ready) { // 如果是ready态则进行切换
-                tar->getVMS()->showVMRCount();
+                // tar->getVMS()->showVMRCount();
                 tar->run();
                 // kout[Debug] << (void*)tar->context->epc;
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
-                kout[DeBug] << "into " << tar->name << " id " << tar->getID() << endl;
+                // kout[DeBug] << "into " << tar->name << " id " << tar->getID() << endl;
 
                 return tar->context;
             } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁

@@ -76,7 +76,7 @@ public:
     PAGE* alloc_pages(Uint64 num);
     bool free_pages(PAGE* t);
     PAGE* get_page_from_addr(void* addr);
-    void show(); // 显示内容
+    void show(KoutType ty=(KoutType)MemInfo); // 显示内容
     bool insert_page(PAGE* src); // 更新线段树  
     Uint64 getPageCount(){return PageCount;};
     // 实现malloc和free

@@ -61,7 +61,6 @@ public:
 
     ~MemapFileRegion() // Virtual??
     {
-        // File->Unref(nullptr);
         vfsm.close(File);
         if (VMS != nullptr)
             VMS->RemoveVMR(this, 0);

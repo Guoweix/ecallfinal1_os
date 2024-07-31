@@ -30,19 +30,27 @@ void PMM::Init()
     kout[MemInfo] << "PMM init OK" << endl;
 }
 
-void PMM::show()
+void PMM::show(KoutType ty)
 {
-    kout[MemInfo] << "Free physical page count: " << PageCount << endl;
-    kout[MemInfo] << "Physical page index: " << head.nxt->KAddr() << endl;
-    kout[MemInfo] << "Physical page index free count: " << head.nxt->num << endl;
-    kout[MemInfo] << "Physical page End Address: " << (void*)PagesEndAddr << endl;
+    // kout[ty];
+  /*   PAGE * t=head.nxt;
+    while (t) {
+        kout<<t->KAddr()<<":"<<t->num <<" || ";
+        t=t->nxt;
+     }*/
+    // kout<<endl;
+
+    kout[ty] << "Free physical page count: " << PageCount << endl;
+    kout[ty] << "Physical page index: " << head.nxt->KAddr() << endl;
+    kout[ty] << "Physical page index free count: " << head.nxt->num << endl;
+    kout[ty] << "Physical page End Address: " << (void*)PagesEndAddr << endl;
 }
 
 PAGE* PMM::alloc_pages(Uint64 nums)
 {
     PAGE* p = head.nxt; // 从可分配的页开始
     while (p) {
-        insert_page(p);
+        // insert_page(p);
         if (nums < p->num) { // 数量够了就分配
             PAGE* np = p + nums; // 指向最前面没用的页
             int num = p->num;
@@ -81,6 +89,9 @@ bool PMM::insert_page(PAGE* src)
         if (nxt->nxt) { // 如果nxt不是尾节点
             nxt->nxt->pre = src;
         }
+        nxt->num=0;
+        nxt->pre=nullptr;
+        nxt->nxt=nullptr;
         return true;
     }
     return false;
@@ -90,6 +101,11 @@ bool PMM::free_pages(PAGE* t)
 {
     if (t == nullptr)
         return false; // 释放页表为空
+    if (t->num==0||t->flags==0) 
+    {
+        kout[Warning]<<"this is a null page flag "<<t->flags<<" p "<<t<<endl;
+        return false;
+    }
 
     PageCount += t->num; // 释放后，空闲页增加
     t->flags = 0; // 空闲
@@ -126,7 +142,6 @@ bool PMM::free_pages(PAGE* t)
 // 从物理地址获取对应的页 参数addr实际上是相对all_pages的偏移量
 PAGE* PMM::get_page_from_addr(void* addr)
 {
-
     return (PAGE*)(void*)(FreeMemoryStart() + ((Uint64)addr - FreeMemoryStart()) / PAGESIZE * sizeof(PAGE));
 }
 

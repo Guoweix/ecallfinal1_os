@@ -14,7 +14,7 @@
 #define PROC_NAME_LEN 50 // 进程名字
 #define UserPageSize 12 * PAGESIZE // 用户页大小
 
-const Uint32 MaxProcessCount = 128; // 最大进程数量
+const Uint32 MaxProcessCount = 256; // 最大进程数量
 const PtrSint InnerUserProcessLoadAddr = 0x800020, // 进程加载地址
     InnerUserProcessStackSize = PAGESIZE * 32, // 所有进程栈空间大小
     InnerUserProcessStackAddr = 0x80000000 - InnerUserProcessStackSize; // 栈起始地址

@@ -157,7 +157,7 @@ bool unified_file_path(const char* src, char* ret)
 char* unified_path(const char* path,const char* cwd, char* ret)
 {
     char* path1 = new char[400];
-    memset(path1,0,400);
+    MemsetT<char>(path1,0,400);
     ret[0] = 0;
     // kout<<Yellow<<path<<" " <<path1<<endl;
     
@@ -174,7 +174,7 @@ char* unified_path(const char* path,const char* cwd, char* ret)
     }
 
     char* cwd1 = new char[400];
-    memset(cwd1,0,400);
+    MemsetT<char>(cwd1,0,400);
     unified_file_path(cwd, cwd1);
 
     strcpy(ret, cwd1);

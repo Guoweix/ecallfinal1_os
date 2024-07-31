@@ -158,7 +158,7 @@ bool VFSM::init()
     kout << "ext4_dir_open: sucess:" << endl;
 
     ext4node* temp = new ext4node;
-    temp->RefCount++;
+    temp->RefCount+=1e10;
     EXT4* e1 = new EXT4;
 
     temp->initdir(ed, ".ROOT", e1);
@@ -450,6 +450,9 @@ FileNode* VFSM::open(const char* path, const char* cwd)
 void VFSM::close(FileNode* t)
 {
     if ((t->TYPE & FileType::__PIPEFILE)||(t->TYPE & FileType::__DEVICE)) {
+        return;
+    }
+    if (t==get_root()) {
         return;
     }
 

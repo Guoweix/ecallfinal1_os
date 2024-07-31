@@ -153,6 +153,6 @@ int start_process_formELF(procdata_fromELF * userdata);
 Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
 // Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
 Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
-Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_AutoDestroy,Process * proc=nullptr);
+Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_AutoDestroy);
 
 #endif

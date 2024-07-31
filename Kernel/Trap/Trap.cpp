@@ -51,12 +51,14 @@ static const char* TrapExceptionCodeName[16] = {
 
 void TrapFailedInfo(TrapFrame* tf, bool fault = true)
 {
+    VirtualMemorySpace::Current()->show(Debug);
     kout[fault ? Fault : Debug] << "TrapFailed:" << endline
                                 << "    Type  :" << (void*)tf->cause << endline
                                 << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endline
                                 << "    tval  :" << (void*)tf->tval << endline
                                 << "    status:" << (void*)tf->status << endline
-                                << "    epc   :" << (void*)tf->epc << endl;
+                                << "    epc   :" << (void*)tf->epc << endline
+                                << "    ra    :" << (void*)tf->reg.ra << endl;
 }
 
 bool needSchedule;
@@ -149,7 +151,10 @@ TrapFrame* Trap(TrapFrame* tf)
                 pm.getCurProc()->exit(-1);
                 needSchedule=1;
             }
+            // kout[DeBug]<<"Trap show"<<endl;
+            // VirtualMemorySpace::Current()->show(Debug);
             break;
+
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
         }
@@ -187,6 +192,7 @@ void TrapFramePrint(TrapFrame* tf)
     kout[Info] << "epc:\t" << (void*)tf->epc << endl;
     kout[Info] << "state:\t" << (void*)tf->status << endl;
     kout[Info] << "tcal:\t" << (void*)tf->tval << endl;
+    // kout[Info] << "wrtcal:\t" << (void*)tf->tval << endl;
 }
 
 void TrapInit()

@@ -88,7 +88,7 @@ void strcat(char* dst, const char* src)
 void* memset(void* s, char ch, Uint64 size)
 {
     char* p = (char*)s;
-    while (size-- > 0) {
+    while (size--) {
         *p++ = ch;
     }
     return s;

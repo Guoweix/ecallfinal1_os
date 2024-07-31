@@ -96,15 +96,7 @@ void EXT4_AssertFailed(const char* file, int line, const char* info)
 #include <stddef.h>
 
 // memset: 将指针str指向的内存块的前n个字节设置为指定的值c
-void* memset(void* str, int c, size_t n)
-{
-    unsigned char* p = (unsigned char*)str;
-    while (n--) {
-        *p++ = (unsigned char)c;
-    }
-    return str;
-}
-
+/* 
 // memcpy: 将指针str2指向的内存区域的前n个字节复制到指针str1指向的内存区域
 void* memcpy(void* str1, const void* str2, size_t n)
 {
@@ -116,6 +108,7 @@ void* memcpy(void* str1, const void* str2, size_t n)
     return str1;
 }
 
+*/
 // memmove: 将指针str2指向的内存区域的前n个字节复制到指针str1指向的内存区域，处理重叠情况
 void* memmove(void* str1, const void* str2, size_t n)
 {
@@ -150,6 +143,7 @@ int memcmp(const void* str1, const void* str2, size_t n)
     return 0;
 }
 
+/*
 // strlen: 计算字符串str的长度，不包括终止的空字符
 size_t strlen(const char* str)
 {
@@ -168,6 +162,7 @@ int strcmp(const char* str1, const char* str2)
     }
     return *(unsigned char*)str1 - *(unsigned char*)str2;
 }
+ */
 
 // strncpy: 将字符串src的前n个字符复制到dest
 char* strncpy(char* dest, const char* src, size_t n)
@@ -181,7 +176,6 @@ char* strncpy(char* dest, const char* src, size_t n)
     }
     return dest;
 }
-
 extern long long memCount;
 // free: 释放动态分配的内存
 void free(void* ptr)
@@ -233,6 +227,7 @@ int strncmp(const char* str1, const char* str2, size_t n)
     return 0;
 }
 
+/* 
 // strcpy: 将字符串src复制到dest
 char* strcpy(char* dest, const char* src)
 {
@@ -241,7 +236,7 @@ char* strcpy(char* dest, const char* src)
         ;
     return dest;
 }
-
+ */
 static void _qsort(void* base, size_t nitems, size_t size, int (*compar)(const void*, const void*)) // TODO, test it and fix this to quick sort
 {
     char* arr = (char*)base;

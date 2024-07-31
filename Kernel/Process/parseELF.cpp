@@ -171,7 +171,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 vms->InsertVMR(vmr_add);
                 vms->Enter();
 
-                memset((char*)vmr_begin, 0x00, vmr_memsize);
+                MemsetT<char>((char*)vmr_begin, 0x00, vmr_memsize);
                 pm.getCurProc()->getVMS()->Enter();
                 // vms->Leave();
 
@@ -262,7 +262,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
                             if (ph.p_flags & P_flags::PF_X)
                                 flags |= VirtualMemoryRegion::VM_Exec;
 
-                            kout[DeBug] << "Add VMR of INTERP " << (void*)(s + ph.p_vaddr) << " " << (void*)(s + ph.p_vaddr + ph.p_memsz) << " " << (void*)flags << endl;
+                            // kout[DeBug] << "Add VMR of INTERP " << (void*)(s + ph.p_vaddr) << " " << (void*)(s + ph.p_vaddr + ph.p_memsz) << " " << (void*)flags << endl;
                             auto vmr = KmallocT<VirtualMemoryRegion>();
                             vmr->Init(s + ph.p_vaddr, s + ph.p_vaddr + ph.p_memsz, flags);
                             vms->InsertVMR(vmr);
@@ -314,6 +314,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
     // 上面的循环已经读取了所有的段信息
     // 接下来更新进程需要的相关信息即可
     // 首先是为用户进程开辟一块用户栈空间
+    // 
+    // pmm.show(Debug);
     vms->Enter();
     Uint64 vmr_user_stack_beign = InnerUserProcessStackAddr;
     Uint64 vmr_user_stack_size = InnerUserProcessStackSize;
@@ -321,14 +323,20 @@ int start_process_formELF(procdata_fromELF* proc_data)
     VirtualMemoryRegion* vmr_user_stack = new VirtualMemoryRegion(vmr_user_stack_beign, vmr_user_stack_end, VirtualMemoryRegion::VM_USERSTACK);
     vms->InsertVMR(vmr_user_stack);
 
-    memset((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
+    MemsetT<char>((char*)vmr_user_stack_beign, 0, vmr_user_stack_size);
     // kout << "++++++++++hmr++++++++++++=" << endl;
     // kout<<Yellow<<DataWithSizeUnited((void *)0x1000,0x1141,16);
     // 用户堆段信息 也即数据段
-    HeapMemoryRegion* hmr = new HeapMemoryRegion(breakpoint);
+    // HeapMemoryRegion* hmr = new HeapMemoryRegion(breakpoint);
+    HeapMemoryRegion* hmr = (HeapMemoryRegion *)kmalloc(sizeof(HeapMemoryRegion));
+    hmr->Init(breakpoint);
     vms->InsertVMR(hmr);
-    kout << (void*)hmr->GetStart();
-    memset((char*)hmr->GetStart(), 0, hmr->GetLength());
+
+    // kout[DeBug] << (void*)hmr->GetStart()<<"flag "<<;
+    // kout[DeBug] << " flag "<<hmr<<endl;
+    vms->show(Debug);
+
+    MemsetT<char>((char*)hmr->GetStart(), 0, hmr->GetLength());
     // kout<<DataWithSize((void *)0x800020,1000);
     // vms->Leave();
     pm.getCurProc()->getVMS()->Enter();
@@ -430,7 +438,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     return 0;
 }
 
-Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, char** argv, ProcFlag proc_flags, Process* proc_)
+Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, char** argv, ProcFlag proc_flags)
 {
     bool t;
     IntrSave(t);
@@ -460,9 +468,9 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     vms->Init();
 
     //
-    Process* proc = proc_;
-    VirtualMemorySpace* vms_t = nullptr;
-    if (proc_ == nullptr) {
+    Process* proc = nullptr;
+    // VirtualMemorySpace* vms_t = nullptr;
+    // if (proc_ == nullptr) {
 
         proc = pm.allocProc();
 
@@ -475,12 +483,13 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
         unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
         proc->setProcCWD(abs_cwd);
         delete[] abs_cwd;
-    } else {
-        vms_t = proc->VMS;
-        vms_t->show();
-        proc->setVMS(vms);
+    // } 
+    // else {
+        // vms_t = proc->VMS;
+        // vms_t->show();
+        // proc->setVMS(vms);
         // memset(proc->stack, 0, proc->stacksize);
-    }
+    // }
 
     // 填充userdata
     // 然后跳转执行指定的启动函数
@@ -494,9 +503,9 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     start_process_formELF(proc_data);
     // pm.start_user_proc(proc, start_process_formELF, proc_data, user_start_addr);
 
-    if (proc_) {
-        vms_t->Destroy();
-    }
+    // if (proc_) {
+        // vms_t->Destroy();
+    // }
     // 这里跳转到启动函数之后进程管理就会有其他进程参与轮转调度了
     // 为了确保新的进程能够顺利执行完启动函数这里再释放相关的资源
     // 这里让当前进程阻塞在这里

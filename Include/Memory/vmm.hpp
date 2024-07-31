@@ -572,6 +572,7 @@ public:
         if (this == CurrentVMS)
             return;
         CurrentVMS = this;
+        // kout[DeBug]<<" ENTER "<<this<<endl;
         CSR_WRITE(satp, 8ull << 60 | PDT->PPN());
         asm volatile("sfence.vma;fence.i;fence");
     }
@@ -581,13 +582,13 @@ public:
         if (CurrentVMS == this)
             KernelVMS->Enter();
     }
-    inline void show()
+    inline void show(KoutType tp=Info)
     {
         VirtualMemoryRegion* t;
         t = vmrHead.Nxt();
-        kout[Info];
+        kout[tp]<<"VMS:: "<<this<<endline;
         while (t) {
-            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << " || "<<(void *)t->Flags<<endline;
+            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << " || "<<(void *)t->Flags<<" "<<(void*)t<<endline;
             t = t->Nxt();
         }
         kout << endl;
@@ -618,8 +619,10 @@ public:
         kout[VMMINFO] << "Solve Page Fault " << (void*)tf->tval << " is managed by " << vmr << endl;
         kout[VMMINFO] << "VMS" << (void*)this << endl;
 
+        // void * DEBUG_PTR;
         if (vmr == nullptr) {
-            show();
+            // kout[DeBug]<<" SolvePageFault show "<<endl;
+            // shkow();
             return ERR_AccessInvalidVMR;
         }
         // 根据内存访问模式决定是否使用大页
@@ -640,7 +643,8 @@ public:
                 kout[VMMINFO] << "Allocated large page and mapped it" << endl;
                 return ERR_None;
             }
-        } else {
+        } else 
+        {
             PageTable::Entry& e2 = (*PDT)[PageTable::VPN<2>(tf->tval)];
             PageTable* pt2; // 建立新页表
             if (!e2.Valid()) {
@@ -653,6 +657,9 @@ public:
                 e2.SetPageTable(pt2); // 插入起始节点
             } else
                 pt2 = e2.GetPageTable();
+
+            // kout[DeBug] <<"line 1"<<endl;
+            // show(Debug);
 
             PageTable::Entry& e1 = (*pt2)[PageTable::VPN<1>(tf->tval)];
             PageTable* pt1;
@@ -667,10 +674,17 @@ public:
             } else
                 pt1 = e1.GetPageTable();
 
+            // kout[DeBug] <<"line 2"<<endl;
+            // show(Debug);
+
+
             PAGE* pg0;
             PageTable::Entry& e0 = (*pt1)[PageTable::VPN<0>(tf->tval)];
             if (!e0.Valid()) {
+                // DEBUG_PTR=
                 pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
+                // kout[DeBug]<<pg0->KAddr()<<" "<<pg0->PAddr()<<" "<<(void *)tf->tval<<endl;
+                // show(Debug); 
                 if (pg0 == nullptr)
                     return ERR_OutOfMemory;
                 ASSERTEX(((PtrUint)pg0->PAddr() & (PAGESIZE - 1)) == 0, "pg0->Paddr() is not aligned to 4k!");
@@ -684,6 +698,10 @@ public:
             //}
         }
         kout[VMMINFO] << "SolvePageFault OK" << endl;
+        // kout[DeBug];
+        // show(Debug);
+        
+        // kout[DeBug]<< "vaddr "<<tf->tval<<" paddr "<<DEBUG_PTR<<endl;
 
         return ERR_None;
     }

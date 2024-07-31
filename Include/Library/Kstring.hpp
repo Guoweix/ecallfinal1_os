@@ -8,6 +8,8 @@
 #include <Library/SBI.h>
 #include <Types.hpp>
 
+extern "C"
+{
 // 做一个简单的封装
 inline void putchar(char ch)
 {
@@ -119,4 +121,5 @@ char* strDump(const char* src);
 
 Sint64 readline(const char * src,char * buf,Uint64 srcSize,Uint64 start);
 
+}
 #endif

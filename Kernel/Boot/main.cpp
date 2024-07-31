@@ -629,11 +629,11 @@ int main()
     EXT = kout.RegisterType("EXT4", KoutEX::Blue);
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
-    // kout.SetEnableEffect(false);
+    kout.SetEnableEffect(false);
     kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Info,false);
     kout.SwitchTypeOnoff(Warning,false);
-    // kout.SwitchTypeOnoff(Fault, true);
+    kout.SwitchTypeOnoff(Fault, true);
     // kout.SwitchTypeOnoff(Test, true);
     // kout.SwitchTypeOnoff(Error, true);
     // kout.SwitchTypeOnoff(Debug, true);
@@ -671,13 +671,21 @@ int main()
 #endif
     // new_test();
     // pm_test();
-
-    InterruptEnable();
-
+  InterruptEnable();
+ 
     char argvv1 [5][20] ={"busybox","echo","run time-test","\0"};
     busybox_execve(argvv1);
     char argvv2 [5][20] ={"time-test","\0"};
-    busybox_execve(argvv2);
+    busybox_execve(argvv2); 
+    
+
+    // ./runtest.exe -w entry-dynamic.exe fnmatch
+    // char argvv16 [5][20] ={"runtest.exe","-w","entry-dynamic.exe","fnmatch","\0"};
+    // busybox_execve(argvv16);
+
+    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
+    busybox_execve(argvv16);
+
     char argvv5 [5][20] ={"busybox","echo","run lua_testcode.sh","\0"};
     busybox_execve(argvv5);
     char argvv6 [5][20] ={"busybox","sh","test.sh","date.lua","\0"};
@@ -701,11 +709,9 @@ int main()
     char argvv15 [5][20] ={"busybox","sh","run-static.sh","\0"};
     busybox_execve(argvv15);
     
-    char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
-    busybox_execve(argvv16);
     char argvv17 [5][20] ={"busybox","sh","busybox_testcode.sh","\0"};
     busybox_execve(argvv17);
-
+    
     vfsm.destory();
     SBI_SHUTDOWN();
 
