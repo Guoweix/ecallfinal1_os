@@ -2,6 +2,7 @@
 #include "File/FileEx.hpp"
 #include "File/lwext4_include/ext4_types.h"
 #include "Library/KoutSingle.hpp"
+#include "Trap/Interrupt.hpp"
 #include "Types.hpp"
 #include <File/FileObject.hpp>
 #include <File/vfsm.hpp>
@@ -63,9 +64,9 @@ int FileObjectManager::find_sui_fd(file_object* fo_head)
     int cur_len = get_count_fdt(fo_head);
     int st[cur_len + 3 + 1]; // 当前有这么多节点 使用cur_len+1个数一定可以找到合适的fd
     MemsetT<int>(st, 0, cur_len + 3 + 1);
-    st[0] = 1; // 标准输出的fd是默认分配好的 不应该被占用
-    st[1] = 1;
-    st[2] = 1;
+    // st[0] = 1; // 标准输出的fd是默认分配好的 可能被占用
+    // st[1] = 1;
+    // st[2] = 1;
     file_object* fo_ptr = fo_head->next;
     while (fo_ptr != nullptr) {
         int used_fd = fo_ptr->fd;
@@ -290,6 +291,9 @@ bool FileObjectManager::set_fo_pos_k(file_object* fo, Uint64 pos_k)
         kout[Fault] << "The fo is Empty cannot be set!" << endl;
         return false;
     }
+    if (fo->file->TYPE & FileType::__PIPEFILE) {
+        return false;
+    }
 
     fo->pos_k = pos_k;
     return true;
@@ -341,7 +345,9 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
     Sint64 rd_size;
     // kout[Debug] << "read_fo1 "<<()dst<<endl;
     rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
-    fo->pos_k+=rd_size;
+    if (rd_size >= 0) {
+        fo->pos_k += rd_size;
+    }
 
     return rd_size;
 }
@@ -373,7 +379,12 @@ Sint64 FileObjectManager::write_fo(file_object* fo, void* src, Uint64 size)
     // }
     // kout[Info] << "FileObject::write file " << file << endl;
     wr_size = file->write((unsigned char*)src, fo->pos_k, size);
-    file->fileSize = size;
+    if (wr_size>=0) {
+    fo->pos_k += wr_size;
+    }
+
+    file->fileSize = size; // 有问题，但是也许是trick
+
     // }
     return wr_size;
 }
@@ -399,21 +410,21 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
         kout[Warning] << "The fo is Empty not need to be Closed!" << endl;
         return true;
     }
-
     if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
         PIPEFILE* fp = (PIPEFILE*)fo->file;
         // kout[DeBug] << "close pipefile writeRef " << fp->writeRef << endl;
 
         fp->writeRef--;
-        if (fp->writeRef == 0) {
-            char* t = new char;
-            *t = 4;
-            // kout[Fault]<<"EOF "<<endl;
-            fom.write_fo(fo, t, 1);
-            delete t;
-        }
+        /*
+                if (fp->writeRef == 0) {
+                    char* t = new char;
+                    *t = 4;
+                    // kout[Fault]<<"EOF "<<endl;
+                    fom.write_fo(fo, t, 1);
+                    delete t;
+                }
+         */
     }
-
     // 关闭这个文件描述符
     // 首先通过vfsm的接口直接对于fo对于的file类调用close函数
     // 这里的close接口会自动处理引用计数相关文件
@@ -472,7 +483,7 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
 
     file_object * t;
     t=fo_src->next;
-    file_object * new_node;     
+    file_object * new_node;
     while (t) {
         new_node=fom.duplicate_fo(t);
         t=t->next;

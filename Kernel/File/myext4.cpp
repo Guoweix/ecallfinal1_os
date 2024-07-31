@@ -408,7 +408,6 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
         return;
     }
 
-    pmm.show(Debug);
     char* path = new char[255];
     kout[DeBug]<<"new "<<(void *)path<<endl;
     get_file_path(dir, path);
@@ -472,7 +471,6 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
 
 
 
-    pmm.show(Debug);
     // kout[DeBug]<<"delete "<<(void *)path<<endl;
     delete[] path;
     // kout[DeBug]<<"delete "<<(void *)path<<endl;

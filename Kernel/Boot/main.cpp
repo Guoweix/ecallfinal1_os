@@ -34,14 +34,12 @@ KOUT kout;
 
 void pmm_test()
 {
-    pmm.show();
 
     int i = 0;
     while (1) {
         i++;
         kmalloc(20);
         kout << i << endl;
-        pmm.show();
     }
     // 在 slab 中进行内存分配测试,通过
     void* memory64B = kmalloc(4096);
@@ -364,9 +362,9 @@ void final_test()
         Process* task;
         // if (strcmp(file->name, "runtest.exe") == 0) {
         // if (strcmp(file->name, "pipe2") == 0) {
-        if (strcmp(file->name, "busybox") == 0) {
+        if (strcmp(file->name, "pipe2") == 0) {
             // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
-            char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
+            char argvv[20][100] = { "pipe2","\0","busybox_testcode.sh","\0" };
             // char argvv[20][100] = { "busybox","expr","1","+","1","\0" };
             // char argvv[20][100] = {"runtest.exe", "-w","entry-static.exe","pthread_tsd" };
             // char argvv[20][100] = { "busybox", "cut","-c","3","test.txt" };
@@ -619,7 +617,7 @@ int main()
     EXT = kout.RegisterType("EXT4", KoutEX::Blue);
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
-    kout.SetEnableEffect(false);
+    // kout.SetEnableEffect(false);
     kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Info,false);
     kout.SwitchTypeOnoff(Warning,false);
@@ -665,7 +663,14 @@ int main()
 
        
   
-    Banned_Syscall[SYS_pipe2]=1;
+    Banned_Syscall[SYS_pipe2]=0;
+
+    mkdir();
+// ./runtest.exe -w entry-dynamic.exe fdopen
+    // char argvv1 [5][20] ={"runtest.exe","-w","entry-dynamic.exe","fscanf","\0"};
+    // char argvv1 [5][20] ={"./pipe2","\0"};
+    // char argvv1 [5][20] ={"busybox","sh","\0"};
+    // busybox_execve(argvv1);
 
     char argvv1 [5][20] ={"busybox","echo","run time-test","\0"};
     busybox_execve(argvv1);
@@ -673,6 +678,8 @@ int main()
     busybox_execve(argvv2); 
     char argvv5 [5][20] ={"busybox","echo","run lua_testcode.sh","\0"};
     busybox_execve(argvv5);
+     
+
     char argvv6 [5][20] ={"busybox","sh","test.sh","date.lua","\0"};
     busybox_execve(argvv6);
     char argvv7 [5][20] ={"busybox","sh","test.sh","max_min.lua","\0"};

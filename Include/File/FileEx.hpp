@@ -78,6 +78,7 @@ public:
         vfsm.open(File);
     }
 };
+
 class PIPEFILE : public FileNode {
 public:
     PIPEFILE();
@@ -87,6 +88,8 @@ public:
         FILESIZE = 1 << 12,
     };
 
+    bool flag=0;
+    Uint32 PipeSize=0;
     Uint32 readRef;
     Uint32 writeRef;
     Uint32 in, out;
@@ -97,6 +100,7 @@ public:
     Sint64 write(void* src, Uint64 pos, Uint64 size) override;
     Sint64 write(void* src, Uint64 size) override;
 };
+
 class UartFile : public FileNode {
 
     bool isFake = 0;
@@ -115,7 +119,7 @@ public:
     virtual Sint64 read(void* buf, Uint64 pos, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 pos, Uint64 size) override;
 };
-/*
+/* 
 class PIPEFILE : public FileNode {
 protected:
     Semaphore Lock, SemR, SemW;
@@ -200,7 +204,7 @@ public:
         buffer = new char[BufferSize];
     }
 };
-*/
+ */
 extern UartFile* STDIO;
 
 #endif

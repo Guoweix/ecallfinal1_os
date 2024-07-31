@@ -36,11 +36,10 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
     // kout[Info] << "_PIPE READ " << size << endl;
     // kout[Info] << "pipe read didn't solved" << endl;
     for (int i = 0; i < size; i++) {
-        // if (i==fileSize) {
-            // kout[DeBug]<<"PIPEFILE::read return"<<fileSize<<endl;
-            // kout[Fault]<<endl;
-            // return i;
-        // } 
+        if ((i==PipeSize)&&flag) {
+            kout[DeBug]<<"pipe read return "<<i<<endl;
+            return i;
+        } 
 
 
         full->wait();
@@ -104,7 +103,9 @@ Sint64 PIPEFILE::write(void* src_, Uint64 size)
         file->signal();
         full->signal();
     }
-    fileSize=size;
+    PipeSize=size;
+    kout[DeBug]<<" PipeSize "<<PipeSize<<endl;
+    flag=true;
     return size;
 }
 
@@ -127,7 +128,6 @@ Sint64 UartFile::read(void* buf, Uint64 size)
     }
     return 1;
 }
-
 Sint64 UartFile::write(void* src, Uint64 size)
 {
     char* end = (char*)src + size;

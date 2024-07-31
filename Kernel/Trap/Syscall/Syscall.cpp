@@ -693,7 +693,8 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
         return -1;
     }
 
-    kout[DeBug] << "write " << fd << endl;
+    VirtualMemorySpace::EnableAccessUser();
+    kout[DeBug] << "write " << fd <<" count "<<count<<" buf "<<(char *)buf<< endl;
     // if (fd == STDOUT_FILENO) {
     // VirtualMemorySpace::EnableAccessUser();
     // kout << Yellow << buf << endl;
@@ -722,7 +723,6 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
             return count;
         }
      */
-    VirtualMemorySpace::EnableAccessUser();
     // 分配内核缓冲区
     unsigned char* buf1 = new unsigned char[count];
     memcpy(buf1, (const char*)buf, count);
@@ -752,7 +752,7 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     // buf是存放读取内容的缓冲e区 count是要读取的字节数
     // 成功返回读取的字节数 0表示文件结束 失败返回-1
 
-    kout[DeBug] << "read " << fd << endl;
+
     if (buf == nullptr) {
         return -1;
     }
@@ -774,9 +774,10 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
      kout<<Red<<a<<endl;
       */
     rd_size = fom.read_fo(fo, buf1, count);
+    kout[DeBug] << "read " << fd <<" count "<<count<< " read_se "<<rd_size<<endl;
     if (rd_size == 0) {
         kout[Error] << "Syscall_read rd_size is 0" << endl;
-        return -1;
+        return 0;
     }
     memcpy(buf, (const char*)buf1, count);
     delete[] buf1;
@@ -785,8 +786,10 @@ inline long long Syscall_read(int fd, void* buf, Uint64 count)
     VirtualMemorySpace::DisableAccessUser();
     if (rd_size < 0) {
         kout[Error] << "Syscall_read  read failed" << endl;
-        return -1;
+        // return -1;
+        return 0;//??
     }
+
     return rd_size;
 }
 
@@ -920,6 +923,11 @@ inline int Syscall_dup(int fd)
     int ret_fd = -1;
     // 将复制的新的文件描述符直接插入当前的进程的文件描述符表
     ret_fd = fom.add_fo_tolist(cur_proc->fo_head, fo_new);
+
+    kout[Debug]<<"dup "<<fd<<" return "<<ret_fd<<endl;
+    // if (ret_fd==4) {//trick
+        // return 0; 
+    // }
     return ret_fd;
 }
 
@@ -1134,10 +1142,10 @@ Sint64 Syscall_lseek(int fd, Sint64 off, int whence)
         return -1;
     }
     ErrorType err = fom.set_fo_pos_k(fh, base + off);
-    if (err)
-        return -1;
-    else
-        return fh->pos_k;
+    Sint64 re =( err ? fh->pos_k : -1);
+
+    kout[DeBug]<<"return "<<re<<" off "<<off<<" whence "<<whence <<endl;
+    return re;
 }
 
 PtrSint Syscall_mmap(void* start, Uint64 len, int prot, int flags, int fd, int off) // Currently flags will be ignored...
@@ -1888,8 +1896,8 @@ bool TrapFunc_Syscall(TrapFrame* tf)
         break;
 
     case SYS_pipe2:
-    tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
-    break;
+        tf->reg.a0 = Syscall_pipe2((int*)tf->reg.a0, tf->reg.a1);
+        break;
     case SYS_execve:
         Syscall_execve((char*)tf->reg.a0, (char**)tf->reg.a1, (char**)tf->reg.a2);
         break;
