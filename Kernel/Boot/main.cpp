@@ -700,9 +700,11 @@ int main()
     busybox_execve(argvv14);
     char argvv15 [5][20] ={"busybox","sh","run-static.sh","\0"};
     busybox_execve(argvv15);
+    
     char argvv16 [5][20] ={"busybox","sh","run-dynamic.sh","\0"};
     busybox_execve(argvv16);
-    
+    char argvv17 [5][20] ={"busybox","sh","busybox_testcode.sh","\0"};
+    busybox_execve(argvv17);
 
     vfsm.destory();
     SBI_SHUTDOWN();

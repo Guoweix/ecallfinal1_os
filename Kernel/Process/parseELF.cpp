@@ -93,9 +93,11 @@ int start_process_formELF(procdata_fromELF* proc_data)
     VirtualMemorySpace* vms = proc_data->vms;
     vms->Create();
     vms->EnableAccessUser();
+    Uint64 final_entry=proc_data->e_header.e_entry;
 
     Uint64 breakpoint = 0; // 用来定义用户数据段
     Uint64 ProgramHeaderAddress = 0;
+    Uint64 ProgramInterpreterBase = 0;
     Uint16 phnum = proc_data->e_header.e_phnum; // 可执行文件中的需要解析的段数量
     Uint64 phoff = proc_data->e_header.e_phoff; // 段表在文件中的偏移量 需要通过段表访问到每个段
     Uint16 phentsize = proc_data->e_header.e_phentsize; // 段表中每个段表项的大小
@@ -199,17 +201,105 @@ int start_process_formELF(procdata_fromELF* proc_data)
                 // kout << Memory((void*)0x1000, (void*)0x2000, 100);
             }
             break;
-        case P_type::PT_INTERP:
-            kout[Fault] << "PT_INTERP" << type << endl;
+        case P_type::PT_INTERP: // Need improve...
+        {
+            Uint64 err;
+            fom.seek_fo(fo, pgm_hdr.p_offset, file_ptr::Seek_beg);
+            char* interpPath = new char[pgm_hdr.p_filesz];
+
+            err = fom.read_fo(fo, interpPath, pgm_hdr.p_filesz);
+            // kout[DeBug]<<"read PT_INTERP "<<offset<<" fileSize "<<pgm_hdr.p_filesz<<" PTAH  "<<interpPath<<endl;
+            file_object* fn = nullptr;
+            if (err == pgm_hdr.p_filesz) {
+                file_object* file = nullptr;
+                char* path = new char[200];
+                unified_path(interpPath, "/", path);
+                FileNode* node = vfsm.open(path, "/");
+                delete[] path;
+                if (node != nullptr) {
+                    fn = new file_object;
+                    fom.set_fo_file(fn, node);
+                }
+                if (fn != nullptr) {
+                    Elf_Ehdr header { 0 };
+
+                    err = fom.read_fo(fn, &header, sizeof(header));
+
+                    if (err != sizeof(header))
+                        kout[Fault] << "Failed to read interpreter elf header! Error code " << err << endl;
+                    Uint64 needSize = 0;
+                    for (int i = 0; i < header.e_phnum; ++i) {
+                        Elf_Phdr ph { 0 };
+                        fom.seek_fo(fn, header.e_phoff + i * header.e_phentsize, file_ptr::Seek_beg);
+
+                        Sint64 err = fom.read_fo(fn, &ph, sizeof(ph));
+                        // kout[DeBug] << "TYPE __________________" << ph.p_type << "offset " << (void*)ph.p_offset << "vaddr " << (void*)ph.p_vaddr << "paddr " << (void*)ph.p_paddr << endl;
+
+                        if (err != sizeof(ph))
+                            kout[Fault] << "Failed to read interpreter elf program header " << file << " ,error code " << -err << endl;
+                        if (ph.p_type == P_type::PT_LOAD)
+                            needSize += ph.p_memsz;
+                    }
+                    PtrSint s = ProgramInterpreterBase = vms->GetUsableVMR(0x60000000, 0x70000000, needSize);
+                    {
+                        final_entry= s + header.e_entry;
+                    }
+                    for (int i = 0; i < header.e_phnum; ++i) {
+                        Elf_Phdr ph { 0 };
+                        // file->Seek(header.phoff + i * header.phentsize, FileHandle::Seek_Beg);
+                        fom.seek_fo(fn, header.e_phoff + i * header.e_phentsize, file_ptr::Seek_beg);
+                        Sint64 err = fom.read_fo(fn, &ph, sizeof(ph));
+
+                        if (err != sizeof(ph))
+                            kout[Fault] << "Failed to read interpreter elf program header " << file << " ,error code " << -err << endl;
+                        switch (ph.p_type) {
+                        case PT_LOAD: {
+                            Uint64 flags = 0;
+                            if (ph.p_flags & P_flags::PF_R)
+                                flags |= VirtualMemoryRegion::VM_Read;
+                            //		if (ph.flags&ELF_ProgramHeader64::PF_W)
+                            flags |= VirtualMemoryRegion::VM_Write;
+                            if (ph.p_flags & P_flags::PF_X)
+                                flags |= VirtualMemoryRegion::VM_Exec;
+
+                            kout[DeBug] << "Add VMR of INTERP " << (void*)(s + ph.p_vaddr) << " " << (void*)(s + ph.p_vaddr + ph.p_memsz) << " " << (void*)flags << endl;
+                            auto vmr = KmallocT<VirtualMemoryRegion>();
+                            vmr->Init(s + ph.p_vaddr, s + ph.p_vaddr + ph.p_memsz, flags);
+                            vms->InsertVMR(vmr);
+
+                            fom.seek_fo(fn, ph.p_offset, file_ptr::Seek_beg);
+                            vms->Enter();
+                            err = fom.read_fo(fn, (void*)(s + ph.p_vaddr), ph.p_filesz);
+                            // kout[DeBug] << DataWithSizeUnited((void*)(s + ph.p_vaddr), 0x1000, 64);
+
+                            pm.getCurProc()->getVMS()->Enter();
+
+                            if (err != ph.p_filesz)
+                                kout[Fault] << "Failed to read elf segment " << file << " ,error code " << -err << endl;
+                        }
+
+                        break;
+                        }
+                    }
+                } else
+                    kout[Fault] << "Failed to read elf INTERP path " << interpPath << endl;
+                delete file;
+                vfsm.close(node);
+            } else
+                kout[Fault] << "Failed to read elf INTERP path! Error code " << -err << endl;
+            delete[] interpPath;
             break;
+        }
         case P_type::PT_PHDR:
             ProgramHeaderAddress = pgm_hdr.p_vaddr;
+            break;
         case P_type::PT_LOPROC:
         case P_type::PT_HIPROC:
         case P_type::PT_GNU_RELRO:
         case P_type::PT_GNU_STACK:
         case P_type::PT_TLS:
         case P_type::DT_AARCH64_PAC_PLT:
+        case P_type::PT_DYNAMIC:
             kout[Warning] << "Unsolvable ELF Segment whose Type is " << type << endl;
             break;
 
@@ -258,7 +348,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vmr_str->Init(p, p + PAGESIZE, VirtualMemoryRegion::VM_RW);
     vms->InsertVMR(vmr_str);
 
-    vms->show();
+    // vms->show(Debug);
     vms->Enter();
     // kout << sp << endl;
     char* s = (char*)p;
@@ -297,7 +387,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
         }
     PushInfo64(0); // End of argv
     // kout[Info]<<"A"<<endl;
-    PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/"));
+    // PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/"));
+	PushInfo64((Uint64)PushString("LD_LIBRARY_PATH=/lib"));
     PushInfo64((Uint64)PushString("PATH=/"));
     PushInfo64((Uint64)PushString("SHELL=/busybox"));
     // kout[Info]<<"B"<<endl;
@@ -317,8 +408,8 @@ int start_process_formELF(procdata_fromELF* proc_data)
         AddAUX(ELF_AT::EGID, 10);
     }
     AddAUX(ELF_AT::PAGESZ, PAGESIZE);
-    // if (ProgramInterpreterBase != 0)
-    // AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
+    if (ProgramInterpreterBase != 0)
+        AddAUX(ELF_AT::BASE, ProgramInterpreterBase);
     AddAUX(ELF_AT::ENTRY, proc_data->e_header.e_entry);
     PushInfo64(0); // End of auxv
     // kout << "++++++++++++start++++++++++=" << endl;
@@ -329,8 +420,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
     vms->DisableAccessUser();
 
     // kout[Debug]<<"form ELF VMS"<<proc->getVMS()<<endl;
-
-    proc->start((void*)nullptr, nullptr, proc_data->e_header.e_entry, proc_data->argc, proc_data->argv);
+    proc->start((void*)nullptr, nullptr, final_entry, proc_data->argc, proc_data->argv);
     proc->setName(fo->file->name);
     // pm.show();
 
@@ -384,7 +474,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
         char* abs_cwd = new char[200];
         unified_path((const char*)wk_dir, pm.getCurProc()->getCWD(), abs_cwd);
         proc->setProcCWD(abs_cwd);
-        delete [] abs_cwd;
+        delete[] abs_cwd;
     } else {
         vms_t = proc->VMS;
         vms_t->show();

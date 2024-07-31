@@ -143,7 +143,11 @@ TrapFrame* Trap(TrapFrame* tf)
             kout[VMMINFO] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
             if (TrapFunc_FageFault(tf) != ERR_None) {
                 kout[Info] << "PID" << pm.getCurProc()->getID() << endl;
+                if (tf->status&0x100) {
                 TrapFailedInfo(tf);
+                }
+                pm.getCurProc()->exit(-1);
+                needSchedule=1;
             }
             break;
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
