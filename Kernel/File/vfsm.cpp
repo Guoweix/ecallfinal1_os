@@ -142,7 +142,7 @@ bool VFSM::init()
     kout << "ext4_dir_open: sucess:" << endl;
 
     ext4node* temp = new ext4node;
-    temp->RefCount+=1e10;
+    temp->RefCount+=1000000000;
     EXT4* e1 = new EXT4;
 
     temp->initdir(ed, ".ROOT", e1);
