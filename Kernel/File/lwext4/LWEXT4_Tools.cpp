@@ -189,9 +189,6 @@ void free(void* ptr)
 // malloc: 动态分配内存
 void* malloc(size_t size)
 {
-    // if (size >= 256 * 1024) {
-        // kout[DeBug] << "big mem malloc" << size << endl;
-    // }
     memCount++;
     void* memory = kmalloc(size);
     return memory;

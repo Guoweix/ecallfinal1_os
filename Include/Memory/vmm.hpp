@@ -123,6 +123,10 @@ public:
         inline void SetPageTable(PageTable* pt)
         {
             Set<V>(1);
+            #ifndef QEMU
+            Set<D>(1);
+            Set<A>(1);
+            #endif
             Set<XWR>(XWR_PageTable);
             Set<PPN>((PageTableEntryType)pt->PAddr() >> 12);
         }
@@ -136,6 +140,10 @@ public:
         {
             ++pg->ref;
             Set<FLAGS>(flags);
+            #ifndef QEMU
+            Set<D>(1);
+            Set<A>(1);
+            #endif
             Set<PPN>((PageTableEntryType)pg->PAddr() >> 12);
         }
 

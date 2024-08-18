@@ -48,6 +48,7 @@ public:
 
     inline void lockProcess()
     {
+            // kout[DeBug]<<"lock"<<endl;
         pm.lock.lock();
     }
     inline void unlockProcess()

@@ -2,7 +2,6 @@
 #include <Library/KoutSingle.hpp>
 #include <Memory/pmm.hpp>
 
-
 void PMM::Init()
 {
     using namespace POS;
@@ -17,6 +16,9 @@ void PMM::Init()
     }
     Uint64 page_need_size = PageCount * sizeof(PAGE); // 需要存储所有page（块）信息的头项的内存空间大小
     Uint64 page_need_page_num = page_need_size / PAGESIZE + 1; // 需要多少页存储这些头信息
+
+    // memset(page,0,page_need_page_num*sizeof(PAGE));
+
     kout[MemInfo] << "Page manager used page count: " << page_need_page_num << endl;
     page[0].num = page_need_page_num; // 0-page_need_page_num都用来存信息
     page[0].flags = 1; // 非空闲
@@ -27,17 +29,20 @@ void PMM::Init()
     page[page_need_page_num].pre = &head; // 双向
     PagesEndAddr = page + PageCount; // 总共页表头的地址
     PageCount -= page_need_page_num; // 可用的空闲地址
+
+
+
     kout[MemInfo] << "PMM init OK" << endl;
 }
 
 void PMM::show(KoutType ty)
 {
     // kout[ty];
-  /*   PAGE * t=head.nxt;
-    while (t) {
-        kout<<t->KAddr()<<":"<<t->num <<" || ";
-        t=t->nxt;
-     }*/
+    /*   PAGE * t=head.nxt;
+      while (t) {
+          kout<<t->KAddr()<<":"<<t->num <<" || ";
+          t=t->nxt;
+       }*/
     // kout<<endl;
 
     kout[ty] << "Free physical page count: " << PageCount << endl;
@@ -46,11 +51,11 @@ void PMM::show(KoutType ty)
     kout[ty] << "Physical page End Address: " << (void*)PagesEndAddr << endl;
 }
 
+
 PAGE* PMM::alloc_pages(Uint64 nums)
 {
     PAGE* p = head.nxt; // 从可分配的页开始
     while (p) {
-        // insert_page(p);
         if (nums < p->num) { // 数量够了就分配
             PAGE* np = p + nums; // 指向最前面没用的页
             int num = p->num;
@@ -63,6 +68,7 @@ PAGE* PMM::alloc_pages(Uint64 nums)
             np->num = num - nums;
             p->flags = 1;
             PageCount -= nums; // 空闲页数减少
+            memset(p->KAddr(),0,PAGESIZE*nums);
             return p;
         } else if (p->num == nums) { // 刚好相等直接去除该结点就好
             p->pre->nxt = p->nxt;
@@ -71,6 +77,7 @@ PAGE* PMM::alloc_pages(Uint64 nums)
             }
             p->flags = 1;
             PageCount -= nums;
+            memset(p->KAddr(),0,PAGESIZE*nums);
             return p;
         }
         p = p->nxt;
@@ -89,9 +96,9 @@ bool PMM::insert_page(PAGE* src)
         if (nxt->nxt) { // 如果nxt不是尾节点
             nxt->nxt->pre = src;
         }
-        nxt->num=0;
-        nxt->pre=nullptr;
-        nxt->nxt=nullptr;
+        nxt->num = 0;
+        nxt->pre = nullptr;
+        nxt->nxt = nullptr;
         return true;
     }
     return false;
@@ -101,9 +108,8 @@ bool PMM::free_pages(PAGE* t)
 {
     if (t == nullptr)
         return false; // 释放页表为空
-    if (t->num==0||t->flags==0) 
-    {
-        kout[Warning]<<"this is a null page flag "<<t->flags<<" p "<<t<<endl;
+    if (t->num == 0 || t->flags == 0) {
+        kout[Warning] << "this is a null page flag " << t->flags << " p " << t << endl;
         return false;
     }
 
@@ -170,8 +176,9 @@ void* PMM::malloc(Uint64 bytesize, Uint32 usage)
     // kout[green] << "success malloc,addr:" << KOUT::hex((Uint64)(temppage - all_pages) * PAGESIZE + (Uint64)all_pages) << endl;
 
     Uint64 re = (Uint64)temppage->KAddr();
-    // kout<<"Kmalloc "<<re<<endl;
-    return (void *)re;
+
+    memset((void *)re, 0,need_page_count*PAGESIZE);
+    return (void*)re;
 }
 
 void PMM::free(void* freeaddress)
@@ -191,4 +198,13 @@ void PMM::free(void* freeaddress)
     return;
 }
 
+int init_bss()
+{
+    kout[DeBug]<<"bssstart "<<(void *)bssstart<<"bssend "<<(void *)bssend<<endl;
+    for (char * i=bssstart ;i<bssend;i++) {
+        if (!InRange(i,   boot_stack, boot_stack_top-1)) {
+        *i=0;
+        }
+    }
+}
 PMM pmm;

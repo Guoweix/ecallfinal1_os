@@ -1,3 +1,4 @@
+#include "Synchronize/SpinLock.hpp"
 #include "Trap/Syscall/SyscallID.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
@@ -17,12 +18,15 @@ void ProcessManager::init()
 {
     // 给每个进程初始化
     for (int i = 0; i < MaxProcessCount; i++) {
-        Proc[i].flags = S_None;
+        // Proc[i].flags = S_None;
+        Proc[i].status = S_None;
         Proc[i].pm = this;
+    // kout[DeBug]<<Proc[i].flags<<endl;
     }
     procCount = 0;
     Process* idle0 = allocProc();
     curProc = idle0;
+    lock.init();
 
     ////初始化系统进程
     idle0->initForKernelProc0();
@@ -166,7 +170,7 @@ void Process::init(ProcFlag _flags)
     father = broNext = broPre = fstChild = nullptr;
     exitCode = 0;
     sigQueue.init();
-
+    fo_head=nullptr;
     fom.init_proc_fo_head(this);
     initFds();
     curWorkDir = nullptr;

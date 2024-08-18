@@ -1,6 +1,7 @@
 #ifndef __PMM_HPP__
 #define __PMM_HPP__
 #include <Library/KoutSingle.hpp>
+#include <Library/Kstring.hpp>
 // 先考虑基于QEMU模拟机上的运行 实际烧写等到具体场景再做修改
 // QEMU模拟的DRAM物理内存大小
 // QEMU模拟的物理内存地址从0x0到0x80000000处都是QEMU部分
@@ -11,6 +12,9 @@ extern char kernelstart[];
 extern char kernel_end[]; // 链接脚本里PROVIDE的符号，可获取其地址
 extern char freememstart[]; // 虚拟地址
 extern char boot_stack[]; // 虚拟地址
+extern char boot_stack_top[]; // 虚拟地址
+extern char bssstart[]; // 虚拟地址
+extern char bssend[]; // 虚拟地址
 };
 #define PVOffset 0xffffffff00000000
 #define MEMORYEND 0x88000000
@@ -28,7 +32,11 @@ inline Uint64 PhysicalMemoryStart()
 
 inline Uint64 PhysicalMemorySize()
 {
+    #ifdef QEMU
     return 0x08000000;
+    #endif
+    return 0x80000000;
+
 } // 128MB的内存大小
 
 inline Uint64 FreeMemoryStart() // 可用于分配的自由虚拟内存起始地址
@@ -63,6 +71,9 @@ struct PAGE {
         return (void*)(FreeMemoryStart() + Index() * PAGESIZE - PVOffset);
     } // 物理地址
 };
+
+int init_bss();
+
 
 // 双链表实现最优分配
 class PMM {

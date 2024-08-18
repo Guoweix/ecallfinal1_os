@@ -1,7 +1,7 @@
 #ifndef __MEMLAYOUT_H
 #define __MEMLAYOUT_H
 
-#define QEMU
+// #define QEMU
 #define PlatformIsBigEndian 0
 // Physical memory layout
 
@@ -41,6 +41,7 @@
 // qemu puts UART registers here in physical memory.
 #define UART                    0x10000000L
 #else
+
 #define UART                    0x38000000L
 #endif
 
@@ -91,7 +92,11 @@
 #define SYSCTL_V                (0x50440000 + VIRT_OFFSET)
 
 
+
 #endif
+#define SD_BASE                 0x16020000
+#define SD_BASE_V               (SD_BASE + VIRT_OFFSET)
+
 
 // the physical address of rustsbi
 //#define RUSTSBI_BASE            0x80000000UL

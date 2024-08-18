@@ -197,7 +197,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
                     kout[Fault] << "Read ELF program header in file Fail!" << endl;
                     return -1;
                 }
-                // kout << Hex((uint64)(vmr_begin)) << endl;
+                // kout << Hex((Uint64)(vmr_begin)) << endl;
                 // kout << Memory((void*)0x1000, (void*)0x2000, 100);
             }
             break;
@@ -294,6 +294,7 @@ int start_process_formELF(procdata_fromELF* proc_data)
             ProgramHeaderAddress = pgm_hdr.p_vaddr;
             break;
         case P_type::PT_LOPROC:
+        case P_type::PT_NOTE:
         case P_type::PT_HIPROC:
         case P_type::PT_GNU_RELRO:
         case P_type::PT_GNU_STACK:
@@ -447,7 +448,7 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     // 信号量初始化
 
     Sint64 rd_size = 0;
-    // kout << "read_fo start" << endl;
+    kout[DeBug] << "read_fo start" << endl;
     rd_size = fom.read_fo(fo, &proc_data->e_header, sizeof(proc_data->e_header));
 
     // kout<<DataWithSize((void *)&proc_data->e_header,sizeof(proc_data->e_header))<<endl;

@@ -73,7 +73,7 @@ int ext4_fs_init(struct ext4_fs *fs, struct ext4_blockdev *bdev,
 	fs->read_only = read_only;
 
 	r = ext4_sb_read(fs->bdev, &fs->sb);
-	EXT4_Debug_u32(0,"ext4_sb_read",r );
+	// EXT4_Debug_u32(0,"ext4_sb_read",r );
 	if (r != EOK)
 		return r;
 

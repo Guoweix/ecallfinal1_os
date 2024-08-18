@@ -111,13 +111,24 @@ struct ext4_block_devices {
 /**@brief   Block devices.*/
 static struct ext4_block_devices s_bdevices[CONFIG_EXT4_BLOCKDEVS_COUNT];
 
+
 /**@brief   Mountpoints.*/
 static struct ext4_mountpoint s_mp[CONFIG_EXT4_MOUNTPOINTS_COUNT];
+
+
+int ext4_device_init()
+{
+	for (size_t i = 0; i < CONFIG_EXT4_BLOCKDEVS_COUNT; ++i) {
+		s_bdevices[i].bd=0;
+	}
+}
+
 
 int ext4_device_register(struct ext4_blockdev *bd,
 			 const char *dev_name)
 {
 	ext4_assert(bd && dev_name);
+
 
 	if (strlen(dev_name) > CONFIG_EXT4_MAX_BLOCKDEV_NAME)
 	{
@@ -377,6 +388,8 @@ int ext4_mount(const char *dev_name, const char *mount_point,
 
 	size_t mp_len = strlen(mount_point);
 	
+
+
 		EXT4_Debug_u32_u32(0,"mplen  ",mp_len , CONFIG_EXT4_MAX_MP_NAME);
 	if (mp_len > CONFIG_EXT4_MAX_MP_NAME)
 	{
@@ -425,8 +438,12 @@ int ext4_mount(const char *dev_name, const char *mount_point,
 	}
 
 	bsize = ext4_sb_get_block_size(&mp->fs.sb);
+
+	EXT4_Debug_u32(0,"bsize", bsize);
 	ext4_block_set_lb_size(bd, bsize);
 	bc = &mp->bc;
+
+	mp->os_locks=0;
 
 	r = ext4_bcache_init_dynamic(bc, CONFIG_BLOCK_DEV_CACHE_SIZE, bsize);
 	EXT4_Debug_u32(0,"ext4_bcache_init_dynamic", r);
@@ -450,6 +467,7 @@ int ext4_mount(const char *dev_name, const char *mount_point,
 
 	bd->fs = &mp->fs;
 	mp->mounted = 1;
+
 	return r;
 }
 
@@ -3183,17 +3201,25 @@ int ext4_dir_open(ext4_dir *dir, const char *path)
 	struct ext4_mountpoint *mp = ext4_get_mount(path);
 	int r;
 
+	// EXT4_Debug_u32(1, "ext4_dir_open",mp);
+	EXT4_Debug(1, "ext4_dir_open2");
 	if (!mp)
 		return ENOENT;
 
-	EXT4_Debug(1, "ext4_dir_open");
+	EXT4_Debug_u32(1, "ext4_dir_open3 ",mp);
+	EXT4_Debug_u32(1, "ext4_dir_open3 ",mp->os_locks);
+
 	EXT4_MP_LOCK(mp);
-	EXT4_Debug_u32(1, "ext4_dir_open1",dir);
+
+	EXT4_Debug(1, "ext4_dir_open4");
 
 	r = ext4_generic_open(&dir->f, path, "r", false, 0, 0);
-	EXT4_Debug(1, "ext4_dir_open2");
+
+	EXT4_Debug(1, "ext4_dir_open5");
+
 	dir->next_off = 0;
 	EXT4_MP_UNLOCK(mp);
+	EXT4_Debug(1, "ext4_dir_open6");
 	return r;
 }
 

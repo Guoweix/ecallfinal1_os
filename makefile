@@ -20,19 +20,20 @@ BIOS :=  -bios SBI_BIN/opensbi-qemu.elf
 USERIMG := -initrd Img/User.img
 
 
-# echo:
-#	echo $(ELF_FILES)
-all:mkdir Build/Kernel.elf
+kernel-qemu.bin:mkdir Build/Kernel.elf
 	cp Build/Kernel.elf ./kernel-qemu
+	riscv64-linux-gnu-objcopy -O binary ./kernel-qemu kernel-qemu.bin
 
 Build/Kernel.elf:$(BUILD_ELF_FILES)
 	 $(LD) -o Build/Kernel.elf -T Linker/Kernel.ld $(BUILD_ELF_FILES)
 
-
-run:mkdir Build/Kernel.elf
-	cp Test/a.img SBI_BIN/a.img
+runQemu:mkdir Build/Kernel.elf
 	qemu-system-riscv64 -machine virt -kernel Build/Kernel.elf -m 128M -nographic -smp 2 $(BIOS) $(DRIVE) $(USERIMG) 2>&1 | tee output.log
 
+run:kernel-qemu.bin
+	# sshpass -p 12345678 scp kernel-qemu.bin gwx@192.168.3.58:/home/gwx/windowsfiles/
+	cp kernel-qemu.bin ../tftp
+	sudo Script/startFive2_test.exp
 
 
 $(TARGET_DIR)/%.elf: %.c
@@ -79,3 +80,6 @@ mkdir:
 	mkdir -p Build/Kernel/Trap/Syscall
 
 	
+## sdcard img
+sdcard:
+	sudo dd if=Img/sdcard.img of=/dev/sdb1 bs=4M status=progress

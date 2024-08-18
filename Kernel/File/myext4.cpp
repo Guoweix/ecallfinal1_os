@@ -12,10 +12,10 @@ Sint64 ext4node::read(void* buf_, Uint64 pos, Uint64 size)
     unsigned char* buf = (unsigned char*)buf_;
 
     if (TYPE == __DIR) {
-        kout[EXT] << "file is dir" << endl;
+        // kout[EXT] << "file is dir" << endl;
         return false;
     }
-    // kout[Debug] << "ext4::read1" << endl;
+    // kout[DeBug] << "ext4::read1"<<buf_ << endl;
 
     // kout[EXT] << "ext4::read" << endl;
     if (size == 0 && pos + size > fp.fsize) {
@@ -58,7 +58,7 @@ Sint64 ext4node::read(void* buf_, Uint64 pos, Uint64 size)
         delete[] buf2;
 
         ext4_file filer;
-        kout[Debug] << "path " << buf3 << endl;
+        // kout[Debug] << "path " << buf3 << endl;
         buf3[strlen(buf3) - 1] = '\0';
 
         ext4_fopen(&filer, buf3, "r");
@@ -90,7 +90,7 @@ Sint64 ext4node::read(void* buf_, Uint64 size)
         return false;
     }
 
-    kout[EXT] << "ext4::read" << endl;
+    // kout[EXT] << "ext4::read" << endl;
     if (size == 0 && size > fp.fsize) {
         kout[EXT] << "There is nothing" << endl;
         return 0;
@@ -155,7 +155,7 @@ Sint64 ext4node::write(void* src_, Uint64 pos, Uint64 size)
         delete[] buf2;
 
         ext4_file filer;
-        kout[Debug] << "path " << buf3 << endl;
+        // kout[Debug] << "path " << buf3 << endl;
         buf3[strlen(buf3) - 1] = '\0';
 
         ext4_fopen(&filer, buf3, "wb+");
@@ -207,7 +207,7 @@ bool ext4node::set_name(char* _name)
     char* path = new char[200];
     vfs->get_file_path(this, path);
     path[strlen(path) - 1] = 0;
-    kout[EXT] << "old name is :" << path << endl;
+    // kout[EXT] << "old name is :" << path << endl;
 
     if (name) {
         delete[] name;
@@ -219,7 +219,7 @@ bool ext4node::set_name(char* _name)
     char* path1 = new char[200];
     vfs->get_file_path(this, path1);
     path1[strlen(path1) - 1] = 0;
-    kout[EXT] << "new name is :" << path1 << endl;
+    // kout[EXT] << "new name is :" << path1 << endl;
 
     if (TYPE == __FILE || TYPE == __LINK) {
         ext4_frename(path, path1);
@@ -307,7 +307,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     ext4node* pre1;
 
     int allslash = count_slashes(path);
-    kout[EXT] << "allslash is:" << allslash << endl;
+    // kout[EXT] << "allslash is:" << allslash << endl;
 
     for (int i = 2; i <= allslash; i++) {
         pre1 = tb;
@@ -353,7 +353,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
     // path[strlen(path)-1]=0;
 
     char* name = get_last_path_segment(path);
-    kout[EXT] << "last file name is:" << name << endl;
+    // kout[EXT] << "last file name is:" << name << endl;
     ext4node* now = new ext4node;
     if (ext4_inode_exist(path, 2) == EOK) {
         ext4_dir_open(&temp1, path);
@@ -399,7 +399,7 @@ ext4node* EXT4::open(const char* _path, FileNode* _parent)
 void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
 {
     
-    kout[DeBug] << "dir name"<<dir->name<<endl;
+    // kout[DeBug] << "dir name"<<dir->name<<endl;
     ASSERTEX(dir != nullptr, "dir is nullptr");
     ASSERTEX(dir->RefCount, "dir is close");
 
@@ -409,7 +409,6 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
     }
 
     char* path = new char[255];
-    kout[DeBug]<<"new "<<(void *)path<<endl;
     get_file_path(dir, path);
 
     // kout[Info] << "path:" << path << endl;
@@ -419,9 +418,8 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
     ext4_dir d;
     int tar = 0;
 
-    // kout[Info] << "get_next_file 1" << endl;
+
     int r = ext4_dir_open(&d, path);
-    // kout[Info] << "get_next_file 1" << endl;
     if (r == ENOENT) {
         kout[EXT] << "open " << path << "failed" << endl;
         return;
@@ -432,7 +430,6 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
         d.next_off = 0;
     }
 
-    // kout[EXT]<<"next file name:"<<(char*)de->name<<endl;
     do {
         de = ext4_dir_entry_next(&d);
         if (de == nullptr) {
@@ -445,11 +442,10 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
         }
         memcpy(sss, (char*)de->name, de->name_length);
         sss[de->name_length] = 0;
-        // kout[EXT] << "next file name:" <<sss << endl;
     } while (strcmp(sss, ".") == 0 || strcmp(sss, "..") == 0);
 
     strcat(path, sss);
-    kout[EXT] << "whole path:" << path << endl;
+    // kout[EXT] << "whole path:" << path << endl;
     if (cur == tag) {
         cur->close();
     }
@@ -464,6 +460,7 @@ void EXT4::get_next_file(ext4node* dir, ext4node* cur, ext4node* tag)
         // kout[DeBug] <<"TMEP Fsize "<<tag->fp.fsize<<endl;
         tag->initfile(tag->fp, sss, (EXT4*)dir->vfs);
     }
+
 
     tag->offset = d.next_off;
     tag->parent = dir;
@@ -498,7 +495,7 @@ void EXT4::show_all_file_in_dir(ext4node* dir, Uint32 level)
     t->parent = dir;
     while (t->offset != -1) {
         show_space(level);
-        kout[Debug] << t->name << endl;
+        // kout[Debug] << t->name << endl;
 
         if ((t->TYPE & FileType::__DIR) && !(t->TYPE & FileType::__SPECICAL)) {
             show_all_file_in_dir(t);
@@ -515,7 +512,7 @@ ext4node* EXT4::create_dir(FileNode* dir_, const char* fileName)
     char* path = new char[255];
     get_file_path(dir_, path);
     strcat(path, fileName);
-    kout[EXT] << "New dir Name is:" << path << endl;
+    // kout[EXT] << "New dir Name is:" << path << endl;
 
     ext4_dir_mk(path);
 
@@ -571,7 +568,7 @@ ext4node* EXT4::create_file(FileNode* dir_, const char* fileName, FileType type)
         return nullptr;
     }
     // r = ext4_fwrite(&temp, "Hello World !\n", strlen("Hello World !\n"), 0);
-    kout[EXT] << "fopen is sucess:" << endl;
+    // kout[EXT] << "fopen is sucess:" << endl;
     // r = ext4_fwrite(&temp, "Hello World !\n", strlen("Hello World !\n"), 0);
 
     ext4node* p = new ext4node;
@@ -608,7 +605,7 @@ ext4node* EXT4::create_file(FileNode* dir_, const char* fileName, FileType type)
 
 bool EXT4::del(FileNode* file)
 {
-    kout[EXT] << Red << "del_file  :" << file->name << endl;
+    // kout[EXT] << Red << "del_file  :" << file->name << endl;
 
     if ((file->TYPE & FileType::__DIR) && !(file->TYPE & FileType::__SPECICAL)) {
         ext4node* t = new ext4node;

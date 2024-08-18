@@ -1,4 +1,5 @@
 #include "Arch/Riscv.hpp"
+#include "Driver/sd_final.hpp"
 #include "File/FAT32.hpp"
 #include "File/lwext4_include/ext4.h"
 #include "Library/DebugCounter.hpp"
@@ -287,9 +288,10 @@ void busybox_execve(char (*argvv)[20])
         fom.set_fo_file(fo, file);
         fom.set_fo_pos_k(fo, 0);
         Process* task;
-        // if (strcmp(file->name, "runtest.exe") == 0) {
-        // if (strcmp(file->name, "pipe2") == 0) {
+        
+
         if (strcmp(file->name, argvv[0]) == 0) {
+
             // char argvv[20][100] = { "busybox","echo","hello",">","test.txt","\0" };
             // char argvv[20][100] = { "busybox","sh","busybox_testcode.sh","\0" };
             // char argvv[20][100] = { "busybox","expr","1","+","1","\0" };
@@ -544,6 +546,7 @@ void test_vfs()
 unsigned VMMINFO;
 unsigned NEWINFO;
 unsigned EXT;
+unsigned SysInfo;
 
 extern int test_ext4();
 
@@ -581,8 +584,6 @@ void PreRun()
 
 void mkdir()
 {
-    // FileNode * root=vfsm.get_root();
-    // vfsm.create_file("/", "/","tmp1" );
     vfsm.create_dir("/", "/", "tmp");
 
     return;
@@ -604,28 +605,34 @@ void test_fstat()
 
 int main()
 {
+    init_bss(); 
+
     VMMINFO = kout.RegisterType("VMMINFO", KoutEX::Green);
     NEWINFO = kout.RegisterType("NEWINFO", KoutEX::Blue);
     EXT = kout.RegisterType("EXT4", KoutEX::Blue);
+    SDCard = kout.RegisterType("SDCard", KoutEX::Blue);
+    SysInfo = kout.RegisterType("SysInfo", KoutEX::Blue);
 
     kout.SwitchTypeOnoff(VMMINFO, false); // kout调试信息打印
     // kout.SetEnableEffect(false);
     kout.SetEnabledType(0);
     kout.SwitchTypeOnoff(Info, false);
+    kout.SwitchTypeOnoff(SysInfo, true);
     kout.SwitchTypeOnoff(Warning, false);
     kout.SwitchTypeOnoff(Fault, true);
     // kout.SwitchTypeOnoff(Test, true);
     // kout.SwitchTypeOnoff(Error, true);
-    // kout.SwitchTypeOnoff(Debug, true);
+    kout.SwitchTypeOnoff(Debug, true);
     // kout.SwitchTypeOnoff(Warning, true);
-    kout.SwitchTypeOnoff(EXT, false);
-    // kout.SwitchTypeOnoff(Info, false);
+    // kout.SwitchTypeOnoff(EXT, true);
+    kout.SwitchTypeOnoff(SDCard, false);
+    // kout.SetEnabledType(0);
 
     // kout.SwitchTypeOnoff(NEWINFO,false);
     TrapInit();
     ClockInit();
 
-    kout[Info] << "System start success!" << endl;
+    kout[SysInfo] << "System start success!" << endl;
     pmm.Init();
     slab.Init();
     // pmm_test();
@@ -634,14 +641,23 @@ int main()
     memCount = 0;
 
     Disk.DiskInit();
-    vfsm.init();
-    kout[Info] << "vfsm finish" << endl;
-
+    kout[SysInfo] << "Diskinit finish" << endl;
     pm.init();
+    kout[SysInfo] << "pm finish" << endl;
+
+    // test_sdcard(); 
+    // SBI_SHUTDOWN();
+
+    // for (int i; i<1000000; i++) {
+    // for (int j; j<100; j++) ;
+    
+    // }
+    vfsm.init();
+    kout[SysInfo] << "vfsm finish" << endl;
+
 
     // A();
 
-    kout[Info] << "Diskinit finish" << endl;
 // #define RECOVER
 #ifdef RECOVER
     test_vfs();
@@ -655,16 +671,31 @@ int main()
     // Banned_Syscall[SYS_pipe2]= 1;
 
     mkdir();
+
     // ./runtest.exe -w entry-dynamic.exe fdopen
     // char argvv1 [5][20] ={"runtest.exe","-w","entry-dynamic.exe","fscanf","\0"};
     // char argvv1 [5][20] ={"./pipe2","\0"};
     // char argvv1 [5][20] ={"busybox","sh","\0"};
     // busybox_execve(argvv1);
-
     char argvv1[5][20] = { "busybox", "echo", "run time-test", "\0" };
     busybox_execve(argvv1);
+   
     char argvv2[5][20] = { "time-test", "\0" };
     busybox_execve(argvv2);
+
+    char argvv14[5][20] = { "busybox", "echo", "run libc-bench", "\0" };
+    busybox_execve(argvv14);
+    char argvv15[5][20] = { "busybox", "sh", "run-static.sh", "\0" };
+    busybox_execve(argvv15);
+    char argvv16[5][20] = { "busybox", "sh", "run-dynamic.sh", "\0" };
+    busybox_execve(argvv16);
+
+    Banned_Syscall[SYS_pipe2] = 0;
+    char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
+    busybox_execve(argvv17);
+    char argvv18[5][20] = { "libc-bench", "\0" };
+    busybox_execve(argvv18);
+    
     char argvv5[5][20] = { "busybox", "echo", "run lua_testcode.sh", "\0" };
     busybox_execve(argvv5);
 
@@ -686,18 +717,8 @@ int main()
     busybox_execve(argvv12);
     char argvv13[5][20] = { "busybox", "sh", "test.sh", "strings.lua", "\0" };
     busybox_execve(argvv13);
-    char argvv14[5][20] = { "busybox", "echo", "run libc-bench", "\0" };
-    busybox_execve(argvv14);
-    char argvv15[5][20] = { "busybox", "sh", "run-static.sh", "\0" };
-    busybox_execve(argvv15);
-    char argvv16[5][20] = { "busybox", "sh", "run-dynamic.sh", "\0" };
-    busybox_execve(argvv16);
+    
 
-    Banned_Syscall[SYS_pipe2] = 0;
-    char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
-    busybox_execve(argvv17);
-    char argvv18[5][20] = { "libc-bench", "\0" };
-    busybox_execve(argvv18);
     char argvv19[5][20] = { "busybox", "sh", "lmbench_testcode.sh", "\0" };
     busybox_execve(argvv19);
 

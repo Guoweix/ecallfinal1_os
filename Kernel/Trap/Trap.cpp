@@ -1,3 +1,5 @@
+#include "Driver/Memlayout.hpp"
+#include "Memory/pmm.hpp"
 #include "Trap/Syscall/Syscall.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
@@ -63,6 +65,10 @@ void TrapFailedInfo(TrapFrame* tf, bool fault = true)
 
 bool needSchedule;
 
+
+        char  StaticallocPage[0x500*PAGESIZE];
+        Uint64 al=1;
+        
 extern "C" {
 TrapFrame* Trap(TrapFrame* tf)
 {
@@ -72,7 +78,7 @@ TrapFrame* Trap(TrapFrame* tf)
     if ((long long)tf->cause < 0)
         switch (tf->cause << 1 >> 1) // 为中断
         {
-          
+
         case InterruptCode_SupervisorTimerInterrupt:
             static Uint64 ClockTick = 0;
             ++ClockTick;
@@ -116,10 +122,10 @@ TrapFrame* Trap(TrapFrame* tf)
         case ExceptionCode_BreakPoint:
             // switch (tf->reg.a7) {
             // default:
-                // kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
+            // kout << "ExceptionCode_BreakPoint" << tf->reg.a7 << endl;
             // }
         case ExceptionCode_UserEcall: {
-            ClockTime trapStartTime=GetClockTime();
+            ClockTime trapStartTime = GetClockTime();
             // kout[Info] << "Ecall start" << (void*)tf->epc << endl;
             bool re = TrapFunc_Syscall(tf);
             if (!re) {
@@ -131,9 +137,9 @@ TrapFrame* Trap(TrapFrame* tf)
                 // kout<<DataWithSize((char *)tf->epc,100)<<endl;
             }
 
-            if (!needSchedule) {//如果不需要进程切换则认为程序在系统态运行
-                ClockTime trapEndTime=GetClockTime();
-                pm.getCurProc()->sysTime+=trapEndTime-trapStartTime;
+            if (!needSchedule) { // 如果不需要进程切换则认为程序在系统态运行
+                ClockTime trapEndTime = GetClockTime();
+                pm.getCurProc()->sysTime += trapEndTime - trapStartTime;
             }
             break;
         }
@@ -141,20 +147,50 @@ TrapFrame* Trap(TrapFrame* tf)
         case ExceptionCode_StoreAccessFault:
         case ExceptionCode_InstructionPageFault:
         case ExceptionCode_LoadPageFault:
-        case ExceptionCode_StorePageFault:
-            kout[VMMINFO] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
-            if (TrapFunc_FageFault(tf) != ERR_None) {
-                kout[Info] << "PID" << pm.getCurProc()->getID() << endl;
-                if (tf->status&0x100) {
-                TrapFailedInfo(tf);
-                }
-                pm.getCurProc()->exit(-1);
-                needSchedule=1;
-            }
-            // kout[DeBug]<<"Trap show"<<endl;
-            // VirtualMemorySpace::Current()->show(Debug);
-            break;
+        case ExceptionCode_StorePageFault: 
+/*
+            kout[DeBug] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
+            kout[DeBug] << "PageFault pc " << (void*)tf->epc <<endl;
 
+            ASSERTEX(tf->tval == 0xfffffffec0200000, "tval != 0xFFFFFFFec0200000ull");
+
+            Uint64* t = (Uint64*)boot_page_table_sv39;
+            Uint64* p1=(Uint64 *)((Uint64)(&StaticallocPage[1*PAGESIZE])/0x1000*0x1000-VIRT_OFFSET);
+
+            kout[DeBug]<<"trapP1"<<p1<<endl;
+
+            // t[507] = (((Uint64)0x40000 )<< 10) | 0xcf;
+            t[507] = (((Uint64)p1 >>12)<< 10) | 0xc1;
+
+            Uint64* p2=(Uint64 *)((Uint64)(&StaticallocPage[4*PAGESIZE])/0x1000*0x1000-VIRT_OFFSET);
+            p1[1]= (((Uint64)p2>>12) << 10) | 0xc1;
+            // for (int i=0;i<512;i++) {
+                // p1[i]=((Uint64)p2 << 10) | 0x1;
+                // p1[i]=((Uint64)40200 << 10) | 0xcf;
+            // } 
+
+            // kout[DeBug]<<"trapP2"<<p2<<endl;
+            Uint64* p3=(Uint64 *)((Uint64)(&StaticallocPage[40*PAGESIZE])/0x1000*0x1000-VIRT_OFFSET);
+            p2[0]= ((Uint64)0x40200 << 10) | 0xcf;
+            // p2[0]= (((Uint64)p3 >>12)<< 10) | 0xf;
+            // for (int i=0;i<512;i++) {
+                // p2[i]= ((Uint64)p3 << 10) | 0xf;
+            // } 
+            asm volatile("sfence.vma zero,zero\n fence.i \nfence");
+
+            */
+                      kout[VMMINFO] << "PageFault type " << (void*)tf->cause << endline << "    Name  :" << ((long long)tf->cause < 0 ? TrapInterruptCodeName[tf->cause << 1 >> 1] : TrapExceptionCodeName[tf->cause]) << endl;
+                    if (TrapFunc_FageFault(tf) != ERR_None) {
+                        kout[Info] << "PID" << pm.getCurProc()->getID() << endl;
+                        if (tf->status&0x100) {
+                        TrapFailedInfo(tf);
+                        }
+                        pm.getCurProc()->exit(-1);
+                        needSchedule=1;
+                    } 
+        // kout[DeBug]<<"Trap show"<<endl;
+        // VirtualMemorySpace::Current()->show(Debug);
+        break;
         default: // 对于没有手动处理过的中断/异常异常都进行到这一步，便于调试
             TrapFailedInfo(tf);
         }
@@ -167,9 +203,8 @@ TrapFrame* Trap(TrapFrame* tf)
         // else
         // kout<<"false"<<endl;
         return pm.Schedule(tf);
-    } else
-    {
-        
+    } else {
+
         return tf;
     }
 }
@@ -183,15 +218,15 @@ char regName[32][10] = { "zero", "ra", "sp", "gp", "tp",
     "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
     "t3", "t4", "t5", "t6" };
 
-void TrapFramePrint(TrapFrame* tf)
+void TrapFramePrint(TrapFrame* tf, KoutType t)
 {
     for (int i = 0; i < 32; i++) {
-        kout[Info] << regName[i] << ":\t" << (void*)tf->reg[i] << endl;
+        kout[t] << regName[i] << ":\t" << (void*)tf->reg[i] << endl;
     }
-    kout[Info] << "cause:\t" << (void*)tf->cause << endl;
-    kout[Info] << "epc:\t" << (void*)tf->epc << endl;
-    kout[Info] << "state:\t" << (void*)tf->status << endl;
-    kout[Info] << "tcal:\t" << (void*)tf->tval << endl;
+    kout[t] << "cause:\t" << (void*)tf->cause << endl;
+    kout[t] << "epc:\t" << (void*)tf->epc << endl;
+    kout[t] << "state:\t" << (void*)tf->status << endl;
+    kout[t] << "tcal:\t" << (void*)tf->tval << endl;
     // kout[Info] << "wrtcal:\t" << (void*)tf->tval << endl;
 }
 

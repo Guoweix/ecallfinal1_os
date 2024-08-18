@@ -696,7 +696,7 @@ inline long long Syscall_write(int fd, void* buf, Uint64 count)
     // kout << Yellow << buf << endl;
     // for (int i = 0; i < count; i++) {
     // putchar(((char*)buf)[i]);
-    // kout << (uint64)((char*)buf)[i] << endl;
+    // kout << (Uint64)((char*)buf)[i] << endl;
     // }
     // VirtualMemorySpace::DisableAccessUser();
     // return count;

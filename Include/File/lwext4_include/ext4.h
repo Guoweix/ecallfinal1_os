@@ -377,6 +377,7 @@ int ext4_fseek(ext4_file *file, int64_t offset, uint32_t origin);
  * @return  Actual file position */
 uint64_t ext4_ftell(ext4_file *file);
 
+int ext4_device_init();
 /**@brief   Get file size.
  *
  * @param   file File handle.

@@ -44,7 +44,6 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 
         full->wait();
         if (full->getValue() < 0) {
-            // kout[DeBug]<<"full wait "<<endl;
             pm.immSchedule();
         }
         file->wait();
@@ -82,7 +81,7 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
 Sint64 PIPEFILE::write(void* src_, Uint64 size)
 {
 
-    kout[Info] << "_PIPE Write " << size << endl;
+    // kout[Info] << "_PIPE Write " << size << endl;
     unsigned char* src = (unsigned char*)src_;
     // kout[Info] << "pipe write didn't solved" << endl;
     for (int i = 0; i < size; i++) {
@@ -104,7 +103,6 @@ Sint64 PIPEFILE::write(void* src_, Uint64 size)
         full->signal();
     }
     PipeSize=size;
-    kout[DeBug]<<" PipeSize "<<PipeSize<<endl;
     flag=true;
     return size;
 }

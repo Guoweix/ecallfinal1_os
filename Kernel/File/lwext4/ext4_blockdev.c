@@ -71,7 +71,6 @@ static int ext4_bdif_bread(struct ext4_blockdev *bdev, void *buf,
 {
 	ext4_bdif_lock(bdev);
 
-	EXT4_Debug_u32(1, "_________________- blk_id",blk_id);
 
 	int r = bdev->bdif->bread(bdev, buf, blk_id, blk_cnt);
 	bdev->bdif->bread_ctr++;
@@ -182,6 +181,7 @@ int ext4_block_flush_lba(struct ext4_blockdev *bdev, uint64_t lba)
 	buf = ext4_bcache_find_get(bdev->bc, &b, lba);
 	if (buf) {
 		r = ext4_block_flush_buf(bdev, buf);
+		EXT4_Debug_u32(0, "flush", 0);
 		ext4_bcache_free(bdev->bc, &b);
 	}
 	return r;
@@ -260,6 +260,8 @@ int ext4_block_get(struct ext4_blockdev *bdev, struct ext4_block *b,
 
 	r = ext4_blocks_get_direct(bdev, b->data, lba, 1);
 	if (r != EOK) {
+
+		EXT4_Debug_u32(0, "get", 0);
 		ext4_bcache_free(bdev->bc, b);
 		b->lb_id = 0;
 		return r;
@@ -279,6 +281,7 @@ int ext4_block_set(struct ext4_blockdev *bdev, struct ext4_block *b)
 	if (!bdev->bdif->ph_refctr)
 		return EIO;
 
+		EXT4_Debug_u32(0, "set", 0);
 	return ext4_bcache_free(bdev->bc, b);
 }
 

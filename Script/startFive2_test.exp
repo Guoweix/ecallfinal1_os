@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+# 设置串口设备和捕获文件
+#
+set port "/dev/ttyUSB0"
+set bautRant "115200"
+set outfile "outputVisionFive.log"
+
+# 启动 Minicom，并捕获输出到指定文件
+spawn minicom -D $port -b $bautRant -C $outfile
+
+
+expect "StarFive #"
+
+# 发送命令
+# send "fdt print\r"
+send "setenv ipaddr 10.42.0.10;setenv serverip 10.42.0.1\r"
+send "sf probe\r"
+sleep 1
+send "tftpboot 0x80200000 kernel-qemu.bin\r"
+
+expect "Filename 'kernel-qemu.bin'."
+send "go 0x8020000\r"
+
+
+
+# 保持交互状态
+interact

@@ -130,6 +130,8 @@ int ext4_sb_read(struct ext4_blockdev *bdev, struct ext4_sblock *s)
 
 bool ext4_sb_check(struct ext4_sblock *s)
 {
+	
+
 	if (ext4_get16(s, magic) != EXT4_SUPERBLOCK_MAGIC)
 		return false;
 

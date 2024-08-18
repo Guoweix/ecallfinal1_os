@@ -120,7 +120,6 @@ int Semaphore::wait(Process* proc)
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-    // kout[Info] << "Wait " << this << " v " << value << endl;
     value--;
     if (value < 0) {
         if (!queue.check(proc)) {

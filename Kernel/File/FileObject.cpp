@@ -323,8 +323,6 @@ bool FileObjectManager::set_fo_mode(file_object* fo, Uint64 mode)
 
 Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
 {
-
-    // kout[Debug] << "read_fo"<<endl;
     if (fo == nullptr) {
         kout[Fault] << "Read fo the fo is NULL!" << endl;
         return -1;
@@ -343,7 +341,7 @@ Sint64 FileObjectManager::read_fo(file_object* fo, void* dst, Uint64 size)
     // kout[Debug] << (void*)fo->file->vfs << " file " << file->name << " dst " << (void*)dst << " pos_k " << fo->pos_k <<" size "<<size<< endl;
 
     Sint64 rd_size;
-    // kout[Debug] << "read_fo1 "<<()dst<<endl;
+    // kout[Debug] << "read_fo1 "<<dst<<endl;
     rd_size = file->read((unsigned char*)dst, fo->pos_k, size);
     if (rd_size >= 0) {
         fo->pos_k += rd_size;
@@ -412,7 +410,6 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     }
     if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
         PIPEFILE* fp = (PIPEFILE*)fo->file;
-        // kout[DeBug] << "close pipefile writeRef " << fp->writeRef << endl;
 
         fp->writeRef--;
         if (fp->writeRef == 0) {
@@ -429,7 +426,7 @@ bool FileObjectManager::close_fo(Process* proc, file_object* fo)
     // 进程完全不需要进行对文件的任何操作
     // 这就是这一层封装和隔离的妙处所在
     FileNode* file = fo->file;
-    kout[Info] << "close_fo fd" << fo->fd << " " << fo->file << fo->file->name << endl;
+    // kout[Info] << "close_fo fd" << fo->fd << " " << fo->file << fo->file->name << endl;
 
     vfsm.close(file);
     // 同时从进程的文件描述符表中删去这个节点
@@ -458,7 +455,13 @@ file_object* FileObjectManager::duplicate_fo(file_object* fo)
                      //
     // kout[DeBug]<<"duplicate "<<(void *)fo<<endl;
     dup_fo->file = fo->file; // 关键是file flags这些信息的拷贝
-    fo->file->RefCount++;
+    FileNode* t = fo->file;
+    while (t != nullptr) {//对父文件夹的引用++
+        t->RefCount++;
+        t = t->parent;
+    }
+
+    // fo->file->RefCount++;
 
     if ((fo->file->TYPE & FileType::__PIPEFILE) && (fo->canWrite())) {
         // kout[Fault]<<"dup pipe"<<endl;

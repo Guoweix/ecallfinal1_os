@@ -47,7 +47,7 @@ Sint64 FileNode::write(void* src, Uint64 size)
 Sint64 FileNode::write(void* src, Uint64 pos, Uint64 size)
 {
 
-    kout[Info]<<"write file "<<name<<endl;
+    // kout[Info]<<"write file "<<name<<endl;
     kout[Fault] << "FileNode::write " << endl;
     return false;
 }
@@ -118,27 +118,29 @@ bool VFSM::init()
     kout << "open_filedev start:" << endl;
     bd = ext4_blockdev_get();
     if (!bd) {
-        kout << "open_filedev: fail" << endl;
+        kout[Error] << "open_filedev: fail" << endl;
         return false;
     }
-
+    ext4_device_init();
+    
     kout << "ext4_device_register: start:" << endl;
     int r = ext4_device_register(bd, "ext4_fs");
     if (r != EOK) {
-        kout << "ext4_device_register: rc = " << r << endl;
+        kout [Error]<< "ext4_device_register: rc = " << r << endl;
         return false;
     }
 
     kout << "ext4_mount: start:" << endl;
     r = ext4_mount("ext4_fs", "/", false);
     if (r != EOK) {
-        kout << "ext4_mount: rc =" << r << endl;
+        kout [Error]<< "ext4_mount: rc =" << r << endl;
         return false;
     }
 
-
     ext4_dir ed;
+    kout[DeBug] << "ext4_dir_open :"<<&ed << endl;
     ext4_dir_open(&ed, "/");
+    // kout[Fault]<<endl;
     kout << "ext4_dir_open: sucess:" << endl;
 
     ext4node* temp = new ext4node;
