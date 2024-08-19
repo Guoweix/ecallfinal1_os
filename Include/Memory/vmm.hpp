@@ -371,6 +371,7 @@ public:
         EndAddress = end + PAGESIZE - 1 >> 12 << 12; // 终页的最后一个不可用地址
         VMS = nullptr;
         Flags = flags;
+
         ASSERTEX(StartAddress < EndAddress, "VirtualMemoryRegion::Init: Start " << (void*)StartAddress << " >= End " << (void*)EndAddress);
         return ERR_None;
     }
@@ -453,6 +454,9 @@ protected:
         BootVMS->Init();
         {
             auto vmr = KmallocT<VirtualMemoryRegion>(); // 分配内存区域
+            kout[DeBug]<<(void *)kernelstart<<" "<<(void *)(PhysicalMemoryStart()+ PhysicalMemorySize())<<endl;
+            kout[DeBug]<<(void *)kernelstart<<" "<<(void *)(PhysicalMemoryStart())<<" "<<(void*) PhysicalMemorySize()<<endl;
+
             vmr->Init((PtrUint)kernelstart, PhysicalMemoryStart() + PhysicalMemorySize(), VirtualMemoryRegion::VM_KERNEL); // 程序的内核vmr
             BootVMS->InsertVMR(vmr);
         }

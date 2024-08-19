@@ -683,18 +683,6 @@ int main()
     char argvv2[5][20] = { "time-test", "\0" };
     busybox_execve(argvv2);
 
-    char argvv14[5][20] = { "busybox", "echo", "run libc-bench", "\0" };
-    busybox_execve(argvv14);
-    char argvv15[5][20] = { "busybox", "sh", "run-static.sh", "\0" };
-    busybox_execve(argvv15);
-    char argvv16[5][20] = { "busybox", "sh", "run-dynamic.sh", "\0" };
-    busybox_execve(argvv16);
-
-    Banned_Syscall[SYS_pipe2] = 0;
-    char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
-    busybox_execve(argvv17);
-    char argvv18[5][20] = { "libc-bench", "\0" };
-    busybox_execve(argvv18);
     
     char argvv5[5][20] = { "busybox", "echo", "run lua_testcode.sh", "\0" };
     busybox_execve(argvv5);
@@ -719,6 +707,19 @@ int main()
     busybox_execve(argvv13);
     
 
+
+    char argvv14[5][20] = { "busybox", "echo", "run libc-bench", "\0" };
+    busybox_execve(argvv14);
+    char argvv15[5][20] = { "busybox", "sh", "run-static.sh", "\0" };
+    busybox_execve(argvv15);
+    char argvv16[5][20] = { "busybox", "sh", "run-dynamic.sh", "\0" };
+    busybox_execve(argvv16);
+
+    Banned_Syscall[SYS_pipe2] = 0;
+    char argvv17[5][20] = { "busybox", "sh", "busybox_testcode.sh", "\0" };
+    busybox_execve(argvv17);
+    char argvv18[5][20] = { "libc-bench", "\0" };
+    busybox_execve(argvv18);
     char argvv19[5][20] = { "busybox", "sh", "lmbench_testcode.sh", "\0" };
     busybox_execve(argvv19);
 

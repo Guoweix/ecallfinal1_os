@@ -37,7 +37,7 @@ Sint64 PIPEFILE::read(void* buf_, Uint64 pos, Uint64 size)
     // kout[Info] << "pipe read didn't solved" << endl;
     for (int i = 0; i < size; i++) {
         if ((i==PipeSize)&&flag) {
-            kout[DeBug]<<"pipe read return "<<i<<endl;
+            // kout[DeBug]<<"pipe read return "<<i<<endl;
             return i;
         } 
 

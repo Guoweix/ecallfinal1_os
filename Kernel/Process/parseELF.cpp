@@ -448,7 +448,10 @@ Process* CreateProcessFromELF(file_object* fo, const char* wk_dir, int argc, cha
     // 信号量初始化
 
     Sint64 rd_size = 0;
-    kout[DeBug] << "read_fo start" << endl;
+    // kout[DeBug] << "read_fo start" << endl;
+    for (int k=0;k<100000 ; k++) {
+    
+    }
     rd_size = fom.read_fo(fo, &proc_data->e_header, sizeof(proc_data->e_header));
 
     // kout<<DataWithSize((void *)&proc_data->e_header,sizeof(proc_data->e_header))<<endl;

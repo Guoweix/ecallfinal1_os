@@ -1,0 +1,920 @@
+
+U-Boot SPL 2021.10 (May 09 2024 - 22:42:02 +0800)
+LPDDR4: 4G version: g8ad50857.
+Trying to boot from SPI
+
+OpenSBI v1.2
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|___/_____|
+        | |
+        |_|
+
+Platform Name             : StarFive VisionFive V2
+Platform Features         : medeleg
+Platform HART Count       : 5
+Platform IPI Device       : aclint-mswi
+Platform Timer Device     : aclint-mtimer @ 4000000Hz
+Platform Console Device   : uart8250
+Platform HSM Device       : ---
+Platform PMU Device       : ---
+Platform Reboot Device    : pm-reset
+Platform Shutdown Device  : pm-reset
+Platform Suspend Device   : ---
+Firmware Base             : 0x40000000
+Firmware Size             : 392 KB
+Firmware RW Offset        : 0x40000
+Runtime SBI Version       : 1.0
+
+Domain0 Name              : root
+Domain0 Boot HART         : 1
+Domain0 HARTs             : 0*,1*,2*,3*,4*
+Domain0 Region00          : 0x0000000002000000-0x000000000200ffff M: (I,R,W) S/U: ()
+Domain0 Region01          : 0x0000000040000000-0x000000004003ffff M: (R,X) S/U: ()
+Domain0 Region02          : 0x0000000040040000-0x000000004007ffff M: (R,W) S/U: ()
+Domain0 Region03          : 0x0000000000000000-0xffffffffffffffff M: (R,W,X) S/U: (R,W,X)
+Domain0 Next Address      : 0x0000000040200000
+Domain0 Next Arg1         : 0x0000000042200000
+Domain0 Next Mode         : S-mode
+Domain0 SysReset          : yes
+Domain0 SysSuspend        : yes
+
+Boot HART ID              : 1
+Boot HART Domain          : root
+Boot HART Priv Version    : v1.11
+Boot HART Base ISA        : rv64imafdcbx
+Boot HART ISA Extensions  : none
+Boot HART PMP Count       : 8
+Boot HART PMP Granularity : 4096
+Boot HART PMP Address Bits: 34
+Boot HART MHPM Count      : 2
+Boot HART MIDELEG         : 0x0000000000000222
+Boot HART MEDELEG         : 0x000000000000b109
+
+
+U-Boot 2021.10 (May 09 2024 - 22:42:02 +0800), Build: jenkins-github_visionfive2-24
+
+CPU:   rv64imacu_zba_zbb
+Model: StarFive VisionFive V2
+DRAM:  4 GiB
+MMC:   sdio0@16010000: 0, sdio1@16020000: 1
+Loading Environment from SPIFlash... SF: Detected gd25lq128 with page size 256 Bytes, erase size 4 KiB, total 16 MiB
+*** Warning - bad CRC, using default environment
+
+StarFive EEPROM format v2
+
+--------EEPROM INFO--------
+Vendor : StarFive Technology Co., Ltd.
+Product full SN: VF7110B1-2310-D004E000-00002802
+data version: 0x2
+PCB revision: 0xb2
+BOM revision: A
+Ethernet MAC0 address: 6c:cf:39:00:5a:52
+Ethernet MAC1 address: 6c:cf:39:00:5a:53
+--------EEPROM INFO--------
+
+In:    serial
+Out:   serial
+Err:   serial
+Model: StarFive VisionFive V2
+Net:   eth0: ethernet@16030000, eth1: ethernet@16040000
+Hit any key to stop autoboot:  2  1  0 
+switch to partitions #0, OK
+mmc1 is current device
+Try booting from MMC1 ...
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+## Warning: Input data exceeds 1048576 bytes - truncated
+## Info: input data size = 1048578 = 0x100002
+## Error: "boot2" not defined
+Card did not respond to voltage select! : -110
+starfive_pcie pcie@2B000000: Port link up.
+starfive_pcie pcie@2B000000: Starfive PCIe bus probed.
+PCI: Failed autoconfig bar 10
+starfive_pcie pcie@2C000000: Port link down.
+starfive_pcie pcie@2C000000: Starfive PCIe bus probed.
+PCI: Failed autoconfig bar 10
+
+Device 0: unknown device
+
+Device 0: unknown device
+Tring booting distro ...
+switch to partitions #0, OK
+mmc1 is current device
+Try booting from MMC1 ...
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+## Warning: Input data exceeds 1048576 bytes - truncated
+## Info: input data size = 1048578 = 0x100002
+Retrieving file: /extlinux/extlinux.conf
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+Error reading config file
+Card did not respond to voltage select! : -110
+
+Device 0: unknown device
+
+Device 0: unknown device
+StarFive # setenv ipaddr 10.42.0.10;setenv serverip 10.42.0.1
+StarFive # sf probe
+SF: Detected gd25lq128 with page size 256 Bytes, erase size 4 KiB, total 16 MiB
+StarFive # tftpboot 0x80200000 kernel-qemu.bin
+ethernet@16030000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+phy_startup() failed: -110FAILED: -110ethernet@16040000 Waiting for PHY auto negotiation to complete....... done
+Using ethernet@16040000 device
+TFTP from server 10.42.0.1; our IP address is 10.42.0.10
+Filename 'kernel-qemu.bin'.
+Load address: 0x80200000
+Loading: *########################
+	 327.1 KiB/s
+done
+Bytes transferred = 348264 (55068 hex)
+StarFive # go 0x80200000
+## Starting application at 0x80200000 ...
+[init_bss:203] bssstart 0xFFFFFFFF80256000bssend 0xFFFFFFFF8076D078
+[SysInfo] System start success!
+[InitForBoot:458] 0xFFFFFFFF80200000 0xFFFFFFFF88000000
+[InitForBoot:459] 0xFFFFFFFF80200000 0xFFFFFFFF80000000 0x8000000
+[Init:375] KKK
+[SysInfo] Diskinit finish
+[SysInfo] pm finish
+[init:141] ext4_dir_open :0xFFFFFFFF8076C6F8
+[SysInfo] vfsm finish
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+run time-test
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+time-test: time/iteration: 0.000ns total time: 15912994294290ms
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+run libc-bench
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe argv ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe argv ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe basename ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe basename ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe clocale_mbfuncs ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe clocale_mbfuncs ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe clock_gettime ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe clock_gettime ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe crypt ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe crypt ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe dirname ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe dirname ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe env ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe env ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe fdopen ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe fdopen ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe fnmatch ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe fnmatch ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe fscanf ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[read:40] pipe read return 13
+[read:40] pipe read return 10
+src/functional/fscanf.c:63: x failed (0 != 6)
+src/functional/fscanf.c:64: y failed (-1 != 8)
+src/functional/fscanf.c:65: ftell(f) failed (0 != 8)
+src/functional/fscanf.c:66: !!feof(f) failed (0 != 1)
+FAIL fscanf [status 1]
+========== END entry-static.exe fscanf ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe fwscanf ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe fwscanf ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe iconv_open ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe iconv_open ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe inet_pton ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe inet_pton ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe mbc ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+Pass!
+========== END entry-static.exe mbc ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+========== START entry-static.exe memstream ==========
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[Init:375] KKK
+[CreateProcessFromELF:451] read_fo start
+[Init:375] KKK
+[Init:375] KKK
+
+U-Boot SPL 2021.10 (May 09 2024 - 22:42:02 +0800)
+LPDDR4: 4G version: g8ad50857.
+Trying to boot from SPI
+
+OpenSBI v1.2
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|___/_____|
+        | |
+        |_|
+
+Platform Name             : StarFive VisionFive V2
+Platform Features         : medeleg
+Platform HART Count       : 5
+Platform IPI Device       : aclint-mswi
+Platform Timer Device     : aclint-mtimer @ 4000000Hz
+Platform Console Device   : uart8250
+Platform HSM Device       : ---
+Platform PMU Device       : ---
+Platform Reboot Device    : pm-reset
+Platform Shutdown Device  : pm-reset
+Platform Suspend Device   : ---
+Firmware Base             : 0x40000000
+Firmware Size             : 392 KB
+Firmware RW Offset        : 0x40000
+Runtime SBI Version       : 1.0
+
+Domain0 Name              : root
+Domain0 Boot HART         : 1
+Domain0 HARTs             : 0*,1*,2*,3*,4*
+Domain0 Region00          : 0x0000000002000000-0x000000000200ffff M: (I,R,W) S/U: ()
+Domain0 Region01          : 0x0000000040000000-0x000000004003ffff M: (R,X) S/U: ()
+Domain0 Region02          : 0x0000000040040000-0x000000004007ffff M: (R,W) S/U: ()
+Domain0 Region03          : 0x0000000000000000-0xffffffffffffffff M: (R,W,X) S/U: (R,W,X)
+Domain0 Next Address      : 0x0000000040200000
+Domain0 Next Arg1         : 0x0000000042200000
+Domain0 Next Mode         : S-mode
+Domain0 SysReset          : yes
+Domain0 SysSuspend        : yes
+
+Boot HART ID              : 1
+Boot HART Domain          : root
+Boot HART Priv Version    : v1.11
+Boot HART Base ISA        : rv64imafdcbx
+Boot HART ISA Extensions  : none
+Boot HART PMP Count       : 8
+Boot HART PMP Granularity : 4096
+Boot HART PMP Address Bits: 34
+Boot HART MHPM Count      : 2
+Boot HART MIDELEG         : 0x0000000000000222
+Boot HART MEDELEG         : 0x000000000000b109
+
+
+U-Boot 2021.10 (May 09 2024 - 22:42:02 +0800), Build: jenkins-github_visionfive2-24
+
+CPU:   rv64imacu_zba_zbb
+Model: StarFive VisionFive V2
+DRAM:  4 GiB
+MMC:   sdio0@16010000: 0, sdio1@16020000: 1
+Loading Environment from SPIFlash... SF: Detected gd25lq128 with page size 256 Bytes, erase size 4 KiB, total 16 MiB
+*** Warning - bad CRC, using default environment
+
+StarFive EEPROM format v2
+
+--------EEPROM INFO--------
+Vendor : StarFive Technology Co., Ltd.
+Product full SN: VF7110B1-2310-D004E000-00002802
+data version: 0x2
+PCB revision: 0xb2
+BOM revision: A
+Ethernet MAC0 address: 6c:cf:39:00:5a:52
+Ethernet MAC1 address: 6c:cf:39:00:5a:53
+--------EEPROM INFO--------
+
+In:    serial
+Out:   serial
+Err:   serial
+Model: StarFive VisionFive V2
+Net:   eth0: ethernet@16030000, eth1: ethernet@16040000
+Hit any key to stop autoboot:  2  1  0 
+switch to partitions #0, OK
+mmc1 is current device
+Try booting from MMC1 ...
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+## Warning: Input data exceeds 1048576 bytes - truncated
+## Info: input data size = 1048578 = 0x100002
+## Error: "boot2" not defined
+Card did not respond to voltage select! : -110
+starfive_pcie pcie@2B000000: Port link up.
+starfive_pcie pcie@2B000000: Starfive PCIe bus probed.
+PCI: Failed autoconfig bar 10
+starfive_pcie pcie@2C000000: Port link down.
+starfive_pcie pcie@2C000000: Starfive PCIe bus probed.
+PCI: Failed autoconfig bar 10
+
+Device 0: unknown device
+
+Device 0: unknown device
+Tring booting distro ...
+switch to partitions #0, OK
+mmc1 is current device
+Try booting from MMC1 ...
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+## Warning: Input data exceeds 1048576 bytes - truncated
+## Info: input data size = 1048578 = 0x100002
+Retrieving file: /extlinux/extlinux.conf
+** No partition table - mmc 1 **
+Couldn't find partition mmc 1:3
+Can't set block device
+Error reading config file
+Card did not respond to voltage select! : -110
+
+Device 0: unknown device
+
+Device 0: unknown device
+StarFive # setenv ipaddr 10.42.0.10;setenv serverip 10.42.0.1
+StarFive # sf probe
+SF: Detected gd25lq128 with page size 256 Bytes, erase size 4 KiB, total 16 MiB
+StarFive # tftpboot 0x80200000 kernel-qemu.bin
+ethernet@16030000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+phy_startup() failed: -110FAILED: -110ethernet@16040000 Waiting for PHY auto negotiation to complete....... done
+Using ethernet@16040000 device
+TFTP from server 10.42.0.1; our IP address is 10.42.0.10
+Filename 'kernel-qemu.bin'.
+Load address: 0x80200000
+Loading: *########################
+	 11.5 MiB/s
+done
+Bytes transferred = 348264 (55068 hex)
+StarFive # go 0x80200000
+## Starting application at 0x80200000 ...
+[init_bss:203] bssstart 0xFFFFFFFF80256000bssend 0xFFFFFFFF8076D078
+[SysInfo] System start success!
+[InitForBoot:457] 0xFFFFFFFF80200000 0xFFFFFFFF88000000
+[InitForBoot:458] 0xFFFFFFFF80200000 0xFFFFFFFF80000000 0x8000000
+[SysInfo] Diskinit finish
+[SysInfo] pm finish
+[init:141] ext4_dir_open :0xFFFFFFFF8076C6F8
+[SysInfo] vfsm finish
+run time-test
+time-test: time/iteration: 0.000ns total time: 15912994294290ms
+run libc-bench
+========== START entry-static.exe argv ==========
+Pass!
+========== END entry-static.exe argv ==========
+========== START entry-static.exe basename ==========
+Pass!
+========== END entry-static.exe basename ==========
+========== START entry-static.exe clocale_mbfuncs ==========
+Pass!
+========== END entry-static.exe clocale_mbfuncs ==========
+========== START entry-static.exe clock_gettime ==========
+Pass!
+========== END entry-static.exe clock_gettime ==========
+========== START entry-static.exe crypt ==========
+Pass!
+========== END entry-static.exe crypt ==========
+========== START entry-static.exe dirname ==========
+Pass!
+========== END entry-static.exe dirname ==========
+========== START entry-static.exe env ==========
+Pass!
+========== END entry-static.exe env ==========
+========== START entry-static.exe fdopen ==========
+Pass!
+========== END entry-static.exe fdopen ==========
+========== START entry-static.exe fnmatch ==========
+Pass!
+========== END entry-static.exe fnmatch ==========
+========== START entry-static.exe fscanf ==========
+[read:40] pipe read return 13
+[read:40] pipe read return 10
+Pass!
+========== END entry-static.exe fscanf ==========
+========== START entry-static.exe fwscanf ==========
+Pass!
+========== END entry-static.exe fwscanf ==========
+========== START entry-static.exe iconv_open ==========
+Pass!
+========== END entry-static.exe iconv_open ==========
+========== START entry-static.exe inet_pton ==========
+Pass!
+========== END entry-static.exe inet_pton ==========
+========== START entry-static.exe mbc ==========
+Pass!
+========== END entry-static.exe mbc ==========
+========== START entry-static.exe memstream ==========
+Pass!
+========== END entry-static.exe memstream ==========
+========== START entry-static.exe pthread_cancel_points ==========
+FAIL pthread_cancel_points [status 1]
+========== END entry-static.exe pthread_cancel_points ==========
+========== START entry-static.exe pthread_cancel ==========
+FAIL pthread_cancel [status 1]
+========== END entry-static.exe pthread_cancel ==========
+========== START entry-static.exe pthread_cond ==========
+FAIL pthread_cond [status 1]
+========== END entry-static.exe pthread_cond ==========
+========== START entry-static.exe pthread_tsd ==========
+FAIL pthread_tsd [status 1]
+========== END entry-static.exe pthread_tsd ==========
+========== START entry-static.exe qsort ==========
+Pass!
+========== END entry-static.exe qsort ==========
+========== START entry-static.exe random ==========
+Pass!
+========== END entry-static.exe random ==========
+========== START entry-static.exe search_hsearch ==========
+Pass!
+========== END entry-static.exe search_hsearch ==========
+========== START entry-static.exe search_insque ==========
+Pass!
+========== END entry-static.exe search_insque ==========
+========== START entry-static.exe search_lsearch ==========
+Pass!
+========== END entry-static.exe search_lsearch ==========
+========== START entry-static.exe search_tsearch ==========
+Pass!
+========== END entry-static.exe search_tsearch ==========
+========== START entry-static.exe setjmp ==========
+src/functional/setjmp.c:62: sigismember(&set2, SIGUSR1)==1 failed: siglongjmp incorrectly restored mask
+FAIL setjmp [status 1]
+========== END entry-static.exe setjmp ==========
+========== START entry-static.exe snprintf ==========
+Pass!
+========== END entry-static.exe snprintf ==========
+========== START entry-static.exe socket ==========
+src/functional/socket.c:21: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:22: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:24: setsockopt(s, 1, 20, &(struct timeval){.tv_usec=1}, sizeof(struct timeval))==0 failed: errno = No error information
+src/functional/socket.c:29: sendto(c, "x", 1, 0, (void *)&sa, sizeof sa)==1 failed: errno = No error information
+src/functional/socket.c:30: recvfrom(s, buf, sizeof buf, 0, (void *)&sa, (socklen_t[]){sizeof sa})==1 failed: errno = No error information
+src/functional/socket.c:31: buf[0]=='x' failed: ''
+src/functional/socket.c:40: bind(s, (void *)&sa, sizeof sa)==0 failed: errno = No error information
+src/functional/socket.c:41: getsockname(s, (void *)&sa, (socklen_t[]){sizeof sa})==0 failed: errno = No error information
+src/functional/socket.c:44: listen(s, 1)==0 failed: errno = No error information
+src/functional/socket.c:49: connect(c, (void *)&sa, sizeof sa)==0 || (*__errno_location())==115 failed: errno = No error information
+FAIL socket [status 1]
+========== END entry-static.exe socket ==========
+========== START entry-static.exe sscanf ==========
+Pass!
+========== END entry-static.exe sscanf ==========
+========== START entry-static.exe sscanf_long ==========
+FAIL sscanf_long [status 1]
+========== END entry-static.exe sscanf_long ==========
+========== START entry-static.exe stat ==========
+src/functional/stat.c:27: stat("/dev/null",&st)==0 failed: errno = Operation not permitted
+FAIL stat [status 1]
+========== END entry-static.exe stat ==========
+========== START entry-static.exe strftime ==========
+Pass!
+========== END entry-static.exe strftime ==========
+========== START entry-static.exe string ==========
+Pass!
+========== END entry-static.exe string ==========
+========== START entry-static.exe string_memcpy ==========
+Pass!
+========== END entry-static.exe string_memcpy ==========
+========== START entry-static.exe string_memmem ==========

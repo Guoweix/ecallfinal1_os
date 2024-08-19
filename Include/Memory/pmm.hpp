@@ -32,10 +32,7 @@ inline Uint64 PhysicalMemoryStart()
 
 inline Uint64 PhysicalMemorySize()
 {
-    #ifdef QEMU
     return 0x08000000;
-    #endif
-    return 0x80000000;
 
 } // 128MB的内存大小
 
