@@ -51,7 +51,7 @@ Uint64 Syscall_futex(Uint64 *uaddr, int op, Uint64 val,struct timespec2 *timeout
 - `valid`: 该队列项是否有效。
 
 ```
-cCopy codetypedef struct FutexQueue
+struct FutexQueue
 {
     uint64 addr;
     thread* thread;
@@ -69,7 +69,7 @@ FutexQueue队列的长度是FUTEX_COUNT，这是我们设定的最大等待线�
 void futexWait(uint64 addr, thread* th, TimeSpec2* ts);
 ```
 
-在futexWait函数中，线程首先会在FutexQueue队列中找到一个未被使用的项，然后将自己的信息填入这个项中，并将项标记为已使用。然后根据是否有timeout参数来决定线程的状态。如果有timeout，那么线程的状态将被设为t_TIMING，并计算出应当唤醒的时间。如果没有timeout，那么线程的状态将被设为t_SLEEPING。最后，线程会切换到可运行状态，并调度下一个线程运行。
+在futexWait函数中，线程首先会在FutexQueue队列中找到一个未被使用的项，然后将自己的信息填入这个项中，并将项标记为已使用。然后根据是否有timeout参数来决定线程的状态。如果有timeout，那么线程的状态将被设为S_Sleeping，并计算出应当唤醒的时间。如果没有timeout，那么线程的状态将被设为S_Sleeping。最后，线程会切换到可运行状态，并调度下一个线程运行。
 
 ### futexWake()
 
@@ -77,7 +77,7 @@ void futexWait(uint64 addr, thread* th, TimeSpec2* ts);
 void futexWake(uint64 addr, int n);
 ```
 
-在futexWake函数中，我们会遍历FutexQueue队列，找到等待给定地址的Futex变量的线程，并将其唤醒，直到唤醒的线程数量达到n个。唤醒一个线程的操作是将其状态设为t_RUNNABLE，并将返回值设为0。同时我们还需要将这个FutexQueue队列项标记为未使用。
+在futexWake函数中，我们会遍历FutexQueue队列，找到等待给定地址的Futex变量的线程，并将其唤醒，直到唤醒的线程数量达到n个。唤醒一个线程的操作是将其状态设为S_Ready，并将返回值设为0。同时我们还需要将这个FutexQueue队列项标记为未使用。
 
 ### futexRequeue()
 
@@ -94,4 +94,4 @@ void futexClear(thread* thread);
 ```
 
 在这个函数中，我们会遍历FutexQueue队列，找到所有等待给定线程的项，并将它们标记为未使用。
-总的来说，Futex在AVX512OS中提供了一种高效的进程同步机制，能够在用户态解决大部分的竞争情况，从而避免了频繁的内核态切换。只有在竞争情况下，才会切换到内核态，由内核来完成竞争的解决。
+总的来说，Futex在EcallFinal1中提供了一种高效的进程同步机制，能够在用户态解决大部分的竞争情况，从而避免了频繁的内核态切换。只有在竞争情况下，才会切换到内核态，由内核来完成竞争的解决。
