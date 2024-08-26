@@ -21,11 +21,10 @@
 #include "ext4_crc32.h"
 #include "ext4_balloc.h"
 #include "ext4_extent.h"
-
+#include "LWEXT4_Tools.h"
  
   
   
-#include <stddef.h>
 
 #if CONFIG_EXTENTS_ENABLE
 /*

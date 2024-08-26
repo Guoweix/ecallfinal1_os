@@ -1,5 +1,6 @@
 #include "Driver/Memlayout.hpp"
 #include "Driver/Virtio.hpp"
+#include "Driver/sd_final.hpp"
 #include "Library/KoutSingle.hpp"
 #include "Memory/pmm.hpp"
 #include "Synchronize/Synchronize.hpp"
@@ -13,6 +14,8 @@
 #define R(r) ((volatile Uint32*)(VIRTIO0_V + (r)))
 #define sectorSize 512
 
+VirtioDisk VDisk;
+#ifdef QEMU
 void VirtioDisk::init()
 {
 
@@ -60,10 +63,10 @@ void VirtioDisk::init()
     if (max < NUM)
         kout[Fault] << "VirtIO Disk max queue too short!" << endl;
     *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;
-    memset(pages, 0, sizeof(pages));
+    MemsetT<char>(pages, 0, sizeof(pages));
     *R(VIRTIO_MMIO_QUEUE_PFN) = ((Uint64)pages - 0xffffffff00000000) >> 12;
 
-    kout[Debug] << (void*)this << endl;
+    // kout[Debug] << (void*)this << endl;
 
     desc = (VRingDesc*)pages;
     avail = (VRingAvail*)((char*)desc + NUM * sizeof(VRingDesc));
@@ -121,12 +124,15 @@ int VirtioDisk::alloc3_desc(int* idx)
 
 static VirtioBlkOuthdr buf0;
 
+bool f;
+
 void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
 {
 
+    ASSERTEX((Uint64)buf > 0xffffffff00000000, "buf must be high_address");
     bool a;
     IntrSave(a);
-    intr=false; 
+    intr = false;
     // memset(pages, 0, PAGESIZE*2);
     // for (int i; i<8; i++) {
     //     free[i]=1;
@@ -192,32 +198,51 @@ void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
     avail->index = avail->index + 1;
 
     // kout[Debug] << "!!!!!3!!!!!" << endl;
-    last_used_idx=used->id;
+    last_used_idx = used->id;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;
 
     info.flag = 1;
 
-    InterruptEnable();
-    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; //通知QEMU 
+    // InterruptEnable();
+    *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // 通知QEMU
 
-    while (last_used_idx==used->id) {//轮询操作,等待中断
+    // waitDisk->wait();
+    while (last_used_idx == used->id) { // 轮询操作,等待中断
+        // f=1;
+        // while (f) {
     }
-    
+
+    // kout<<"wait"<<endl;
     // kout[Debug] << "!!!!!4!!!!!" << endl;
-    InterruptDisable();
+    // InterruptDisable();
 
     free_chain(idx[0]);
     IntrRestore(a);
 }
+#else
 
+void VirtioDisk::disk_rw(Uint8* buf, Uint64 sector, bool write)
+{
+    ASSERTEX((Uint64)buf > 0xffffffff00000000, "buf must be high_address"<<buf);
+    if (write) {
+        sd_write((Uint32*)buf, 128, sector );
+    } else {
+        sd_read((Uint32*)buf, 128, sector );
+    }
+}
+
+#endif
+
+#ifdef QEMU
 void VirtioDisk::virtio_disk_intr()
 {
+    // f=0;
+    // waitDisk->signal();
     // kout << "intr" << endl;
     // kout[Debug] << used->id << endl;
     // kout[Debug] << last_used_idx << endl;
-    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;//确认受到响应
-
+    *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3; // 确认受到响应
 }
 
 // void VirtioDisk::virtio_disk_intr()
@@ -245,13 +270,12 @@ void VirtioDisk::virtio_disk_intr()
 //     //   disk.lock.Unlock();
 // }
 
-VirtioDisk VDisk;
-
 bool DISK::DiskInit()
 {
-    // kout[yellow] << "Disk init..." << endl;
+    // kout[Test] << "Disk init..." << endl;
     // kout[yellow] << "plic init..." << endl;
     // kout[red]<<Hex(f())<<endl;
+    diskBuf = (void*)kmalloc(0x1000);
     plicinit();
 
     kout[Info] << "plic init hart..." << endl;
@@ -264,11 +288,37 @@ bool DISK::DiskInit()
     return true;
 }
 
+#else
+
+bool DISK::DiskInit()
+{
+    VDisk.waitDisk=new Semaphore(1);
+    diskBuf = (void*)kmalloc(0x1000);
+    sd_init();
+}
+
+
+
+#endif
+
+
+
 bool DISK::readSector(unsigned long long LBA, Sector* sec, int cnt)
 {
+    // kout[SDCard]<<"read Sector start"<<endl;
     VDisk.waitDisk->wait();
-    for (int i = 0; i < cnt; ++i) {
-        VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 0);
+    // kout[SDCard]<<"read Sector wait start"<<endl;
+
+    if ((Uint64)sec < 0xffffffff00000000) {
+        for (int i = 0; i < cnt; ++i) {
+            VDisk.disk_rw((Uint8*)(diskBuf), LBA + i, 0);
+            memcpy((void*)(sec + i), (const char*)diskBuf, sectorSize);
+        }
+    } else {
+        for (int i = 0; i < cnt; ++i) {
+            // kout[Info]<<"read blk "<<LBA+i<<endl;
+            VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 0);
+        }
     }
     VDisk.waitDisk->signal();
     return true;
@@ -276,18 +326,31 @@ bool DISK::readSector(unsigned long long LBA, Sector* sec, int cnt)
 
 bool DISK::writeSector(unsigned long long LBA, const Sector* sec, int cnt)
 {
+
+    // kout[SDCard]<<"write Sector start"<<endl;
     VDisk.waitDisk->wait();
-    for (int i = 0; i < cnt; ++i)
-        VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 1);
+    if ((Uint64)sec < 0xffffffff00000000) {
+        for (int i = 0; i < cnt; ++i) {
+            memcpy(diskBuf, (const char*)(sec + i), sectorSize);
+            VDisk.disk_rw((Uint8*)(diskBuf), LBA + i, 1);
+        }
+    } else {
+        for (int i = 0; i < cnt; ++i) {
+            VDisk.disk_rw((Uint8*)(sec + i), LBA + i, 1);
+        }
+    }
+
     VDisk.waitDisk->signal();
+
     return true;
 }
 
 bool DISK::DiskInterruptSolve()
 {
-    // VDisk.waitDisk->wait();
+// VDisk.waitDisk->wait();
+#ifdef QEMU
     VDisk.virtio_disk_intr();
+#endif
     return true;
 }
-
 DISK Disk;

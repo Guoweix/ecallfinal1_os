@@ -8,10 +8,14 @@
 #include <Library/SBI.h>
 #include <Types.hpp>
 
+extern "C"
+{
 // 做一个简单的封装
 inline void putchar(char ch)
 {
+    // if ((ch<127&&ch>=32)||ch=='\n'||ch==10||ch==9) {
     sbi_putchar(ch);
+    // }
 }
 
 inline void puts(const char* str)
@@ -112,8 +116,12 @@ void strcat(char* dst, const char* src);
 
 void* memset(void* s, char ch, Uint64 size);
 
-void* memcpy(void* dst, const char* src, Uint64 size);
+void memcpy(void* dst, const void* src, Uint64 size);
 
 char* strDump(const char* src);
 
+
+Sint64 readline(const char * src,char * buf,Uint64 srcSize,Uint64 start);
+
+}
 #endif

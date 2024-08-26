@@ -1,6 +1,7 @@
 #ifndef __PMM_HPP__
 #define __PMM_HPP__
 #include <Library/KoutSingle.hpp>
+#include <Library/Kstring.hpp>
 // 先考虑基于QEMU模拟机上的运行 实际烧写等到具体场景再做修改
 // QEMU模拟的DRAM物理内存大小
 // QEMU模拟的物理内存地址从0x0到0x80000000处都是QEMU部分
@@ -11,6 +12,9 @@ extern char kernelstart[];
 extern char kernel_end[]; // 链接脚本里PROVIDE的符号，可获取其地址
 extern char freememstart[]; // 虚拟地址
 extern char boot_stack[]; // 虚拟地址
+extern char boot_stack_top[]; // 虚拟地址
+extern char bssstart[]; // 虚拟地址
+extern char bssend[]; // 虚拟地址
 };
 #define PVOffset 0xffffffff00000000
 #define MEMORYEND 0x88000000
@@ -29,6 +33,7 @@ inline Uint64 PhysicalMemoryStart()
 inline Uint64 PhysicalMemorySize()
 {
     return 0x08000000;
+
 } // 128MB的内存大小
 
 inline Uint64 FreeMemoryStart() // 可用于分配的自由虚拟内存起始地址
@@ -64,6 +69,9 @@ struct PAGE {
     } // 物理地址
 };
 
+int init_bss();
+
+
 // 双链表实现最优分配
 class PMM {
 private:
@@ -76,8 +84,9 @@ public:
     PAGE* alloc_pages(Uint64 num);
     bool free_pages(PAGE* t);
     PAGE* get_page_from_addr(void* addr);
-    void show(); // 显示内容
-    bool insert_page(PAGE* src); // 更新线段树
+    void show(KoutType ty=(KoutType)MemInfo); // 显示内容
+    bool insert_page(PAGE* src); // 更新线段树  
+    Uint64 getPageCount(){return PageCount;};
     // 实现malloc和free
     // 基于已经实现的页分配简单实现
     // 实现并非很精细 没有充分处理碎片等问题 要求分配的空间必须为整数页张
@@ -92,8 +101,9 @@ extern PMM pmm;
 // 声明作为标准库通用的内存分配函数
 inline void* kmalloc(Uint64 bytesize)
 {
-    // kout <<"Kmalloc " << bytesize << '\n';
     void* re;
+    //暂时先将slab关闭
+   /*  
     if (bytesize < 4000) {
         void* p = slab.allocate(bytesize);
         // kout << "slab alloc addr" << p << endl;
@@ -102,9 +112,9 @@ inline void* kmalloc(Uint64 bytesize)
         }
         re = p;
     } else {
-        // kout << "pmm alloc addr" << endl;
+     */    // kout << "pmm alloc addr" << endl;
         re = pmm.malloc(bytesize, 1);
-    }
+    // }
 
     // kout <<  "Kmalloc " << (Uint64)re<<' '<<re << '\n';
     return re;
@@ -112,16 +122,15 @@ inline void* kmalloc(Uint64 bytesize)
 
 inline void kfree(void* freeaddress)
 {
-    // kout << "Kfree " << (Uint64)freeaddress <<' '<<freeaddress << '\n';
 
     if (freeaddress != nullptr) {
-        PAGE* cur = pmm.get_page_from_addr(freeaddress);
+        // PAGE* cur = pmm.get_page_from_addr(freeaddress);
 
-        if (cur->flags == 1) {
+        // if (cur->flags == 1) {
             pmm.free(freeaddress);
-        } else {
+   /*      } else {
             slab.free(freeaddress, cur->flags);
-        }
+        } */
     }
 }
 

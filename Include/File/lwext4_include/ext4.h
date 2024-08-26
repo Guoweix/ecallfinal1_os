@@ -45,13 +45,13 @@ extern "C" {
 // #include <stdint.h>
 // #include <stddef.h>
 
-#include <ext4_config.h>
-#include <ext4_types.h>
-#include <ext4_errno.h>
-#include <ext4_oflags.h>
-#include <ext4_debug.h>
+#include <File/lwext4_include/ext4_config.h>
+#include <File/lwext4_include/ext4_types.h>
+#include <File/lwext4_include/ext4_errno.h>
+#include <File/lwext4_include/ext4_oflags.h>
 
-#include <ext4_blockdev.h>
+#include <File/lwext4_include/ext4_debug.h>
+#include <File/lwext4_include/ext4_blockdev.h>
 
 /********************************OS LOCK INFERFACE***************************/
 
@@ -377,6 +377,7 @@ int ext4_fseek(ext4_file *file, int64_t offset, uint32_t origin);
  * @return  Actual file position */
 uint64_t ext4_ftell(ext4_file *file);
 
+int ext4_device_init();
 /**@brief   Get file size.
  *
  * @param   file File handle.

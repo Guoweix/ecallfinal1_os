@@ -5,9 +5,12 @@
 extern "C"{
 #endif
 
-#include <stddef.h>
+// #include <stddef.h>
 
-// typedef unsigned long long size_t;
+typedef unsigned long long size_t;
+typedef long long ptrdiff_t;
+#define NULL 0 
+
 void EXT4_Debug(unsigned long long m,const char *fmt);
 void EXT4_Debug_s(unsigned long long m,const char *fmt,const char *s);
 void EXT4_Debug_u16(unsigned long long m,const char *fmt,unsigned short u);
@@ -74,10 +77,9 @@ void EXT4_AssertFailed(const char *file,int line,const char *info);
 #define SEEK_END    2
 #define SEEK_SET    0
 
-
-
-void *memset(void *str, int c, size_t n) ;
-void *memcpy(void *str1, const void *str2, size_t n);
+// void* s, char ch, Uint64 size
+void *memset(void *str, char c, size_t n) ;
+void memcpy(void *str1, const void *str2, size_t n);
 void *memmove(void *str1, const void *str2, size_t n);
 int memcmp(const void *str1, const void *str2, size_t n);
 size_t strlen(const char *str);
@@ -86,7 +88,7 @@ void free(void *ptr);
 void *malloc(size_t size);
 void *calloc(size_t nitems, size_t size);
 int strncmp(const char *str1, const char *str2, size_t n);
-char *strcpy(char *dest, const char *src);
+void strcpy(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
 void qsort(void *base, size_t nitems, size_t size, int (*compar)(const void *, const void *));
 

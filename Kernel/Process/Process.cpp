@@ -1,3 +1,4 @@
+#include "Synchronize/SpinLock.hpp"
 #include "Trap/Syscall/SyscallID.hpp"
 #include "Types.hpp"
 #include <Arch/Riscv.h>
@@ -15,14 +16,17 @@
 
 void ProcessManager::init()
 {
-    //给每个进程初始化
+    // 给每个进程初始化
     for (int i = 0; i < MaxProcessCount; i++) {
-        Proc[i].flags = S_None;
+        // Proc[i].flags = S_None;
+        Proc[i].status = S_None;
         Proc[i].pm = this;
+    // kout[DeBug]<<Proc[i].flags<<endl;
     }
     procCount = 0;
     Process* idle0 = allocProc();
     curProc = idle0;
+    lock.init();
 
     ////初始化系统进程
     idle0->initForKernelProc0();
@@ -30,18 +34,18 @@ void ProcessManager::init()
 
 void Process::show(int level)
 {
-    kout[Debug] << "proc pid : " << id << endline
-                << "proc name : " << name << endline
-                << "proc state : " << status << endline
-                << "proc flags : " << flags << endline
-                << "proc VMS : " << (void*)VMS << endline
-                << "proc kstack : " << (void*)stack << endline
-                << "proc kstacksize : " << stacksize << endl;
+    kout[Info] << "proc pid : " << id << endline
+               << "proc name : " << name << endline
+               << "proc state : " << status << endline
+               << "proc flags : " << flags << endline
+               << "proc VMS : " << (void*)VMS << endline
+               << "proc kstack : " << (void*)stack << endline
+               << "proc kstacksize : " << stacksize << endl;
     if (level == 1) {
-        kout[Debug] << "proc pid_fa : " << (void*)father << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_bro_pre : " << (void*)broPre << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_bro_next : " << (void*)broNext << ' ' << father - &pm->Proc[0] << endline
-                    << "proc pid_fir_child : " << (void*)fstChild << ' ' << father - &pm->Proc[0] << endl;
+        kout[Info] << "proc pid_fa : " << (void*)father << ' ' << father - &pm->Proc[0] << endline
+                   << "proc pid_bro_pre : " << (void*)broPre << ' ' << father - &pm->Proc[0] << endline
+                   << "proc pid_bro_next : " << (void*)broNext << ' ' << father - &pm->Proc[0] << endline
+                   << "proc pid_fir_child : " << (void*)fstChild << ' ' << father - &pm->Proc[0] << endl;
     }
     kout << endl;
 }
@@ -60,11 +64,10 @@ void ProcessManager::simpleShow()
 {
     for (int i = 0; i < MaxProcessCount; i++) {
         if (curProc->id == i) {
-            kout[Debug] << "Cur====>" << endl;
+            kout[Info] << "Cur====>";
         }
         if (Proc[i].status != S_None) {
-            kout[Debug] << Proc[i].name << endline
-                        << Proc[i].id << endl;
+            kout[Info] << Proc[i].name << " id: " << Proc[i].id << " status: " << Proc[i].status << endl;
         }
     }
 }
@@ -89,13 +92,13 @@ void Process::setStack(void* _stack, Uint32 _stacksize)
             kout[Fault] << "ERR_Kmalloc stack" << endl;
         }
     }
-    memset(_stack, 0, _stacksize);
+    MemsetT<char>((char *)_stack, 0, _stacksize);
     stack = _stack, stacksize = _stacksize;
 }
 
 void Process::initForKernelProc0()
 {
-    init(F_Kernel);      //初始化
+    init(F_Kernel); // 初始化
     setFa(nullptr);
     stack = boot_stack;
     stacksize = PAGESIZE;
@@ -143,6 +146,10 @@ bool Process::copyFromProc(Process* src)
     // pm.copy_proc_fds(dst, src);
 
     copyFds(src);
+    // kout[Info] << "Porcess copyFromProc src cwd" << src->getCWD() << endl;
+    curWorkDir = new char[200];
+    strcpy(curWorkDir, src->getCWD());
+
     return true;
 }
 
@@ -163,34 +170,41 @@ void Process::init(ProcFlag _flags)
     father = broNext = broPre = fstChild = nullptr;
     exitCode = 0;
     sigQueue.init();
-
+    fo_head=nullptr;
     fom.init_proc_fo_head(this);
     initFds();
     curWorkDir = nullptr;
 
     waitSem = new Semaphore(0);
     SemRef = 0;
-    memset(&context, 0, sizeof(context));
+    // memset(&context, 0, sizeof(context));
     flags = _flags;
     name[0] = 0;
 }
 
 void Process::destroy()
 {
-    kout[Debug] << "Process destroy:" << id << endl;
+    // kout[Error] << "Process destroy:" << id << endl;
+
     if (status == S_None) {
         return;
     } else if (status != S_Initing || status != S_Terminated) {
         exit(Exit_Normal);
     }
+
+    // kout[Info] <<"process ::destroy his family father"<<father<<endline
+    // <<"broPre "<<broPre<<"broNext "<<broNext<<endline
+    // <<"fstChild "<<fstChild<<"myself "<<this<<endl;
     while (fstChild) {
         fstChild->destroy();
     }
     if (broPre) {
         broPre->broNext = broNext;
     } else {
+        // kout[Debug]<<"loop here"<<endl;
         if (father) {
             father->fstChild = broNext;
+            // kout[Debug]<<"because not loop here"<<endl;
         }
     }
     if (broNext) {
@@ -198,25 +212,38 @@ void Process::destroy()
     }
     setFa(nullptr);
 
-    // if (VMS!=nullptr) {
+    broNext = nullptr;
+    broPre = nullptr;
 
-    // }
+    if (VMS != nullptr) {
+        VMS->Destroy();
+    }
+    VMS = nullptr;
+    file_object* del = fo_head->next;
+    while (del) {
+        fom.close_fo(this, del);
+        del = del->next;
+        // ASSERTEX(del!=del->next, "DeadLoop");
+    }
+
+    destroyFds();
+
     if (waitSem != nullptr) {
         delete waitSem;
         waitSem = nullptr;
     }
     if (curWorkDir != nullptr) {
-        kfree(curWorkDir);
+        delete[] curWorkDir;
         curWorkDir = nullptr;
     }
     setName(nullptr);
     if (fo_head != nullptr) {
         destroyFds();
-        kfree(fo_head);
+        delete fo_head;
         fo_head = nullptr;
     }
     if (Heap != nullptr) {
-        kfree(Heap);
+        delete Heap;
         Heap = nullptr;
     }
     if (stack != nullptr) {
@@ -224,13 +251,18 @@ void Process::destroy()
         stack = nullptr;
     }
     stacksize = 0;
-    pm->freeProc(this);
+    // pm->freeProc(this);
     return;
 }
 
 bool Process::exit(int re)
 {
-    // kout<<"exit"<<re;
+
+    // kout[DeBug] << "EXit " << id << endl;
+    if (status == S_Terminated || status == S_None) {
+        kout[Info] << "already exit" << endl;
+        return true;
+    }
     switchStatus(S_Terminated);
     if (status != S_Terminated) {
         kout[Fault] << "Process ::Exit:status is not S_Terminated" << id << endl;
@@ -239,9 +271,18 @@ bool Process::exit(int re)
         kout[Warning] << "Process ::Exit:" << id << "exit with return value" << re << endl;
     }
     exitCode = re;
-    // VMS->Leave();
-    destroyFds();
-    if (!(flags & F_AutoDestroy) && father != nullptr) {
+
+    while (waitSem->getValue() < 1) {
+        // kout[DeBug] << "exit1 " << endl;
+        waitSem->signal();
+    }
+
+    // if(fstChild==nullptr)
+    // {
+        // kout[Fault]
+    // }
+
+    if (father != nullptr) {
         father->waitSem->signal();
     }
     return true;
@@ -251,7 +292,7 @@ bool Process::run()
 {
     Process* cur = pm->getCurProc();
     // cur->show();
-    kout[Debug] << "switch from " << cur->name << " to " << name << endl;
+    // kout[Info] << "switch from " << cur->name << " id " << cur->getID() << " to " << name << " ID: " << id << endl;
     if (this != cur) {
         if (cur->status == S_Running) {
             cur->switchStatus(S_Ready);
@@ -267,6 +308,7 @@ bool Process::run()
 void Process::setFa(Process* fa)
 {
     if (fa == nullptr) {
+        // kout[Error] << "Process::setfa father is nullptr" << endl;
         return;
     }
 
@@ -301,13 +343,12 @@ void Process::setFa(Process* fa)
     if (broNext != nullptr) {
         broNext->broPre = this;
     }
+    broPre = nullptr;
 }
 
-
-
-bool Process::start(void* func, void* funcData, PtrUint useraddr,int argc,char ** argv)
+bool Process::start(void* func, void* funcData, PtrUint useraddr, int argc, char** argv)
 {
-
+    // kout[Debug]<<"Procss::start VMS"<<VMS<<endl;
     if (VMS == nullptr) {
         kout[Fault] << "vms is not set" << endl;
     }
@@ -330,10 +371,8 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr,int argc,char *
         context->epc = (Uint64)useraddr; // Exception PC
         context->status = (read_csr(sstatus) | SPIE) & (~SPP) & (~SIE); // 详见手册
         context->reg.sp = InnerUserProcessStackAddr + InnerUserProcessStackSize - 512;
-        
-
     }
-    kout[Info] << "creaet Porcess" << name << (void*)context->epc << endl;
+    // kout[Info] << "Process::start epc " << (void*)context->epc << " sp" << context->reg.sp << endl;
 
     switchStatus(S_Ready);
 
@@ -342,13 +381,13 @@ bool Process::start(void* func, void* funcData, PtrUint useraddr,int argc,char *
 
 void Process::switchStatus(ProcStatus tarStatus)
 {
-    kout<<Yellow<<name<<"   status to"<<tarStatus<<endl;
+    // kout << Yellow << name << "   status to" << tarStatus << endl;
     ClockTime t = GetClockTime();
     ClockTime d = t - timeBase;
     timeBase = t;
     switch (status) {
 
-    //更新各时间值
+    // 更新各时间值
     case S_Allocated:
     case S_Initing:
         if (tarStatus == S_Ready)
@@ -368,6 +407,7 @@ void Process::switchStatus(ProcStatus tarStatus)
     default:
         break;
     }
+
     status = tarStatus;
 }
 
@@ -376,8 +416,8 @@ Process* ProcessManager::allocProc()
     for (int i = 0; i < MaxProcessCount; i++) {
         if (Proc[i].status == S_None) {
             procCount++;
-            Proc[i].switchStatus(S_Allocated); //分配好所有进程状态
-            return &Proc[i];                   //返回最后一个空进程
+            Proc[i].switchStatus(S_Allocated); // 分配好所有进程状态
+            return &Proc[i]; // 返回最后一个空进程
         }
     }
     return nullptr;
@@ -397,17 +437,17 @@ Process* ProcessManager::getProc(PID _id)
 
 bool ProcessManager::freeProc(Process* proc)
 {
-    kout<<Yellow<<"freeProc "<<proc->getID()<<endl;
-    if (proc->getStatus()==S_None) {
+    // kout << Yellow << "freeProc " << proc->getID() << endl;
+    if (proc->getStatus() == S_None) {
         return true;
     }
     if (proc == curProc) {
-        kout[Fault] << "freeProcess == curProc" << curProc->id << endl;
+        kout[Warning] << "freeProcess == curProc" << curProc->id << endl;
     }
     if (proc == &Proc[0]) {
         kout[Fault] << "freeProcess == idle0" << curProc->id << endl;
     }
-    
+
     Proc[proc->id].switchStatus(S_None);
     procCount--;
     return false;
@@ -426,19 +466,18 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
 {
     Process* tar;
 
-    kout[Debug] << "Schedule NOW  "<< curProc->getName() << endl;
-    curProc->context = preContext;//记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
-    kout<<Blue<<procCount<<endl;
+    // kout[DeBug] << "Schedule " << endl;
+    pm.simpleShow();
+    // kout[Info] << "Schedule NOW  cur::" << curProc->getName() <<"id  "<<curProc->getID() << endl;
+    curProc->context = preContext; // 记录当前状态，防止只有一个进程但是触发调度，导致进程号错乱
+    // kout << Blue << procCount << endl;
     if (curProc != nullptr && procCount >= 2) {
         int i, p;
         ClockTime minWaitingTarget = -1;
     RetrySchedule:
         for (i = 1, p = curProc->id; i < MaxProcessCount; ++i) {
             tar = &Proc[(i + p) % MaxProcessCount];
-            if (tar->getStatus()==S_Terminated) {
-                pm.freeProc(tar);
-            
-            }
+
             // if (tar->status == S_Sleeping && NotInSet(tar->SemWaitingTargetTime, 0ull, (Uint64)-1)) {//Sleep的休眠时间管理，目前还未实现
             //     minWaitingTarget = minN(minWaitingTarget, tar->SemWaitingTargetTime);
             //     if (GetClockTime() >= tar->SemWaitingTargetTime)
@@ -446,27 +485,37 @@ TrapFrame* ProcessManager::Schedule(TrapFrame* preContext)
             // }
             // kout<<p<<"P+i "<<(p+i)%MaxProcessCount<<tar->status<<endl;
             // pm.show();
-            if (tar->status == S_Ready) {//如果是ready态则进行切换
-                tar->getVMS()->showVMRCount();
+            if (tar->status == S_Ready) { // 如果是ready态则进行切换
+                // tar->getVMS()->showVMRCount();
                 tar->run();
                 // kout[Debug] << (void*)tar->context->epc;
                 // tar->getVMS()->EnableAccessUser();
                 // kout[Debug] << DataWithSize((void *)tar->context->epc, 108);
                 // tar->getVMS()->DisableAccessUser();
+                // kout[DeBug] << "into " << tar->name << " id " << tar->getID() << endl;
 
                 return tar->context;
-            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy))//如果为自动销毁且为僵死态则进行销毁
+            } else if (tar->status == S_Terminated && (tar->flags & F_AutoDestroy)) // 如果为自动销毁且为僵死态则进行销毁
+            {
                 tar->destroy();
+                pm.freeProc(tar);
+            }
+            // else if (tar->status==S_None) {
+
+            // } else {
+            // kout[DeBug]<<"unknown status "<<tar->id<<" status "<<tar->status<<endl;
+            // }
         }
     }
 
-    return pm.getKernelProc()->context;//如果没有任何调度则进入内核态，防止出错
+    return pm.getKernelProc()->context; // 如果没有任何调度则进入内核态，防止出错
 }
 
 void ProcessManager::immSchedule()
 {
-    RegisterData a7=SYS_sched_yeild;
-    asm volatile("ld a7,%0; ebreak" :: "m"(a7) : "memory");
+    // kout[Info] << "Schedule from Kernel " << endl;
+    RegisterData a7 = SYS_sched_yeild;
+    asm volatile("ld a7,%0; ebreak" ::"m"(a7) : "memory");
     // kout<<"__________________"<<endl;
 }
 
@@ -481,11 +530,11 @@ bool Process::initFds()
     // 必须保证初始化时这三个fd是新生成的
     // 即进程的fd表中没有其他fd表项
     if (fo_head->next != nullptr) {
-        kout[Info] << "The Process init FD TABLE has other fds!" << endl;
+        kout[Warning] << "The Process init FD TABLE has other fds!" << endl;
         // 那么就先释放掉所有的再新建头节点
         fom.init_proc_fo_head(this);
     }
-    kout[Info]<<"initFds"<<endl;
+    // kout[Info] << "initFds" << endl;
 
     // 初始化一个进程时需要初始化它的文件描述符表
     // 即一个进程创建时会默认打开三个文件描述符 标准输入 输出 错误
@@ -495,26 +544,26 @@ bool Process::initFds()
         // 只有当stdio文件对象非空时创建才有必有
         tmp_fo = fom.create_flobj(cur_fo_head, STDIN_FILENO); // 标准输入
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_RDONLY);
+        fom.set_fo_flags(tmp_fo, file_flags::RDONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDOUT_FILENO); // 标准输出
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
+        fom.set_fo_flags(tmp_fo, file_flags::WRONLY);
         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
         fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
-    } 
-   /*  else {
-        // 暂时如下trick
-        tmp_fo = fom.create_flobj(cur_fo_head, STDIN_FILENO); // 标准输入
-        // fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_RDONLY);
-        tmp_fo = fom.create_flobj(cur_fo_head, STDOUT_FILENO); // 标准输出
-        // fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
-        tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
-        // fom.set_fo_file(tmp_fo, STDIO);
-        fom.set_fo_flags(tmp_fo, O_WRONLY);
-    } */
+        fom.set_fo_flags(tmp_fo, file_flags::WRONLY);
+    }
+    /*  else {
+         // 暂时如下trick
+         tmp_fo = fom.create_flobj(cur_fo_head, STDIN_FILENO); // 标准输入
+         // fom.set_fo_file(tmp_fo, STDIO);
+         fom.set_fo_flags(tmp_fo, O_RDONLY);
+         tmp_fo = fom.create_flobj(cur_fo_head, STDOUT_FILENO); // 标准输出
+         // fom.set_fo_file(tmp_fo, STDIO);
+         fom.set_fo_flags(tmp_fo, O_WRONLY);
+         tmp_fo = fom.create_flobj(cur_fo_head, STDERR_FILENO); // 标准错误
+         // fom.set_fo_file(tmp_fo, STDIO);
+         fom.set_fo_flags(tmp_fo, O_WRONLY);
+     } */
     return true;
 }
 
@@ -568,6 +617,7 @@ bool Process::copyFds(Process* src)
         }
         dst_fo_ptr->next = new_fo;
         dst_fo_ptr = dst_fo_ptr->next;
+        // kout[Info]<<"loop detecte "<<endl;
     }
     return true;
 }
@@ -582,14 +632,14 @@ bool Process::setProcCWD(const char* cwd_path)
 
     if (curWorkDir != nullptr) {
         // 已经存在了则直接释放字符串分配的资源
-        kfree(curWorkDir);
+        delete[] curWorkDir;
     }
     // 由于是字符指针
     // 不能忘记分配空间
-    curWorkDir = (char*)kmalloc(strlen(cwd_path) + 5);
+    curWorkDir = new char[strlen(cwd_path) + 1];
     strcpy(curWorkDir, cwd_path);
-    kout[Warning]<<"set Proc CWD___________________________________"<<curWorkDir<<endl;
-    
+    kout[Warning] << "set Proc CWD___________________________________" << curWorkDir << endl;
+
     return true;
 }
 

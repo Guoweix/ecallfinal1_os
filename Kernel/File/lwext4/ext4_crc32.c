@@ -35,7 +35,7 @@
  * @file  ext4_crc32c.c
  * @brief Crc32c routine. Taken from FreeBSD kernel.
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"

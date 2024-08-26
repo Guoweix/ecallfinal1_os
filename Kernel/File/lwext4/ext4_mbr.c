@@ -33,7 +33,7 @@
  * @file  ext4_mbr.c
  * @brief Master boot record parser
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"

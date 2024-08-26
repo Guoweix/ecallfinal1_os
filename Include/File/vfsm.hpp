@@ -33,10 +33,11 @@ enum FileType : Uint64 {
 };
 
 class FileNode {
+    DEBUG_CLASS_HEADER(FileNode);				
     friend class VFS;
 
-public:
     char* name = nullptr;
+public:
     VFS* vfs = nullptr;
     Uint64 TYPE;
     Uint64 flags;
@@ -67,7 +68,7 @@ public:
 
     virtual void show();
     // FileNode(VFS* _VFS, Uint64 _flags);
-    FileNode() { name=new char[100];};
+    FileNode() {};
     virtual ~FileNode();
 };
 
@@ -76,9 +77,9 @@ class VFS {
 public:
     FileNode* root;
 
-    virtual char* FileSystemName() {};
+    virtual char* FileSystemName() {return nullptr;};
     VFS() {};
-    virtual ~VFS() {};
+    ~VFS() {};
 
     virtual FileNode* open(const char* path, FileNode* parent) = 0;
     virtual bool close(FileNode* p) = 0;
@@ -90,6 +91,7 @@ public:
 
     virtual FileNode* get_node(const char* path) = 0;
     virtual bool del(FileNode* p) = 0;
+    virtual void get_file_path(FileNode* file, char* ret);
 };
 
 class VFSM {

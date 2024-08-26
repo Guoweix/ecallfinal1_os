@@ -1,16 +1,20 @@
 	.section .text.entry
 kernel_entry:
 	.global kernel_entry
+
+
 	la		t0, boot_page_table_sv39//获取我们构造的页表地址,由于此时PC在物理地址,la产生的地址也是相应偏移的物理地址,而非boot_page_table_sv39符号的虚拟地址
+	mv		a0,t0
 	srli	t0, t0, 12//转换成物理页框号
 	li 		t1, 8ull<<60//SV39页表模式参数
 	or		t0, t0, t1//用于设置到satp寄存器的参数
 	csrw	satp, t0//启动虚拟内存管理
 	sfence.vma//虚拟内存屏障,刷新页表翻译
-	
+		
+
 	li t1,0xFFFFFFFF00000000
 	la sp, boot_stack_top
-	add sp,sp,t1
+	add sp,sp,t1	
 	la t0, main
 	add t0,t0,t1
 	jalr t0
@@ -30,7 +34,7 @@ boot_stack_top:
 boot_page_table_sv39://启动页表的符号
 	.global boot_page_table_sv39
 	.quad 0//quad表示Uint64，设置为0即非法映射
-	.quad 0
+	.quad (0x40000ull<<10)|0xCF
 	.quad (0x80000ull<<10)|0xCF//将大页的第三个虚拟页映射到大页的第三个物理页,即自映射，用于保证启动汇编可以成功读取到
 	.quad 0
 	.zero 8*504
@@ -38,3 +42,19 @@ boot_page_table_sv39://启动页表的符号
 	.quad (0x40000ull<<10)|0xCF
 	.quad (0x80000ull<<10)|0xCF
 	.quad (0xC0000ull<<10)|0xCF
+	
+
+boot_page_table_sv39_t1://启动页表的符号
+	.global boot_page_table_sv39_t1
+	.quad 0
+	.quad (0x80254ull<<10)|0xc1
+	.zero 8*510
+
+boot_page_table_sv39_t2://启动页表的符号
+	.global boot_page_table_sv39_t2
+	.quad (0x80255ull<<10)|0xcf
+	.zero 8*511
+
+boot_page_table_sv39_t3:
+	.global boot_page_table_sv39_t3
+	.zero 8*512

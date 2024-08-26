@@ -41,8 +41,14 @@ protected:
     ProcessQueue queue;
 
 public:
+    inline void printAllWaitProcess()
+    {
+       queue.printAllQueue(); 
+    }
+
     inline void lockProcess()
     {
+            // kout[DeBug]<<"lock"<<endl;
         pm.lock.lock();
     }
     inline void unlockProcess()

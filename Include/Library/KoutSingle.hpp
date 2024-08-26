@@ -9,6 +9,7 @@
 */
 
 #include "Arch/Riscv.hpp"
+#include "Library/Pathtool.hpp"
 extern "C" {
 void Putchar(char ch);
 };
@@ -157,6 +158,24 @@ public:
     }
 };
 
+ class DebugLocation {
+public:
+    const char *file = nullptr,
+               *func = nullptr,
+               *pretty_func = nullptr;
+    const int line = 0;
+
+    DebugLocation(const char* _file, const char* _func, const char* _pretty_func, const int _line)
+        : file(_file)
+        , func(_func)
+        , pretty_func(_pretty_func)
+        , line(_line)
+    {
+    }
+};
+
+#define DeBug POS::DebugLocation(nullptr, __func__, nullptr, __LINE__)
+#define DEBug POS::DebugLocation(__FILE__, __func__, __PRETTY_FUNCTION__, __LINE__)
 namespace KoutEX {
     enum KoutEffect {
         Reset = 0,
@@ -225,6 +244,7 @@ using namespace KoutEX;
 
 class KOUT {
     friend KOUT& endl(KOUT&);
+    friend KOUT& endout(KOUT&);
 
 protected:
     const char* TypeName[32] { "Info", "Warning", "Error", "Debug", "Fault", "Test", 0 };
@@ -259,6 +279,17 @@ protected:
     }
 
 public:
+
+    inline KOUT& operator[](const DebugLocation& dbg)
+    {
+        SwitchCurrentType(Debug);
+        *this << Reset << TypeColor[Debug] << "[" << dbg.func << ":" << dbg.line << "] ";
+        if (dbg.file != nullptr)
+            *this << "in file " << dbg.file << ". ";
+        if (dbg.pretty_func != nullptr)
+            *this << "function " << dbg.pretty_func << ". ";
+        return *this;
+    }
     inline KOUT& operator[](unsigned p) // Current Kout Info is type p. It will be clear when Endline is set!
     {
         if ((p <= 5 || 7 < p && p <= 7 + RegisteredType) && p <= 31)
@@ -554,15 +585,31 @@ inline KOUT& endl(KOUT& o)
     return o;
 }
 
+inline KOUT& endout(KOUT& o)
+{
+    o << Reset;
+    if (o.CurrentType == KoutEX::Fault) {
+        o.SwitchCurrentType(KoutEX::NoneKoutType);
+        KernelFaultSolver();
+    }
+    o.SwitchCurrentType(KoutEX::NoneKoutType);
+    return o;
+}
+
 inline KOUT& endline(KOUT& o)
 {
     return o << "\n";
 }
 
+void DebugCounterPrint();
+
 inline void KernelFaultSolver() // Remove this if you want to implement it by yourself.
 {
     kout << LightRed << "<KernelMonitor>: Kernel fault! Enter infinite loop..." << endline
          << "                 You can add you code in File:\"" << __FILE__ << "\" Line:" << __LINE__ << " to solve fault." << endl;
+    
+    
+    DebugCounterPrint();
     SBI_SHUTDOWN();
     while (1)
         ; // Replace your code here, such as shutdown...
@@ -585,5 +632,14 @@ using namespace POS; // Remove this if you want to use it by yourself.
 
 extern unsigned VMMINFO;
 extern unsigned NEWINFO;
+
+#include <Library/DebugCounter.hpp>
+
+
+inline void POS::DebugCounterPrint()
+{
+    DebugObjectClass::Print();
+
+}
 
 #endif

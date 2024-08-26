@@ -9,6 +9,9 @@
 bool TrapFunc_Syscall(TrapFrame* tf);
 inline void Syscall_Exit(int re);
 
+extern bool Banned_Syscall[300];
+
+
 struct kstat {
     Uint64 st_dev; // 文件存放的设备ID
     Uint64 st_ino; // 索引节点号

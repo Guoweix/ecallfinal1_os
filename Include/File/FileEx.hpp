@@ -61,7 +61,6 @@ public:
 
     ~MemapFileRegion() // Virtual??
     {
-        // File->Unref(nullptr);
         vfsm.close(File);
         if (VMS != nullptr)
             VMS->RemoveVMR(this, 0);
@@ -74,6 +73,7 @@ public:
         , Length(len)
         , Offset(offset)
     {
+        Flags|=VM_MmapFile;
         ASSERTEX(VirtualMemoryRegion::Init((PtrSint)start, (PtrSint)start + len, prot) == ERR_None, "MemapFileRegion " << this << " failed to init VMR!");
         vfsm.open(File);
     }
@@ -88,26 +88,123 @@ public:
         FILESIZE = 1 << 12,
     };
 
+    bool flag=0;
+    Uint32 PipeSize=0;
     Uint32 readRef;
     Uint32 writeRef;
     Uint32 in, out;
     Uint8 data[FILESIZE];
     Semaphore *file, *full, *empty;
-    Sint64 read(void* buf, Uint64 pos, Uint64 size);
-    Sint64 write(void* src, Uint64 size);
+    Sint64 read(void* buf, Uint64 pos, Uint64 size) override;
+    Sint64 read(void* buf, Uint64 size) override;
+    Sint64 write(void* src, Uint64 pos, Uint64 size) override;
+    Sint64 write(void* src, Uint64 size) override;
 };
 
 class UartFile : public FileNode {
 
-public:
-    UartFile(){};
-    ~UartFile(){};
+    bool isFake = 0;
 
+public:
+    UartFile()
+    {
+        TYPE |= FileType::__DEVICE;
+        RefCount = 1e9;
+    };
+    ~UartFile() {};
+
+    void setFakeDevice(bool _isFake) { isFake = _isFake; };
     virtual Sint64 read(void* buf, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 size) override;
-    virtual Sint64 read(void* buf, Uint64 pos,Uint64 size) override;
+    virtual Sint64 read(void* buf, Uint64 pos, Uint64 size) override;
     virtual Sint64 write(void* src, Uint64 pos, Uint64 size) override;
 };
+/* 
+class PIPEFILE : public FileNode {
+protected:
+    Semaphore Lock, SemR, SemW;
+    char* buffer = nullptr;
+    Uint64 BufferSize = 0;
+    Uint64 PosR = 0,
+           PosW = 0;
 
-extern UartFile * STDIO;
+public:
+    Sint32 writeRef = 0;
+    Sint32 readRef = 0;
+    virtual Sint64 read(void* dst, Uint64 pos, Uint64 size) override
+    {
+        Uint64 size_bak = size;
+        bool flag = 0;
+        while (size > 0) {
+            Lock.wait();
+            if (fileSize > 0) {
+                while (size > 0 && fileSize > 0) {
+                    *(char*)dst++ = buffer[PosR++];
+                    --fileSize;
+                    --size;
+                    if (PosR == BufferSize)
+                        PosR = 0;
+                }
+                SemW.signal(); //??
+                Lock.signal();
+            } else {
+                //					if (WriterCount==0)//??
+                flag = 1;
+                Lock.signal();
+                if (flag) {
+                    while (SemR.getValue() < 0) {
+                        SemR.signal();
+                    }
+                    return size_bak - size;
+                } else
+                    SemR.wait();
+            }
+        }
+        return size_bak;
+    }
+
+    virtual Sint64 write(void* src, Uint64 pos, Uint64 size) override // pos is not used...
+    {
+        Uint64 size_bak = size;
+        while (size > 0) {
+            Lock.wait();
+            if (fileSize < BufferSize) {
+                while (size > 0 && fileSize < BufferSize) {
+                    buffer[PosW++] = *(char*)src++;
+                    ++fileSize;
+                    --size;
+                    if (PosW == BufferSize)
+                        PosW = 0;
+                }
+                SemR.signal(); //??
+                Lock.signal();
+            } else {
+                Lock.signal();
+                SemW.wait();
+            }
+        }
+        return size_bak;
+    }
+
+    virtual ~PIPEFILE()
+    {
+        delete[] buffer;
+    }
+
+    PIPEFILE(const char* name = nullptr, Uint64 bufferSize = 4096)
+        : FileNode()
+        , Lock(1)
+        , SemR(0)
+        , SemW(0)
+        , BufferSize(bufferSize) //??
+    {
+        // if (name!=nullptr)
+        // SetFileName((char*)name,0);
+        TYPE = FileType::__PIPEFILE;
+        buffer = new char[BufferSize];
+    }
+};
+ */
+extern UartFile* STDIO;
+
 #endif

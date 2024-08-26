@@ -123,6 +123,10 @@ public:
         inline void SetPageTable(PageTable* pt)
         {
             Set<V>(1);
+            #ifndef QEMU
+            Set<D>(1);
+            Set<A>(1);
+            #endif
             Set<XWR>(XWR_PageTable);
             Set<PPN>((PageTableEntryType)pt->PAddr() >> 12);
         }
@@ -136,6 +140,10 @@ public:
         {
             ++pg->ref;
             Set<FLAGS>(flags);
+            #ifndef QEMU
+            Set<D>(1);
+            Set<A>(1);
+            #endif
             Set<PPN>((PageTableEntryType)pg->PAddr() >> 12);
         }
 
@@ -262,6 +270,8 @@ public:
         VM_Device = 1 << 7,
         VM_File = 1 << 8,
         VM_Dynamic = 1 << 9,
+        VM_Mmap=1<<10,
+        VM_MmapFile=1<<11,
 
         VM_RW = VM_Read | VM_Write,
         VM_RWX = VM_RW | VM_Exec,
@@ -292,7 +302,7 @@ public:
             re |= PageTable::Entry::Mask<PageTable::Entry::U>();
         return re;
     }
-
+    VirtualMemoryRegion(){VMS=nullptr;}
     inline bool Intersect(PtrUint l, PtrUint r) const // r在中间
     {
         return r > StartAddress && EndAddress > l;
@@ -361,6 +371,7 @@ public:
         EndAddress = end + PAGESIZE - 1 >> 12 << 12; // 终页的最后一个不可用地址
         VMS = nullptr;
         Flags = flags;
+
         ASSERTEX(StartAddress < EndAddress, "VirtualMemoryRegion::Init: Start " << (void*)StartAddress << " >= End " << (void*)EndAddress);
         return ERR_None;
     }
@@ -443,6 +454,9 @@ protected:
         BootVMS->Init();
         {
             auto vmr = KmallocT<VirtualMemoryRegion>(); // 分配内存区域
+            kout[DeBug]<<(void *)kernelstart<<" "<<(void *)(PhysicalMemoryStart()+ PhysicalMemorySize())<<endl;
+            kout[DeBug]<<(void *)kernelstart<<" "<<(void *)(PhysicalMemoryStart())<<" "<<(void*) PhysicalMemorySize()<<endl;
+
             vmr->Init((PtrUint)kernelstart, PhysicalMemoryStart() + PhysicalMemorySize(), VirtualMemoryRegion::VM_KERNEL); // 程序的内核vmr
             BootVMS->InsertVMR(vmr);
         }
@@ -566,9 +580,11 @@ public:
 
     void Enter()
     { // 进入指定状态的vms
+        // kout<<Red<<"enter vms is "<<this<<endl;
         if (this == CurrentVMS)
             return;
         CurrentVMS = this;
+        // kout[DeBug]<<" ENTER "<<this<<endl;
         CSR_WRITE(satp, 8ull << 60 | PDT->PPN());
         asm volatile("sfence.vma;fence.i;fence");
     }
@@ -578,12 +594,13 @@ public:
         if (CurrentVMS == this)
             KernelVMS->Enter();
     }
-    inline void show()
+    inline void show(KoutType tp=Info)
     {
         VirtualMemoryRegion* t;
         t = vmrHead.Nxt();
+        kout[tp]<<"VMS:: "<<this<<endline;
         while (t) {
-            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << "||";
+            kout << (void*)t->StartAddress << '-' << (void*)t->EndAddress << " || "<<(void *)t->Flags<<" "<<(void*)t<<endline;
             t = t->Nxt();
         }
         kout << endl;
@@ -614,8 +631,10 @@ public:
         kout[VMMINFO] << "Solve Page Fault " << (void*)tf->tval << " is managed by " << vmr << endl;
         kout[VMMINFO] << "VMS" << (void*)this << endl;
 
+        // void * DEBUG_PTR;
         if (vmr == nullptr) {
-            show();
+            // kout[DeBug]<<" SolvePageFault show "<<endl;
+            // shkow();
             return ERR_AccessInvalidVMR;
         }
         // 根据内存访问模式决定是否使用大页
@@ -636,7 +655,8 @@ public:
                 kout[VMMINFO] << "Allocated large page and mapped it" << endl;
                 return ERR_None;
             }
-        } else {
+        } else 
+        {
             PageTable::Entry& e2 = (*PDT)[PageTable::VPN<2>(tf->tval)];
             PageTable* pt2; // 建立新页表
             if (!e2.Valid()) {
@@ -649,6 +669,9 @@ public:
                 e2.SetPageTable(pt2); // 插入起始节点
             } else
                 pt2 = e2.GetPageTable();
+
+            // kout[DeBug] <<"line 1"<<endl;
+            // show(Debug);
 
             PageTable::Entry& e1 = (*pt2)[PageTable::VPN<1>(tf->tval)];
             PageTable* pt1;
@@ -663,10 +686,17 @@ public:
             } else
                 pt1 = e1.GetPageTable();
 
+            // kout[DeBug] <<"line 2"<<endl;
+            // show(Debug);
+
+
             PAGE* pg0;
             PageTable::Entry& e0 = (*pt1)[PageTable::VPN<0>(tf->tval)];
             if (!e0.Valid()) {
+                // DEBUG_PTR=
                 pg0 = pmm.alloc_pages(1); // 尝试分配一个大页
+                // kout[DeBug]<<pg0->KAddr()<<" "<<pg0->PAddr()<<" "<<(void *)tf->tval<<endl;
+                // show(Debug); 
                 if (pg0 == nullptr)
                     return ERR_OutOfMemory;
                 ASSERTEX(((PtrUint)pg0->PAddr() & (PAGESIZE - 1)) == 0, "pg0->Paddr() is not aligned to 4k!");
@@ -680,6 +710,10 @@ public:
             //}
         }
         kout[VMMINFO] << "SolvePageFault OK" << endl;
+        // kout[DeBug];
+        // show(Debug);
+        
+        // kout[DeBug]<< "vaddr "<<tf->tval<<" paddr "<<DEBUG_PTR<<endl;
 
         return ERR_None;
     }
@@ -707,7 +741,7 @@ public:
     }
     ErrorType showVMRCount()
     {
-        kout << VmrCount << endl;
+        kout[Info] << VmrCount << endl;
     }
 
     ErrorType CreateFrom(VirtualMemorySpace* src)
@@ -758,6 +792,10 @@ public:
             //<<destroy uneeded pages...
         }
         return ERR_None;
+    }
+    HeapMemoryRegion(PtrUint start, Uint64 len = PAGESIZE, Uint64 flags = VM_USERHEAP):VirtualMemoryRegion(start, start + len, flags)
+    {
+        BreakPointLength = len;
     }
 
     inline ErrorType Init(PtrUint start, Uint64 len = PAGESIZE, Uint64 flags = VM_USERHEAP)

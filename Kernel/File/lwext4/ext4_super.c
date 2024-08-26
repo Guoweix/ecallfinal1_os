@@ -38,7 +38,7 @@
  * @file  ext4_super.h
  * @brief Superblock operations.
  */
-
+#include "LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_misc.h"
@@ -130,6 +130,8 @@ int ext4_sb_read(struct ext4_blockdev *bdev, struct ext4_sblock *s)
 
 bool ext4_sb_check(struct ext4_sblock *s)
 {
+	
+
 	if (ext4_get16(s, magic) != EXT4_SUPERBLOCK_MAGIC)
 		return false;
 

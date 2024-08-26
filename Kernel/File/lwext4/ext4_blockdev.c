@@ -33,7 +33,7 @@
  * @file  ext4_blockdev.c
  * @brief Block device module.
  */
-
+#include "LWEXT4_Tools.h"
 #include "File/lwext4_include/LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
@@ -70,6 +70,8 @@ static int ext4_bdif_bread(struct ext4_blockdev *bdev, void *buf,
 			   uint64_t blk_id, uint32_t blk_cnt)
 {
 	ext4_bdif_lock(bdev);
+
+
 	int r = bdev->bdif->bread(bdev, buf, blk_id, blk_cnt);
 	bdev->bdif->bread_ctr++;
 	ext4_bdif_unlock(bdev);
@@ -179,6 +181,7 @@ int ext4_block_flush_lba(struct ext4_blockdev *bdev, uint64_t lba)
 	buf = ext4_bcache_find_get(bdev->bc, &b, lba);
 	if (buf) {
 		r = ext4_block_flush_buf(bdev, buf);
+		EXT4_Debug_u32(0, "flush", 0);
 		ext4_bcache_free(bdev->bc, &b);
 	}
 	return r;
@@ -257,6 +260,8 @@ int ext4_block_get(struct ext4_blockdev *bdev, struct ext4_block *b,
 
 	r = ext4_blocks_get_direct(bdev, b->data, lba, 1);
 	if (r != EOK) {
+
+		EXT4_Debug_u32(0, "get", 0);
 		ext4_bcache_free(bdev->bc, b);
 		b->lb_id = 0;
 		return r;
@@ -276,6 +281,7 @@ int ext4_block_set(struct ext4_blockdev *bdev, struct ext4_block *b)
 	if (!bdev->bdif->ph_refctr)
 		return EIO;
 
+		EXT4_Debug_u32(0, "set", 0);
 	return ext4_bcache_free(bdev->bc, b);
 }
 
@@ -289,7 +295,7 @@ int ext4_blocks_get_direct(struct ext4_blockdev *bdev, void *buf, uint64_t lba,
 
 	pba = (lba * bdev->lg_bsize + bdev->part_offset) / bdev->bdif->ph_bsize;
 	pb_cnt = bdev->lg_bsize / bdev->bdif->ph_bsize;
-
+	EXT4_Debug_u32_u32(1, "blk count", pb_cnt*cnt,pb_cnt);
 	return ext4_bdif_bread(bdev, buf, pba, pb_cnt * cnt);
 }
 
@@ -392,7 +398,7 @@ int ext4_block_readbytes(struct ext4_blockdev *bdev, uint64_t off, void *buf,
 	if (!bdev->bdif->ph_refctr)
 		return EIO;
 
-	EXT4_Debug_u32_u32(0, "part_size", off+len, bdev->part_size);
+	EXT4_Debug_u32_u32(0, "part_size ", off+len, bdev->part_size);
 	if (off + len > bdev->part_size)
 		return EINVAL; /*Ups. Out of range operation*/
 

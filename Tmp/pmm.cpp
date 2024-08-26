@@ -1,5 +1,6 @@
 #include <Memory/pmm.hpp>
 #include <Library/KoutSingle.hpp>
+#include <sys/stat.h>
 
 void PMM::Init()
 {

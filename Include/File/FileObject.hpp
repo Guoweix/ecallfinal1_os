@@ -2,6 +2,8 @@
 #define __FILEOBJECT_HPP__
 
 #include "File/FileEx.hpp"
+#include "Library/KoutSingle.hpp"
+#include "Types.hpp"
 #include <File/vfsm.hpp>
 #include <Process/Process.hpp>
 // #include <File/FAT32.hpp>
@@ -28,22 +30,22 @@ class Process;
 
 // 枚举结构列出flags信息
 // 以Linux规范为标准
-enum file_flags
+enum file_flags:Uint64
 {
-    O_RDONLY = 0,               // 以只读方式打开文件
-    O_WRONLY = 1,               // 以只写方式打开文件
-    O_RDWR = 2,                 // 以读写方式打开文件
-    O_CREAT = 64,               // 如果文件不存在 则创建文件
-    O_EXCL = 128,               // 如果使用O_CREAT标记创建文件而文件已存在 则返回错误
-    O_NOCTTY = 256,             // 串口方式
-    O_TRUNC = 512,              // 如果文件存在 打开时则将其长度截断为0
-    O_APPEND = 1024,            // 以追加方式打开文件
-    O_NONBLOCK = 2048,          // 以非阻塞方式打开文件
-    O_DSYNC = 4096,             // 仅针对数据 以同步I/O方式打开文件
-    O_SYNC = 8192,              // 以同步I/O方式打开文件
-    O_DIRECTORY = 65536,        // 打开的文件不是目录 则返回错误
-    O_NOFOLLOW = 131072,        // 不跟随符号链接
-    O_CLOEXEC = 524288,         // 进程执行exec系统调用时关闭此打开的文件描述符
+    RDONLY = 0,               // 以只读方式打开文件
+    WRONLY = 1,               // 以只写方式打开文件
+    RDWR = 2,                 // 以读写方式打开文件
+    CREAT = 64,               // 如果文件不存在 则创建文件
+    EXCL = 128,               // 如果使用O_CREAT标记创建文件而文件已存在 则返回错误
+    NOCTTY = 256,             // 串口方式
+    TRUNC = 512,              // 如果文件存在 打开时则将其长度截断为0
+    APPEND = 1024,            // 以追加方式打开文件
+    NONBLOCK = 2048,          // 以非阻塞方式打开文件
+    DSYNC = 4096,             // 仅针对数据 以同步I/O方式打开文件
+    SYNC = 8192,              // 以同步I/O方式打开文件
+    DIRECTORY = 65536,        // 打开的文件不是目录 则返回错误
+    NOFOLLOW = 131072,        // 不跟随符号链接
+    CLOEXEC = 524288,         // 进程执行exec系统调用时关闭此打开的文件描述符
 };
 
 // 枚举结构列出mode信息
@@ -77,13 +79,22 @@ enum file_ptr
 // 需要明确的一点是这个结构在具体场景中一定是附属于某个具体的进程而存在和使用的
 struct file_object
 {
+    DEBUG_CLASS_HEADER(file_object);				
     int fd;                     // 小的非负整数表示文件描述符fd 这里使用int 考虑-1的可用性
-    int tk_fd;
+    // int tk_fd;
     FileNode* file;            // 对应的具体的打开的文件的结构指针
     Uint64 pos_k;               // 进程对于每个打开的文件维护文件指针的当前位置信息 用于实现seek等操作
-    Uint64 flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
+    file_flags flags;               // 进程对于每个打开的文件有一个如何访问这个文件的标志位信息 也可以是多位掩码的或
     Uint64 mode;                // 表示进程对打开的文件具有的权限信息位
     file_object* next;          // 链表结构的next指针
+    bool canRead()
+    {
+        return (Uint64)flags&(Uint64)file_flags::RDONLY;    
+    }
+    bool canWrite()
+    {
+        return (Uint64)flags&(Uint64)file_flags::WRONLY;    
+    }
 };
 
 // file_object实现依赖的一些函数的封装与管理
@@ -109,7 +120,7 @@ public:
     bool set_fo_fd(file_object* fo, int fd);                    // 设置进程fo的fd 修改用 使用几率不大
     bool set_fo_file(file_object* fo, FileNode* file);         // 设置fo的file指针
     bool set_fo_pos_k(file_object* fo, Uint64 pos_k);           // 设置fo的当前文件指针的位置
-    bool set_fo_flags(file_object* fo, Uint64 flags);           // 设置fo的flags标志位信息
+    bool set_fo_flags(file_object* fo, file_flags flags);           // 设置fo的flags标志位信息
     bool set_fo_mode(file_object* fo, Uint64 mode);             // 设置fo的mode权限位信息
 
     // 文件处理相关
@@ -119,6 +130,8 @@ public:
         Sint32 base = Seek_beg);
     bool close_fo(Process* proc, file_object* fo);          // 关闭文件描述符 释放fd表项资源
     file_object* duplicate_fo(file_object* fo);                 // 从当前的fd复制一个新的fd表项
+                                                                //
+    // file_object* duplicate_Link(file_object* fo_tar,file_object * fo_src);                 // 复制file_object链表 
 };
 
 // 声明全局管理器进行调用

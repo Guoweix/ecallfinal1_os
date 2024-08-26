@@ -124,7 +124,7 @@ struct procdata_fromELF
 
 enum class ELF_AT
 {
-	NULL	=0,
+	NULL_AT	=0,
 	IGNORE	=1,
 	EXECFD	=2,
 	PHDR	=3,
@@ -153,6 +153,6 @@ int start_process_formELF(procdata_fromELF * userdata);
 Process * CreateKernelThread(int (*func)(void*),char * name,void* arg=nullptr,ProcFlag _flags=F_AutoDestroy);
 // Process * CreateUserImgProcess(int (*func)(void*),void* arg,char * name);
 Process* CreateUserImgProcess(PtrUint start,PtrUint end,ProcFlag Flag);
-Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_User);
+Process * CreateProcessFromELF(file_object* fo, const char* wk_dir,int argc=0, char ** argv=nullptr,ProcFlag proc_flags = F_AutoDestroy);
 
 #endif

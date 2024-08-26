@@ -2,6 +2,7 @@
 #define OS16_TRAP_HPP
 
 #include "../Types.hpp"
+#include "Library/KoutSingle.hpp"
 
 
 struct RegisterContext // 通用寄存器的上下文
@@ -36,7 +37,7 @@ struct TrapFrame // 一次中断/异常所需要保存的上下文/帧
         cause; // 中断/异常原因
 };
 
-void TrapFramePrint(TrapFrame* tf);
+void TrapFramePrint(TrapFrame* tf,POS::KoutEX::KoutType t=Info);
 
 enum // 使用enum枚举异常类型，避免直接编写异常号，便于维护
 {

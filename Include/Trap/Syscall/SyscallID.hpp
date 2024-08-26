@@ -22,6 +22,7 @@ enum SyscallID
 	SYS_umount2			=39,
 	SYS_mount			=40,
 	SYS_statfs			=43, 
+	SYS_faccessat		=48, 
 	SYS_chdir			=49,//
 	SYS_openat			=56,//
 	SYS_close			=57,//
@@ -36,6 +37,7 @@ enum SyscallID
 	SYS_pwrite64		=68,
 	SYS_preadv			=69,
 	SYS_pwritev			=70,
+	SYS_sendfile		=71,
 	SYS_ppoll			=73,
 	SYS_newfstatat		=79,
 	SYS_fstat			=80,
@@ -47,11 +49,14 @@ enum SyscallID
 	SYS_get_robust_list	=100,
 	SYS_nanosleep		=101,
 	SYS_clock_gettime	=113,
+	SYS_syslog			=116,
 	SYS_sched_yeild		=124,
 	SYS_sigaction		=134,
 	SYS_sigprocmask		=135,
 	SYS_sigtimedwait	=137,
-	SYS_times			=153,//
+	SYS_times			=153,
+	SYS_setpgid 	 	=154,
+	SYS_getpgid 		=155,
 	SYS_uname			=160,//
 	SYS_gettimeofday	=169,//
 	SYS_getpid			=172,//
@@ -62,6 +67,7 @@ enum SyscallID
 	SYS_getegid			=177,
 
 	SYS_gettid			=178,
+	SYS_sysinfo			=179,
 	SYS_socket			=198,
 	SYS_bind			=200, 
 	SYS_listen			=201,
@@ -106,6 +112,7 @@ inline const char *SyscallName(int sys)
 		case SYS_umount2:			return "SYS_umount2";
 		case SYS_mount:				return "SYS_mount";
 		case SYS_statfs:			return "SYS_statfs";
+		case SYS_faccessat:			return "SYS_faccessat";
 		case SYS_chdir:				return "SYS_chdir";
 		case SYS_openat:			return "SYS_openat";
 		case SYS_close:				return "SYS_close";
@@ -120,6 +127,7 @@ inline const char *SyscallName(int sys)
 		case SYS_pwrite64:			return "SYS_pwrite64";
 		case SYS_preadv:			return "SYS_preadv";
 		case SYS_pwritev:			return "SYS_pwritev";
+		case SYS_sendfile:			return "SYS_sendfile";
 		case SYS_ppoll:				return "SYS_ppoll";
 		case SYS_newfstatat:		return "SYS_newfstatat";
 		case SYS_fstat:				return "SYS_fstat";
@@ -131,11 +139,14 @@ inline const char *SyscallName(int sys)
 		case SYS_get_robust_list:	return "SYS_get_robust_list";
 		case SYS_nanosleep:			return "SYS_nanosleep";
 		case SYS_clock_gettime:		return "SYS_clock_gettime";
+	    case SYS_syslog:			return "SYS_syslog";
 		case SYS_sched_yeild:		return "SYS_sched_yeild";
 		case SYS_sigaction:			return "SYS_sigaction";
 		case SYS_sigprocmask:		return "SYS_sigprocmask";
 		case SYS_sigtimedwait:		return "SYS_sigtimedwait";
 		case SYS_times:				return "SYS_times";
+		case SYS_setpgid: 			return "SYS_setpgid"; 
+		case SYS_getpgid: 			return "SYS_getpgid"; 
 		case SYS_uname:				return "SYS_uname";
 		case SYS_gettimeofday:		return "SYS_gettimeofday";
 		case SYS_getpid:			return "SYS_getpid";
@@ -143,6 +154,7 @@ inline const char *SyscallName(int sys)
 		case SYS_geteuid:			return "SYS_geteuid";
 		case SYS_getegid:			return "SYS_getegid";
 		case SYS_gettid:			return "SYS_gettid";
+		case SYS_sysinfo:				return "SYS_sysinfo";
 		case SYS_socket:			return "SYS_socket";
 		case SYS_bind:				return "SYS_bind";
 		case SYS_listen:			return "SYS_listen";

@@ -1,0 +1,5 @@
+sudo losetup /dev/loop0 Img/sdcard.img
+
+sudo mount /dev/loop0 Test
+
+riscv64-unknown-elf-objdump Build/Kernel.elf -S | grep 802117f4 -B 100 | c++filt

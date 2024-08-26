@@ -34,12 +34,14 @@
  * @brief Block cache allocator.
  */
 
+#include "File/lwext4_include/LWEXT4_Tools.h"
 #include "ext4_config.h"
 #include "ext4_types.h"
 #include "ext4_bcache.h"
 #include "ext4_blockdev.h"
 #include "ext4_debug.h"
 #include "ext4_errno.h"
+#include "LWEXT4_Tools.h"
 
 static int ext4_bcache_lba_compare(struct ext4_buf *a, struct ext4_buf *b)
 {
@@ -67,7 +69,9 @@ RB_GENERATE_INTERNAL(ext4_buf_lru, ext4_buf, lru_node,
 int ext4_bcache_init_dynamic(struct ext4_bcache *bc, uint32_t cnt,
 			     uint32_t itemsize)
 {
-	ext4_assert(bc && cnt && itemsize);
+	ext4_assert(bc);
+	ext4_assert(cnt);
+	ext4_assert(itemsize);
 
 	memset(bc, 0, sizeof(struct ext4_bcache));
 

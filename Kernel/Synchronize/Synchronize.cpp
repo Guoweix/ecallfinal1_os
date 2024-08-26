@@ -72,7 +72,7 @@ Process* ProcessQueue::getFront()
         kout[Fault] << "process queue is empty" << endl;
     }
     // kout<<Yellow<<"getFront"<<front->next<<endl;
-    
+
     return front->next->proc;
 }
 
@@ -93,12 +93,11 @@ bool ProcessQueue::check(Process* _check)
 void ProcessQueue::enqueue(Process* insertProc)
 {
     ListNode* t = (ListNode*)new ListNode;
-    kout[Info] << "enqueue" << (void*)t<<' '<<this << endl;
+    // kout[Info] << "enqueue" << (void*)t<<' '<<this << endl;
     t->proc = insertProc;
     rear->next = t;
     t->next = nullptr;
     rear = rear->next;
-
 }
 
 void ProcessQueue::dequeue()
@@ -107,11 +106,11 @@ void ProcessQueue::dequeue()
         kout[Fault] << "process queue is empty" << endl;
     }
     ListNode* t = front->next;
-    kout[Info] << "dequeue" << (void*)t <<' '<<this<< endl;
+    // kout[Info] << "dequeue" << (void*)t <<' '<<this<< endl;
     front->next = t->next;
-    if (rear==t) {
-        kout[Info]<<"rear is t"<<endl;
-        rear=front;
+    if (rear == t) {
+        // kout[Info]<<"rear is t"<<endl;
+        rear = front;
     }
     delete t;
 }
@@ -122,9 +121,7 @@ int Semaphore::wait(Process* proc)
     IntrSave(intr_flag);
     lockProcess();
     value--;
-    // kout[Info] << "Wait " << proc << endl;
     if (value < 0) {
-        kout[Info] << "Wait " << proc<<' '<<proc->name << endl;
         if (!queue.check(proc)) {
             queue.enqueue(proc);
         }
@@ -143,20 +140,17 @@ void Semaphore::signal()
     bool intr_flag;
     IntrSave(intr_flag);
     lockProcess();
-    // kout[Info] << "signal " << endl;
-    if (value < 0) {
-        kout[Info]<<(void *)&queue<<endl; 
-        // queue.printAllQueue();
+    value++;
+    if (value == 0) {
+        // kout[Info]<<(void *)&queue<<endl;
         Process* proc = queue.getFront();
-        queue.dequeue();
         proc->SemRef--;
-        // kout[Info] << "signal " << proc <<' '<<proc->name<< endl;
         if (proc->SemRef == 0) {
+
+            queue.dequeue();
             proc->switchStatus(S_Ready);
         }
     }
-    value++;
-
     unlockProcess();
     IntrRestore(intr_flag);
 }
@@ -169,5 +163,5 @@ int Semaphore::getValue()
     int re = value;
     unlockProcess();
     IntrRestore(intr_flag);
-    return value;
+    return re;
 }
